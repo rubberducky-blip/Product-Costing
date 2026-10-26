@@ -165,8 +165,11 @@ export function ItemEdit() {
     }
     setBusy(true)
     setMsg(null)
+    // send only the editable fields: version/updated_at are managed by the database, and an empty
+    // updated_at on new items makes the cast to timestamptz fail
+    const { version: _v, updated_at: _u, updated_by_email: _e, ...fields } = draft
     const { data, error } = await supabase.rpc('save_item', {
-      p_item: { ...draft, id: record?.id ?? null },
+      p_item: { ...fields, id: record?.id ?? null },
       p_lines: draftLines,
       p_expected_version: expectedVersion,
     })
