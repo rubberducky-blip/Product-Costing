@@ -44,7 +44,7 @@ Then in the Supabase dashboard:
 ### 2. Front-end
 
 ```bash
-cp .env.example .env    # fill in Project URL and anon key (Supabase → Project Settings → API)
+cp .env.example .env    # fill in Project URL and anon key (Supabase → Project Settings → Data API)
 npm install
 npm run dev             # http://localhost:5173
 npm test                # cost calculation tests
@@ -55,7 +55,7 @@ npm run build           # static site in dist/
 
 The build is a static site, so any static host works.
 
-- **Vercel / Netlify** (free, works with private repos): import the repo, use build command `npm run build` and output folder `dist`, and add the env vars `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+- **Vercel / Netlify** (free, works with private repos): import the repo, use build command `npm run build` and output folder `dist`, and add the env vars `SUPABASE_URL` and `SUPABASE_ANON_KEY` (Secret is fine; `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` also work). Redeploy after changing them.
 - **GitHub Pages**: `.github/workflows/deploy.yml` deploys on every push to `main`. Add the two values above as repository secrets and set Settings → Pages → Source = *GitHub Actions*. Private repos need a paid GitHub plan for Pages.
 
 On a phone, open the site and use **Add to Home Screen** to get an app-like icon.

@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
-const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
+// injected at build time by vite.config.ts
+const url = __SUPABASE_URL__
+const key = __SUPABASE_ANON_KEY__
 
 export const supabaseConfigured = Boolean(url && key)
 
@@ -20,5 +21,7 @@ export function errorKey(err: { message?: string; code?: string } | null | undef
   if (m.includes('not_found')) return 'err.notFound'
   if (err.code === '23505') return 'err.duplicate'
   if (m.includes('Invalid login credentials')) return 'err.login'
+  if (m.includes('Email not confirmed')) return 'err.emailNotConfirmed'
+  if (m.includes('Failed to fetch') || m.includes('NetworkError')) return 'err.network'
   return 'err.generic'
 }
