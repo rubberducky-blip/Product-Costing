@@ -179,6 +179,8 @@ const en = {
   'err.notFound': 'Record not found.',
   'err.duplicate': 'This code or name already exists.',
   'err.login': 'Wrong email or password.',
+  'err.emailNotConfirmed': 'This user is not confirmed yet. In Supabase → Authentication → Users, confirm the user (or recreate it with "Auto confirm").',
+  'err.network': 'Cannot reach Supabase. Check VITE_SUPABASE_URL and your internet connection.',
   'err.required': 'Please fill in the required fields.',
 }
 
@@ -363,6 +365,8 @@ const el: Record<TKey, string> = {
   'err.notFound': 'Η εγγραφή δεν βρέθηκε.',
   'err.duplicate': 'Ο κωδικός ή το όνομα υπάρχει ήδη.',
   'err.login': 'Λάθος email ή κωδικός.',
+  'err.emailNotConfirmed': 'Ο χρήστης δεν έχει επιβεβαιωθεί. Στο Supabase → Authentication → Users επιβεβαιώστε τον (ή δημιουργήστε τον ξανά με «Auto confirm»).',
+  'err.network': 'Δεν υπάρχει σύνδεση με το Supabase. Ελέγξτε το VITE_SUPABASE_URL και τη σύνδεση στο internet.',
   'err.required': 'Συμπληρώστε τα υποχρεωτικά πεδία.',
 }
 

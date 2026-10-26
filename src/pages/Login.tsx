@@ -17,7 +17,11 @@ export function Login() {
     setErr(null)
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
     setBusy(false)
-    if (error) setErr(t(errorKey(error)))
+    if (error) {
+      const key = errorKey(error)
+      // unrecognised errors: show Supabase's own message so the cause is visible
+      setErr(key === 'err.generic' ? `${t(key)} (${error.message})` : t(key))
+    }
   }
 
   return (
