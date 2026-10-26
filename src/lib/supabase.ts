@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
-const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
+// injected at build time by vite.config.ts
+const url = __SUPABASE_URL__
+const key = __SUPABASE_ANON_KEY__
 
 export const supabaseConfigured = Boolean(url && key)
 

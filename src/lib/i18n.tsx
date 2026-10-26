@@ -27,7 +27,7 @@ const en = {
   'login.email': 'Email',
   'login.password': 'Password',
   'login.submit': 'Sign in',
-  'login.notConfigured': 'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.',
+  'login.notConfigured': 'Supabase is not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY on the host and redeploy.',
 
   'search.placeholder': 'Search codes, names, suppliers…',
   'search.none': 'No results',
@@ -180,7 +180,7 @@ const en = {
   'err.duplicate': 'This code or name already exists.',
   'err.login': 'Wrong email or password.',
   'err.emailNotConfirmed': 'This user is not confirmed yet. In Supabase → Authentication → Users, confirm the user (or recreate it with "Auto confirm").',
-  'err.network': 'Cannot reach Supabase. Check VITE_SUPABASE_URL and your internet connection.',
+  'err.network': 'Cannot reach Supabase. Check SUPABASE_URL and your internet connection.',
   'err.required': 'Please fill in the required fields.',
 }
 
@@ -213,7 +213,7 @@ const el: Record<TKey, string> = {
   'login.email': 'Email',
   'login.password': 'Κωδικός',
   'login.submit': 'Σύνδεση',
-  'login.notConfigured': 'Το Supabase δεν έχει ρυθμιστεί. Ορίστε VITE_SUPABASE_URL και VITE_SUPABASE_ANON_KEY.',
+  'login.notConfigured': 'Το Supabase δεν έχει ρυθμιστεί. Ορίστε SUPABASE_URL και SUPABASE_ANON_KEY στη φιλοξενία και κάντε νέο deploy.',
 
   'search.placeholder': 'Αναζήτηση κωδικών, ονομάτων, προμηθευτών…',
   'search.none': 'Κανένα αποτέλεσμα',
@@ -366,7 +366,7 @@ const el: Record<TKey, string> = {
   'err.duplicate': 'Ο κωδικός ή το όνομα υπάρχει ήδη.',
   'err.login': 'Λάθος email ή κωδικός.',
   'err.emailNotConfirmed': 'Ο χρήστης δεν έχει επιβεβαιωθεί. Στο Supabase → Authentication → Users επιβεβαιώστε τον (ή δημιουργήστε τον ξανά με «Auto confirm»).',
-  'err.network': 'Δεν υπάρχει σύνδεση με το Supabase. Ελέγξτε το VITE_SUPABASE_URL και τη σύνδεση στο internet.',
+  'err.network': 'Δεν υπάρχει σύνδεση με το Supabase. Ελέγξτε το SUPABASE_URL και τη σύνδεση στο internet.',
   'err.required': 'Συμπληρώστε τα υποχρεωτικά πεδία.',
 }
 
