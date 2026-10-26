@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Combobox } from '../components/Combobox'
 import { ConflictDialog, EditGuards } from '../components/EditGuards'
+import { useFolderFieldOptions } from '../components/Folders'
 import { Banner, Field, NumInput, Section } from '../components/ui'
 import { useAuth } from '../lib/auth'
 import { useData } from '../lib/data'
@@ -13,6 +15,7 @@ import { useVersionedForm } from '../lib/useVersionedForm'
 
 interface SupplierForm {
   name: string
+  folder_id: string
   country: string
   default_discount_pct: string
   shipping_pct: string
@@ -21,8 +24,9 @@ interface SupplierForm {
   notes: string
 }
 
-const toForm = (s: Supplier | undefined): SupplierForm => ({
+const toForm = (s: Supplier | undefined, folderId: string): SupplierForm => ({
   name: s?.name ?? '',
+  folder_id: s ? s.folder_id ?? '' : folderId,
   country: s?.country ?? '',
   default_discount_pct: String(s?.default_discount_pct ?? 0),
   shipping_pct: String(s?.shipping_pct ?? 0),
@@ -39,7 +43,13 @@ export function SupplierEdit() {
   const nav = useNavigate()
   const { supplierMap, items, costs, settings, reload } = useData()
   const record = id ? supplierMap.get(id) : undefined
-  const { form, setForm, dirty, setDirty, baseVersion, staleBy, reset } = useVersionedForm(record, toForm, JSON.stringify(record))
+  const [params] = useSearchParams()
+  const { form, setForm, dirty, setDirty, baseVersion, staleBy, reset } = useVersionedForm(
+    record,
+    (r) => toForm(r, params.get('folder') ?? ''),
+    JSON.stringify(record),
+  )
+  const folderOpts = useFolderFieldOptions('supplier')
   const others = usePresence(id ? `supplier:${id}` : null, email)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
@@ -59,6 +69,7 @@ export function SupplierEdit() {
     if (!form.name.trim()) return setMsg({ kind: 'error', text: t('err.required') })
     const payload = {
       name: form.name.trim(),
+      folder_id: form.folder_id || null,
       country: form.country.trim() || null,
       default_discount_pct: parseNum(form.default_discount_pct) ?? 0,
       shipping_pct: parseNum(form.shipping_pct) ?? 0,
@@ -89,16 +100,18 @@ export function SupplierEdit() {
     if (error) return setMsg({ kind: 'error', text: t(errorKey(error)) })
     if (!data?.length) return setConflict({ deleted: false })
     await reload(['suppliers', 'items'])
-    nav('/suppliers', { replace: true })
+    nav(`/suppliers${record.folder_id ? `?f=${record.folder_id}` : ''}`, { replace: true })
   }
 
+  const backFolder = record ? record.folder_id : form.folder_id
+  const backTo = `/suppliers${backFolder ? `?f=${backFolder}` : ''}`
   const supplied = id ? items.filter((i) => i.supplier_id === id) : []
   const cur = settings?.currency ?? '€'
 
   return (
     <form onSubmit={(e: FormEvent) => { e.preventDefault(); save(baseVersion) }}>
       <div className="page-head">
-        <button type="button" className="btn ghost" onClick={() => (!dirty || confirm(t('common.leaveUnsaved'))) && nav('/suppliers')}>
+        <button type="button" className="btn ghost" onClick={() => (!dirty || confirm(t('common.leaveUnsaved'))) && nav(backTo)}>
           ← {t('common.back')}
         </button>
         <h1>{isNew ? t('supplier.new') : record!.name}</h1>
@@ -113,6 +126,9 @@ export function SupplierEdit() {
             <div className="fields">
               <Field label={`${t('supplier.name')} *`}>
                 <input required value={form.name} onChange={(e) => set('name', e.target.value)} />
+              </Field>
+              <Field label={t('folder.field')}>
+                <Combobox value={form.folder_id} options={folderOpts} onChange={(v) => set('folder_id', v)} />
               </Field>
               <Field label={t('supplier.country')}>
                 <input value={form.country} onChange={(e) => set('country', e.target.value)} />

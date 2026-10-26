@@ -7,13 +7,14 @@ It works on desktop and mobile, uses a dark theme, and is available in Greek and
 
 - **Suppliers**: country, default discount %, shipping % (shipping as a share of each product's cost, e.g. 14%).
 - **Three item types**
-  - **Products (Προϊόντα)**: made in-house. Each one has a recipe of raw materials (quantity in pcs / cm / cm², with an optional comment) plus labor minutes.
+  - **Products (Προϊόντα)**: made in-house. Each one has a recipe of raw materials (quantity in pcs / cm / cm², with an optional comment) plus one or more labor time entries (in seconds, each with an optional comment).
   - **Merchandise (Εμπορεύματα)**: bought and resold. Each one is linked to a supplier, with an optional custom discount or shipping %. It can also be flagged *also used as raw material*.
   - **Raw materials (Πρώτες ύλες)**: bought and used in recipes. Each one has a default unit, and an optional piece length/area so recipes can use a different unit.
 - **Cost**
   - purchase price × (1 − discount) × (1 + shipping) ÷ quantity per purchase
-  - products: Σ materials + minutes × (labor rate + production overhead rate)
+  - products: Σ materials + labor hours (sum of the labor entries) × (labor rate + production overhead rate)
 - **Pricing**: markup per item (or the default from settings) → final price, profit and margin. Prices are rounded to 0.05 by default. The rounding step can be changed per item or globally, and rounding can go to nearest, up or down.
+- **Folders**: products, merchandise, raw materials and suppliers can be organised in nested folders. Pickers (supplier, raw material, folder) show the folder tree and can be filtered by typing.
 - **Global search** across item codes, names, supplier codes and suppliers.
 - **Backups**: a daily automatic snapshot (pg_cron) plus manual backups in Settings. Backups can be downloaded as JSON, and you can restore from a stored backup or from a file. A safety snapshot is always taken before a restore. An optional weekly off-site dump runs through GitHub Actions.
 - **Password-only login** through Supabase Auth. Every table is protected by Row Level Security.
@@ -29,7 +30,7 @@ It works on desktop and mobile, uses a dark theme, and is available in Greek and
 The schema is in `supabase/migrations/`.
 
 - With the Supabase GitHub integration, the migration is applied when the branch is merged.
-- Otherwise, paste `supabase/migrations/20261026000000_init.sql` into **Supabase → SQL Editor** and run it.
+- Otherwise, paste each file in `supabase/migrations/` into **Supabase → SQL Editor** and run them in order (oldest first).
 
 Then in the Supabase dashboard:
 

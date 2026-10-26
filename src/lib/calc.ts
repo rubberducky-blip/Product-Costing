@@ -1,4 +1,4 @@
-import type { Item, QtyUnit, RecipeLine, RoundingMode, Settings, Supplier } from './types'
+import type { Item, LaborEntry, QtyUnit, RecipeLine, RoundingMode, Settings, Supplier } from './types'
 
 const num = (v: number | string | null | undefined) => (v == null || v === '' ? 0 : Number(v))
 
@@ -63,6 +63,7 @@ export interface ItemCost {
   cost: number // full unit cost
   materials: number
   labor: number
+  laborSeconds: number
   overhead: number
   purchase?: PurchaseCost
   lines: MaterialLineCost[]
@@ -86,10 +87,11 @@ export function materialUnitCost(item: Item, ctx: CostContext): number {
   return purchaseCost(item, item.supplier_id ? ctx.suppliers.get(item.supplier_id) : undefined).unitCost
 }
 
-export function computeItemCost(item: Item, lines: RecipeLine[], ctx: CostContext): ItemCost {
+export function computeItemCost(item: Item, lines: RecipeLine[], ctx: CostContext, laborEntries: LaborEntry[] = []): ItemCost {
   const s = ctx.settings
   let materials = 0
   let labor = 0
+  let laborSeconds = 0
   let overhead = 0
   let purchase: PurchaseCost | undefined
   const lineCosts: MaterialLineCost[] = []
@@ -109,7 +111,8 @@ export function computeItemCost(item: Item, lines: RecipeLine[], ctx: CostContex
       materials += cost ?? 0
       lineCosts.push({ line, material, unitCost, cost })
     }
-    const hours = num(item.labor_minutes) / 60
+    laborSeconds = laborEntries.reduce((sum, e) => sum + num(e.seconds), 0)
+    const hours = laborSeconds / 3600
     labor = hours * num(s.labor_rate_per_hour)
     overhead = hours * num(s.overhead_rate_per_hour)
   } else {
@@ -126,7 +129,7 @@ export function computeItemCost(item: Item, lines: RecipeLine[], ctx: CostContex
   const marginPct = price > 0 ? (profit / price) * 100 : 0
 
   return {
-    cost, materials, labor, overhead, purchase, lines: lineCosts, warnings: [...warnings],
+    cost, materials, labor, laborSeconds, overhead, purchase, lines: lineCosts, warnings: [...warnings],
     markupPct, price, rawPrice, roundingStep, profit, marginPct,
   }
 }

@@ -24,7 +24,7 @@ export function Layout() {
   const { email } = useAuth()
   const { loading, error } = useData()
   const links = [
-    ['/list/product', 'nav.products', '🛠'],
+    ['/list/product', 'nav.product', '🛠'],
     ['/list/merchandise', 'nav.merchandise', '📦'],
     ['/list/raw_material', 'nav.raw_material', '🧵'],
     ['/suppliers', 'nav.suppliers', '🚚'],

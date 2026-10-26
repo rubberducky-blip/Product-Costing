@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 
 const en = {
   'app.title': 'Product Costing',
-  'nav.products': 'Products',
+  'nav.product': 'Products',
   'nav.merchandise': 'Merchandise',
   'nav.raw_material': 'Raw materials',
   'nav.suppliers': 'Suppliers',
@@ -12,9 +12,6 @@ const en = {
   'kind.product': 'Product',
   'kind.merchandise': 'Merchandise',
   'kind.raw_material': 'Raw material',
-  'kindHelp.product': 'Made in-house from raw materials and labor time (recipe).',
-  'kindHelp.merchandise': 'Bought from a supplier and resold. Can also be used as a raw material.',
-  'kindHelp.raw_material': 'Bought from a supplier and used to make products.',
 
   'unit.pcs': 'pcs',
   'unit.cm': 'cm',
@@ -72,7 +69,7 @@ const en = {
   'item.discount': 'Discount %',
   'item.shipping': 'Shipping %',
   'item.customHelp': 'Leave empty to use the supplier default ({value}).',
-  'item.labor': 'Labor time (minutes)',
+  'item.sectionLabor': 'Labor time',
   'item.markup': 'Markup %',
   'item.rounding': 'Round price to',
   'item.sectionGeneral': 'General',
@@ -92,6 +89,19 @@ const en = {
   'recipe.pick': 'Choose raw material…',
   'recipe.empty': 'No raw materials yet.',
   'recipe.noConversion': 'Cannot convert unit — set piece length/area on the material.',
+
+  'labor.seconds': 'Seconds',
+  'labor.add': 'Add labor time',
+  'labor.empty': 'No labor time yet.',
+  'labor.total': 'Total {time}',
+
+  'folder.new': 'New folder',
+  'folder.edit': 'Edit folder',
+  'folder.name': 'Folder name',
+  'folder.parent': 'Inside folder',
+  'folder.field': 'Folder',
+  'folder.root': '— Top level (no folder)',
+  'folder.notEmpty': 'This folder is not empty. Move or delete what is inside it first.',
 
   'cost.listPrice': 'List price',
   'cost.discount': 'Discount',
@@ -188,7 +198,7 @@ export type TKey = keyof typeof en
 
 const el: Record<TKey, string> = {
   'app.title': 'Κοστολόγηση',
-  'nav.products': 'Προϊόντα',
+  'nav.product': 'Προϊόντα',
   'nav.merchandise': 'Εμπορεύματα',
   'nav.raw_material': 'Πρώτες ύλες',
   'nav.suppliers': 'Προμηθευτές',
@@ -198,9 +208,6 @@ const el: Record<TKey, string> = {
   'kind.product': 'Προϊόν',
   'kind.merchandise': 'Εμπόρευμα',
   'kind.raw_material': 'Πρώτη ύλη',
-  'kindHelp.product': 'Κατασκευάζεται από εμάς με πρώτες ύλες και χρόνο εργασίας (συνταγή).',
-  'kindHelp.merchandise': 'Αγοράζεται από προμηθευτή και μεταπωλείται. Μπορεί να χρησιμοποιείται και ως πρώτη ύλη.',
-  'kindHelp.raw_material': 'Αγοράζεται από προμηθευτή και χρησιμοποιείται στην κατασκευή προϊόντων.',
 
   'unit.pcs': 'τεμ.',
   'unit.cm': 'εκ.',
@@ -258,7 +265,7 @@ const el: Record<TKey, string> = {
   'item.discount': 'Έκπτωση %',
   'item.shipping': 'Μεταφορικά %',
   'item.customHelp': 'Κενό = προεπιλογή προμηθευτή ({value}).',
-  'item.labor': 'Χρόνος εργασίας (λεπτά)',
+  'item.sectionLabor': 'Χρόνοι εργασίας',
   'item.markup': 'Markup %',
   'item.rounding': 'Στρογγυλοποίηση τιμής στο',
   'item.sectionGeneral': 'Γενικά',
@@ -278,6 +285,19 @@ const el: Record<TKey, string> = {
   'recipe.pick': 'Επιλογή πρώτης ύλης…',
   'recipe.empty': 'Δεν υπάρχουν πρώτες ύλες ακόμα.',
   'recipe.noConversion': 'Δεν γίνεται μετατροπή μονάδας — ορίστε μήκος/εμβαδόν τεμαχίου στην πρώτη ύλη.',
+
+  'labor.seconds': 'Δευτερόλεπτα',
+  'labor.add': 'Προσθήκη χρόνου εργασίας',
+  'labor.empty': 'Δεν υπάρχει χρόνος εργασίας.',
+  'labor.total': 'Σύνολο {time}',
+
+  'folder.new': 'Νέος φάκελος',
+  'folder.edit': 'Επεξεργασία φακέλου',
+  'folder.name': 'Όνομα φακέλου',
+  'folder.parent': 'Μέσα στον φάκελο',
+  'folder.field': 'Φάκελος',
+  'folder.root': '— Αρχικό επίπεδο (χωρίς φάκελο)',
+  'folder.notEmpty': 'Ο φάκελος δεν είναι άδειος. Μετακινήστε ή διαγράψτε πρώτα ό,τι περιέχει.',
 
   'cost.listPrice': 'Τιμή καταλόγου',
   'cost.discount': 'Έκπτωση',
