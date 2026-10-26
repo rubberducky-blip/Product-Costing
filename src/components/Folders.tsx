@@ -118,24 +118,16 @@ export function useFolderView<T extends { id: string }>(
 }
 
 /** Folders shown as tiles above the table. Drop on a tile to move into it; on its edges to re-arrange (manual sort). */
-export function FolderTiles({ view, onEdit }: {
-  view: ReturnType<typeof useFolderView<{ id: string }>>
-  onEdit: (f: Folder) => void
-}) {
+export function FolderTiles({ view }: { view: ReturnType<typeof useFolderView<{ id: string }>> }) {
   if (!view.subfolders.length) return null
   return (
     <div className="folder-tiles">
-      {view.subfolders.map((f) => <FolderTile key={f.id} folder={f} view={view} onEdit={onEdit} />)}
+      {view.subfolders.map((f) => <FolderTile key={f.id} folder={f} view={view} />)}
     </div>
   )
 }
 
-function FolderTile({ folder, view, onEdit }: {
-  folder: Folder
-  view: ReturnType<typeof useFolderView<{ id: string }>>
-  onEdit: (f: Folder) => void
-}) {
-  const { t } = useI18n()
+function FolderTile({ folder, view }: { folder: Folder; view: ReturnType<typeof useFolderView<{ id: string }>> }) {
   const { side, handlers } = useDropTarget(
     (d, s) => (s === 'into' ? view.canMoveInto(d, folder.id) : view.manual && d.type === 'folder' && d.id !== folder.id),
     (d, s) => (s === 'into' ? view.moveInto(d, folder.id) : view.reorderFolders(d, folder.id, s)),
@@ -154,18 +146,6 @@ function FolderTile({ folder, view, onEdit }: {
       <span className="folder-icon" aria-hidden>📁</span>
       <span className="folder-name">{folder.name}</span>
       <span className="muted small">{view.count(folder.id)}</span>
-      <button
-        type="button"
-        className="btn small ghost folder-edit"
-        aria-label={t('folder.edit')}
-        title={t('folder.edit')}
-        onClick={(e) => {
-          e.stopPropagation()
-          onEdit(folder)
-        }}
-      >
-        ✎
-      </button>
     </div>
   )
 }

@@ -150,7 +150,7 @@ export function ItemEdit() {
   const recordLabor = (id && laborByProduct.get(id)) || []
   const cur = settings?.currency ?? '€'
 
-  const { form, setForm, dirty, setDirty, baseVersion, setBaseVersion, staleBy, reset } = useVersionedForm(
+  const { form, setForm, dirty, markSaved, baseVersion, setBaseVersion, staleBy, reset } = useVersionedForm(
     record,
     (r) => toForm(r, (id && linesByProduct.get(id)) || [], (id && laborByProduct.get(id)) || [], (newKind as ItemKind) ?? 'product', params.get('folder') ?? ''),
     JSON.stringify([record, recordLines, recordLabor]),
@@ -244,7 +244,7 @@ export function ItemEdit() {
     setBaseVersion(saved.version)
     await reload(['items', 'recipe_lines', 'labor_entries'])
     if (isNew) nav(`/item/${saved.id}`, { replace: true })
-    setDirty(false)
+    markSaved()
     setMsg({ kind: 'ok', text: t('common.saved') })
   }
 
@@ -487,7 +487,8 @@ export function ItemEdit() {
             </Section>
           )}
           <div className="save-bar">
-            <button className="btn primary" disabled={busy}>{busy ? t('common.saving') : t('common.save')}</button>
+            <button className="btn primary" disabled={busy || !dirty}>{busy ? t('common.saving') : t('common.save')}</button>
+            <button type="button" className="btn" disabled={busy || !dirty} onClick={() => { reset(); setMsg(null) }}>{t('common.discard')}</button>
             {!isNew && <button type="button" className="btn danger ghost" onClick={remove}>{t('common.delete')}</button>}
           </div>
           {record?.updated_at && (
@@ -504,7 +505,7 @@ export function ItemEdit() {
           onReload={async () => {
             setConflict(null)
             await reload(['items', 'recipe_lines', 'labor_entries'])
-            setDirty(false)
+            markSaved()
           }}
           onOverwrite={async () => {
             setConflict(null)

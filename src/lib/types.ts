@@ -108,6 +108,8 @@ export interface PriceNotification {
   new_price: number
   created_at: string
   seen_by: string[]
+  hidden_by: string[]
+  adjusted_at: string | null
 }
 
 export interface BackupMeta {

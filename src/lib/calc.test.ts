@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeItemCost, costPerUnit, purchaseCost, roundPrice, type CostContext } from './calc'
+import { computeItemCost, costPerUnit, markupForPrice, purchaseCost, roundPrice, type CostContext } from './calc'
 import type { Item, Settings, Supplier } from './types'
 
 const settings: Settings = {
@@ -82,5 +82,18 @@ describe('computeItemCost', () => {
     const c = computeItemCost(m, [], ctx)
     expect(c.cost).toBeCloseTo(10.26)
     expect(c.price).toBe(15)
+  })
+})
+
+describe('markupForPrice', () => {
+  it('finds the markup that gives the previous price after rounding', () => {
+    for (const [cost, target, step, mode] of [[10.504, 21, 0.05, 'nearest'], [7.33, 19.95, 0.05, 'up'], [3.21, 9.9, 0.1, 'down']] as const) {
+      const m = markupForPrice(cost, target, step, mode)!
+      expect(roundPrice(cost * (1 + m / 100), step, mode)).toBeCloseTo(target, 6)
+      expect(Math.round(m * 100) / 100).toBe(m)
+    }
+  })
+  it('returns null without a cost', () => {
+    expect(markupForPrice(0, 10, 0.05, 'nearest')).toBeNull()
   })
 })

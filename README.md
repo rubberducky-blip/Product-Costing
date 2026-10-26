@@ -16,8 +16,8 @@ It works on desktop and mobile, uses a dark theme, and is available in Greek and
 - **Pricing**: markup per item (or the default from settings) → final price, profit and margin. Prices are rounded to 0.05 by default. The rounding step can be changed per item or globally, and rounding can go to nearest, up or down.
 - **Folders**: products, merchandise, raw materials and suppliers can be organised in nested folders. Pickers (supplier, raw material, folder) show the folder tree and can be filtered by typing.
 - **Sorting and drag-and-drop**: each folder (and each list's top level) sorts by code or manually. Drag rows or folders onto a folder, or onto a folder in the path, to move them; with manual sorting, drag them to re-arrange.
-- **Price change notifications**: when a price changes because of another change (labor rate, a material, a supplier discount…), the item gets a glowing red dot until hovered, and the bell in the top bar lists the change (increase or decrease).
-- **Global search** across item codes, names, supplier codes and suppliers.
+- **Price change notifications**: when a price changes because of another change (labor rate, a material, a supplier discount…), the item gets a glowing red dot until hovered, and the bell in the top bar lists the change (increase or decrease). From there a notification can be hidden, or its item's markup adjusted so the price goes back to the previous one; *Margin expansion* does this for every item whose price dropped.
+- **Global search** across item codes, names, supplier codes, suppliers, notes and recipe/labor comments.
 - **Backups**: a daily automatic snapshot (pg_cron) plus manual backups in Settings. Backups can be downloaded as JSON, and you can restore from a stored backup or from a file. A safety snapshot is always taken before a restore. An optional weekly off-site dump runs through GitHub Actions.
 - **Password-only login** through Supabase Auth. Every table is protected by Row Level Security.
 - **Protection against conflicting edits**

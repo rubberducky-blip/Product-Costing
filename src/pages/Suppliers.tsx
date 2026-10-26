@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { SortSelect } from '../components/Arrange'
+import { SettingsMenu } from '../components/Arrange'
 import { Breadcrumbs, EntryRow, FolderDialog, FolderTiles, useFolderView } from '../components/Folders'
 import { Banner } from '../components/ui'
 import { useData } from '../lib/data'
@@ -31,13 +31,13 @@ export function Suppliers() {
     <div>
       <div className="page-head">
         <Breadcrumbs rootLabel={t('nav.suppliers')} folderId={view.parentId} onOpen={view.openFolder} onDropInto={view.moveInto} />
-        <SortSelect scope="supplier" folder={view.folder} />
+        <SettingsMenu scope="supplier" folder={view.folder} onEditFolder={() => setDialog({ folder: view.folder })} />
         <input className="filter" type="search" placeholder={t('common.filter')} value={filter} onChange={(e) => setFilter(e.target.value)} />
         <button type="button" className="btn" onClick={() => setDialog({})}>+ {t('folder.new')}</button>
         <Link className="btn primary" to={`/supplier/new${view.parentId ? `?folder=${view.parentId}` : ''}`}>+ {t('common.new')}</Link>
       </div>
       {error && <Banner kind="error">{error}</Banner>}
-      {!f && <FolderTiles view={view} onEdit={(folder) => setDialog({ folder })} />}
+      {!f && <FolderTiles view={view} />}
       {rows.length === 0 ? (
         (f || view.subfolders.length === 0) && <p className="muted">{t('common.empty')}</p>
       ) : (
@@ -66,9 +66,6 @@ export function Suppliers() {
             ))}
           </tbody>
         </table>
-      )}
-      {!f && (view.here.length > 1 || view.subfolders.length > 1) && (
-        <p className="muted small">{view.manual ? t('sort.hintManual') : t('sort.hintCode')}</p>
       )}
       {dialog && (
         <FolderDialog

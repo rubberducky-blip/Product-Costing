@@ -36,7 +36,7 @@ export function Settings() {
   const { email } = useAuth()
   const { settings, reload } = useData()
   const record = settings ?? undefined
-  const { form, setForm, dirty, setDirty, baseVersion, staleBy, reset } = useVersionedForm(record, toForm, JSON.stringify(record))
+  const { form, setForm, dirty, markSaved, baseVersion, staleBy, reset } = useVersionedForm(record, toForm, JSON.stringify(record))
   const others = usePresence('settings', email)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
@@ -66,7 +66,7 @@ export function Settings() {
     if (error) return setMsg({ kind: 'error', text: t(errorKey(error)) })
     if (!data) return setConflict(true)
     await reload(['app_settings'])
-    setDirty(false)
+    markSaved()
     setMsg({ kind: 'ok', text: t('common.saved') })
   }
 
@@ -112,7 +112,8 @@ export function Settings() {
           </div>
         </Section>
         <div className="save-bar">
-          <button className="btn primary" disabled={busy}>{busy ? t('common.saving') : t('common.save')}</button>
+          <button className="btn primary" disabled={busy || !dirty}>{busy ? t('common.saving') : t('common.save')}</button>
+            <button type="button" className="btn" disabled={busy || !dirty} onClick={() => { reset(); setMsg(null) }}>{t('common.discard')}</button>
         </div>
       </form>
 
@@ -129,7 +130,7 @@ export function Settings() {
           onReload={async () => {
             setConflict(false)
             await reload(['app_settings'])
-            setDirty(false)
+            markSaved()
           }}
           onOverwrite={async () => {
             setConflict(false)
