@@ -1,0 +1,32 @@
+# Off-site weekly backup: dumps the Supabase database and keeps it as a workflow artifact for 90 days.
+# Needs the repository secret SUPABASE_DB_URL (Supabase → Connect → Session pooler connection string).
+# Skips itself when the secret is not set. Artifacts are visible to anyone with read access to the repo.
+name: Database backup
+on:
+  schedule:
+    - cron: '30 3 * * 0'
+  workflow_dispatch:
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+    steps:
+      - name: Check secret
+        id: check
+        run: echo "enabled=${{ env.SUPABASE_DB_URL != '' }}" >> "$GITHUB_OUTPUT"
+      - uses: supabase/setup-cli@v1
+        if: steps.check.outputs.enabled == 'true'
+        with: { version: latest }
+      - name: Dump
+        if: steps.check.outputs.enabled == 'true'
+        run: |
+          mkdir backup
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f backup/schema.sql
+          supabase db dump --db-url "$SUPABASE_DB_URL" --data-only -f backup/data.sql
+      - uses: actions/upload-artifact@v4
+        if: steps.check.outputs.enabled == 'true'
+        with:
+          name: db-backup-${{ github.run_number }}
+          path: backup
+          retention-days: 90

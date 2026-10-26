@@ -1,0 +1,2 @@
+# Minimal Supabase CLI config. The GitHub integration applies supabase/migrations/*.sql.
+project_id = "product-costing"
