@@ -8,12 +8,12 @@ const settings: Settings = {
 }
 const supplier: Supplier = {
   id: 's1', name: 'Acme', country: 'DE', default_discount_pct: 10, shipping_pct: 14, email: null, phone: null,
-  notes: null, version: 1, updated_at: '', updated_by_email: null,
+  notes: null, version: 1, updated_at: '', updated_by_email: null, folder_id: null,
 }
 const base: Item = {
   id: '', code: '', name: '', kind: 'raw_material', usable_as_material: true, supplier_id: 's1', supplier_code: null,
   purchase_price: 0, purchase_qty: 1, unit: 'pcs', piece_length_cm: null, piece_area_cm2: null, discount_pct: null,
-  shipping_pct: null, labor_minutes: 0, markup_pct: null, rounding_step: null, notes: null, version: 1,
+  folder_id: null, shipping_pct: null, markup_pct: null, rounding_step: null, notes: null, version: 1,
   updated_at: '', updated_by_email: null,
 }
 const leather: Item = { ...base, id: 'm1', code: 'LEATHER', purchase_price: 100, purchase_qty: 5000, unit: 'cm2' }
@@ -58,13 +58,14 @@ describe('roundPrice', () => {
 
 describe('computeItemCost', () => {
   it('sums materials, labor and overhead for products', () => {
-    const product: Item = { ...base, id: 'p1', kind: 'product', usable_as_material: false, supplier_id: null, labor_minutes: 30 }
+    const product: Item = { ...base, id: 'p1', kind: 'product', usable_as_material: false, supplier_id: null }
     const c = computeItemCost(product, [
       { material_id: 'm1', quantity: 200, unit: 'cm2', comment: null },
       { material_id: 'm2', quantity: 2, unit: 'pcs', comment: null },
-    ], ctx)
+    ], ctx, [{ seconds: 1200, comment: 'cutting' }, { seconds: 600, comment: null }])
     // leather: 100 × 0.9 × 1.14 / 5000 = 0.02052 per cm² → 4.104; rings 0.2 × 2 = 0.4
     expect(c.materials).toBeCloseTo(4.504)
+    expect(c.laborSeconds).toBe(1800)
     expect(c.labor).toBeCloseTo(5)
     expect(c.overhead).toBeCloseTo(1)
     expect(c.cost).toBeCloseTo(10.504)

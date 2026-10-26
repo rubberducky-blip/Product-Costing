@@ -16,9 +16,22 @@ export interface Settings {
   updated_by_email: string | null
 }
 
+export type FolderScope = ItemKind | 'supplier'
+
+export interface Folder {
+  id: string
+  scope: FolderScope
+  parent_id: string | null
+  name: string
+  version: number
+  updated_at: string
+  updated_by_email: string | null
+}
+
 export interface Supplier {
   id: string
   name: string
+  folder_id: string | null
   country: string | null
   default_discount_pct: number
   shipping_pct: number
@@ -36,6 +49,7 @@ export interface Item {
   name: string
   kind: ItemKind
   usable_as_material: boolean
+  folder_id: string | null
   supplier_id: string | null
   supplier_code: string | null
   purchase_price: number
@@ -45,7 +59,6 @@ export interface Item {
   piece_area_cm2: number | null
   discount_pct: number | null
   shipping_pct: number | null
-  labor_minutes: number
   markup_pct: number | null
   rounding_step: number | null
   notes: string | null
@@ -60,6 +73,14 @@ export interface RecipeLine {
   material_id: string
   quantity: number
   unit: QtyUnit
+  comment: string | null
+  position?: number
+}
+
+export interface LaborEntry {
+  id?: string
+  product_id?: string
+  seconds: number
   comment: string | null
   position?: number
 }

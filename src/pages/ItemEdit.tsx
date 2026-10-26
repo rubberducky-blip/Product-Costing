@@ -1,15 +1,18 @@
 import { useMemo, useState, type FormEvent } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Combobox } from '../components/Combobox'
 import { ConflictDialog, EditGuards } from '../components/EditGuards'
+import { useFolderFieldOptions } from '../components/Folders'
 import { Banner, Field, NumInput, Row, Section } from '../components/ui'
 import { useAuth } from '../lib/auth'
 import { computeItemCost, costPerUnit, materialUnitCost } from '../lib/calc'
 import { useData } from '../lib/data'
-import { dateTime, money, parseNum, pct } from '../lib/format'
+import { treeOptions, type Option } from '../lib/folders'
+import { dateTime, duration, money, parseNum, pct } from '../lib/format'
 import { useI18n } from '../lib/i18n'
 import { usePresence } from '../lib/presence'
 import { errorKey, supabase } from '../lib/supabase'
-import type { Item, ItemKind, QtyUnit, RecipeLine } from '../lib/types'
+import type { Item, ItemKind, LaborEntry, QtyUnit, RecipeLine } from '../lib/types'
 import { useVersionedForm } from '../lib/useVersionedForm'
 
 const UNITS: QtyUnit[] = ['pcs', 'cm', 'cm2']
@@ -23,11 +26,18 @@ interface LineForm {
   comment: string
 }
 
+interface LaborForm {
+  key: string
+  seconds: string
+  comment: string
+}
+
 interface ItemForm {
   code: string
   name: string
   kind: ItemKind
   usable_as_material: boolean
+  folder_id: string
   supplier_id: string
   supplier_code: string
   purchase_price: string
@@ -37,23 +47,27 @@ interface ItemForm {
   piece_area_cm2: string
   discount_pct: string
   shipping_pct: string
-  labor_minutes: string
   markup_pct: string
   rounding_step: string
   notes: string
   lines: LineForm[]
+  labor: LaborForm[]
 }
 
+const listUrl = (kind: ItemKind, folderId: string | null) => `/list/${kind}${folderId ? `?f=${folderId}` : ''}`
 const s = (v: number | null | undefined) => (v == null ? '' : String(v))
 let keySeq = 0
 const newKey = () => `l${++keySeq}`
 
-function toForm(item: Item | undefined, lines: RecipeLine[], kind: ItemKind): ItemForm {
+const blankLabor = (): LaborForm => ({ key: newKey(), seconds: '', comment: '' })
+
+function toForm(item: Item | undefined, lines: RecipeLine[], labor: LaborEntry[], kind: ItemKind, folderId: string): ItemForm {
   return {
     code: item?.code ?? '',
     name: item?.name ?? '',
     kind: item?.kind ?? kind,
     usable_as_material: item?.usable_as_material ?? kind === 'raw_material',
+    folder_id: item ? item.folder_id ?? '' : folderId,
     supplier_id: item?.supplier_id ?? '',
     supplier_code: item?.supplier_code ?? '',
     purchase_price: s(item?.purchase_price),
@@ -63,7 +77,6 @@ function toForm(item: Item | undefined, lines: RecipeLine[], kind: ItemKind): It
     piece_area_cm2: s(item?.piece_area_cm2),
     discount_pct: s(item?.discount_pct),
     shipping_pct: s(item?.shipping_pct),
-    labor_minutes: s(item?.labor_minutes ?? 0),
     markup_pct: s(item?.markup_pct),
     rounding_step: s(item?.rounding_step),
     notes: item?.notes ?? '',
@@ -74,6 +87,9 @@ function toForm(item: Item | undefined, lines: RecipeLine[], kind: ItemKind): It
       unit: l.unit,
       comment: l.comment ?? '',
     })),
+    labor: labor.length
+      ? labor.map((l) => ({ key: newKey(), seconds: s(l.seconds), comment: l.comment ?? '' }))
+      : [blankLabor()],
   }
 }
 
@@ -84,6 +100,7 @@ function formToItem(f: ItemForm, base: Item | undefined): Item {
     name: f.name.trim(),
     kind: f.kind,
     usable_as_material: f.kind === 'raw_material' ? true : f.kind === 'product' ? false : f.usable_as_material,
+    folder_id: f.folder_id || null,
     supplier_id: f.kind === 'product' ? null : f.supplier_id || null,
     supplier_code: f.supplier_code.trim() || null,
     purchase_price: parseNum(f.purchase_price) ?? 0,
@@ -93,7 +110,6 @@ function formToItem(f: ItemForm, base: Item | undefined): Item {
     piece_area_cm2: parseNum(f.piece_area_cm2) || null,
     discount_pct: parseNum(f.discount_pct),
     shipping_pct: parseNum(f.shipping_pct),
-    labor_minutes: parseNum(f.labor_minutes) ?? 0,
     markup_pct: parseNum(f.markup_pct),
     rounding_step: parseNum(f.rounding_step),
     notes: f.notes.trim() || null,
@@ -110,21 +126,30 @@ function formToLines(f: ItemForm): RecipeLine[] {
     .map((l) => ({ material_id: l.material_id, quantity: parseNum(l.quantity)!, unit: l.unit, comment: l.comment.trim() || null }))
 }
 
+function formToLabor(f: ItemForm): LaborEntry[] {
+  if (f.kind !== 'product') return []
+  return f.labor
+    .filter((l) => (parseNum(l.seconds) ?? 0) > 0 || l.comment.trim())
+    .map((l) => ({ seconds: Math.round(Math.max(0, parseNum(l.seconds) ?? 0)), comment: l.comment.trim() || null }))
+}
+
 export function ItemEdit() {
   const { id, kind: newKind } = useParams()
   const isNew = !id
   const { t, lang } = useI18n()
   const { email } = useAuth()
   const nav = useNavigate()
-  const { items, itemMap, suppliers, supplierMap, linesByProduct, settings, ctx, reload } = useData()
+  const { items, itemMap, folders, suppliers, supplierMap, linesByProduct, laborByProduct, settings, ctx, reload } = useData()
+  const [params] = useSearchParams()
   const record = id ? itemMap.get(id) : undefined
   const recordLines = (id && linesByProduct.get(id)) || []
+  const recordLabor = (id && laborByProduct.get(id)) || []
   const cur = settings?.currency ?? '€'
 
   const { form, setForm, dirty, setDirty, baseVersion, setBaseVersion, staleBy, reset } = useVersionedForm(
     record,
-    (r) => toForm(r, (id && linesByProduct.get(id)) || [], (newKind as ItemKind) ?? 'product'),
-    JSON.stringify([record, recordLines]),
+    (r) => toForm(r, (id && linesByProduct.get(id)) || [], (id && laborByProduct.get(id)) || [], (newKind as ItemKind) ?? 'product', params.get('folder') ?? ''),
+    JSON.stringify([record, recordLines, recordLabor]),
   )
   const others = usePresence(id ? `item:${id}` : null, email)
   const [busy, setBusy] = useState(false)
@@ -134,15 +159,40 @@ export function ItemEdit() {
   const set = <K extends keyof ItemForm>(k: K, v: ItemForm[K]) => setForm((f) => ({ ...f, [k]: v }))
   const setLine = (key: string, patch: Partial<LineForm>) =>
     setForm((f) => ({ ...f, lines: f.lines.map((l) => (l.key === key ? { ...l, ...patch } : l)) }))
+  const setLabor = (key: string, patch: Partial<LaborForm>) =>
+    setForm((f) => ({ ...f, labor: f.labor.map((l) => (l.key === key ? { ...l, ...patch } : l)) }))
 
   const draft = formToItem(form, record)
   const draftLines = formToLines(form)
-  const cost = useMemo(() => (ctx ? computeItemCost(draft, draftLines, ctx) : null), [ctx, JSON.stringify(draft), JSON.stringify(draftLines)]) // eslint-disable-line react-hooks/exhaustive-deps
+  const draftLabor = formToLabor(form)
+  const cost = useMemo(
+    () => (ctx ? computeItemCost(draft, draftLines, ctx, draftLabor) : null),
+    [ctx, JSON.stringify(draft), JSON.stringify(draftLines), JSON.stringify(draftLabor)], // eslint-disable-line react-hooks/exhaustive-deps
+  )
 
   const materials = useMemo(
     () => items.filter((i) => i.usable_as_material && i.kind !== 'product' && i.id !== id),
     [items, id],
   )
+  // raw materials first, then merchandise used as raw material, each in its folder tree
+  const materialOptions = useMemo<Option[]>(() => {
+    const entry = (m: Item) => ({ value: m.id, label: m.code, sub: m.name || undefined, folderId: m.folder_id })
+    const merch = materials.filter((m) => m.kind === 'merchandise').map(entry)
+    return [
+      ...treeOptions(folders, 'raw_material', materials.filter((m) => m.kind === 'raw_material').map(entry)),
+      ...(merch.length
+        ? [{ value: 'folder:merch', label: t('nav.merchandise'), depth: 0, header: true }, ...treeOptions(folders, 'merchandise', merch, 1, t('nav.merchandise'))]
+        : []),
+    ]
+  }, [materials, folders, t])
+  const supplierOptions = useMemo<Option[]>(
+    () => [
+      { value: '', label: t('item.noSupplier') },
+      ...treeOptions(folders, 'supplier', suppliers.map((sup) => ({ value: sup.id, label: sup.name, folderId: sup.folder_id }))),
+    ],
+    [folders, suppliers, t],
+  )
+  const folderOpts = useFolderFieldOptions(form.kind)
   const usedIn = useMemo(
     () => (id ? items.filter((p) => (linesByProduct.get(p.id) ?? []).some((l) => l.material_id === id)) : []),
     [items, linesByProduct, id],
@@ -171,6 +221,7 @@ export function ItemEdit() {
     const { data, error } = await supabase.rpc('save_item', {
       p_item: { ...fields, id: record?.id ?? null },
       p_lines: draftLines,
+      p_labor: draftLabor,
       p_expected_version: expectedVersion,
     })
     setBusy(false)
@@ -183,7 +234,7 @@ export function ItemEdit() {
     }
     const saved = data as Item
     setBaseVersion(saved.version)
-    await reload(['items', 'recipe_lines'])
+    await reload(['items', 'recipe_lines', 'labor_entries'])
     if (isNew) nav(`/item/${saved.id}`, { replace: true })
     setDirty(false)
     setMsg({ kind: 'ok', text: t('common.saved') })
@@ -199,13 +250,13 @@ export function ItemEdit() {
     const { data, error } = await supabase.from('items').delete().eq('id', record.id).eq('version', baseVersion!).select('id')
     if (error) return setMsg({ kind: 'error', text: t(errorKey(error)) })
     if (!data?.length) return setConflict({ deleted: false })
-    await reload(['items', 'recipe_lines'])
-    nav(`/list/${record.kind}`, { replace: true })
+    await reload(['items', 'recipe_lines', 'labor_entries'])
+    nav(listUrl(record.kind, record.folder_id), { replace: true })
   }
 
   const back = () => {
     if (dirty && !confirm(t('common.leaveUnsaved'))) return
-    nav(`/list/${record?.kind ?? form.kind}`)
+    nav(record ? listUrl(record.kind, record.folder_id) : listUrl(form.kind, form.folder_id || null))
   }
 
   const isProduct = form.kind === 'product'
@@ -234,10 +285,13 @@ export function ItemEdit() {
               <Field label={t('item.name')}>
                 <input value={form.name} onChange={(e) => set('name', e.target.value)} />
               </Field>
-              <Field label={t('item.kind')} help={t(`kindHelp.${form.kind}`)}>
-                <select value={form.kind} onChange={(e) => set('kind', e.target.value as ItemKind)}>
+              <Field label={t('item.kind')}>
+                <select value={form.kind} onChange={(e) => setForm((f) => ({ ...f, kind: e.target.value as ItemKind, folder_id: '' }))}>
                   {KINDS.map((k) => <option key={k} value={k}>{t(`kind.${k}`)}</option>)}
                 </select>
+              </Field>
+              <Field label={t('folder.field')}>
+                <Combobox value={form.folder_id} options={folderOpts} onChange={(v) => set('folder_id', v)} />
               </Field>
               {form.kind === 'merchandise' && (
                 <label className="check">
@@ -252,10 +306,7 @@ export function ItemEdit() {
             <Section title={t('item.sectionPurchase')}>
               <div className="fields">
                 <Field label={t('item.supplier')}>
-                  <select value={form.supplier_id} onChange={(e) => set('supplier_id', e.target.value)}>
-                    <option value="">{t('item.noSupplier')}</option>
-                    {suppliers.map((sup) => <option key={sup.id} value={sup.id}>{sup.name}</option>)}
-                  </select>
+                  <Combobox value={form.supplier_id} options={supplierOptions} onChange={(v) => set('supplier_id', v)} />
                 </Field>
                 <Field label={t('item.supplierCode')}>
                   <input value={form.supplier_code} onChange={(e) => set('supplier_code', e.target.value)} />
@@ -305,18 +356,17 @@ export function ItemEdit() {
                   const lineCost = unitCost == null ? unitCost : unitCost * (parseNum(l.quantity) ?? 0)
                   return (
                     <div className="recipe-line" key={l.key}>
-                      <select
+                      <Combobox
                         className="rl-material"
                         value={l.material_id}
-                        onChange={(e) => {
-                          const m = itemMap.get(e.target.value)
-                          setLine(l.key, { material_id: e.target.value, unit: m?.unit ?? l.unit })
+                        options={materialOptions}
+                        placeholder={t('recipe.pick')}
+                        fallbackLabel={mat ? `${mat.code}${mat.name ? ` — ${mat.name}` : ''}` : ''}
+                        onChange={(v) => {
+                          const m = itemMap.get(v)
+                          setLine(l.key, { material_id: v, unit: m?.unit ?? l.unit })
                         }}
-                      >
-                        <option value="">{t('recipe.pick')}</option>
-                        {mat && !materials.includes(mat) && <option value={mat.id}>{mat.code} — {mat.name}</option>}
-                        {materials.map((m) => <option key={m.id} value={m.id}>{m.code}{m.name ? ` — ${m.name}` : ''}</option>)}
-                      </select>
+                      />
                       <span className="rl-qty">
                         <NumInput value={l.quantity} placeholder={t('recipe.quantity')} onChange={(v) => setLine(l.key, { quantity: v })} />
                       </span>
@@ -335,11 +385,31 @@ export function ItemEdit() {
               <button type="button" className="btn" onClick={() => setForm((f) => ({ ...f, lines: [...f.lines, { key: newKey(), material_id: '', quantity: '', unit: 'pcs', comment: '' }] }))}>
                 + {t('recipe.add')}
               </button>
-              <div className="fields" style={{ marginTop: 16 }}>
-                <Field label={t('item.labor')}>
-                  <NumInput value={form.labor_minutes} onChange={(v) => set('labor_minutes', v)} />
-                </Field>
+            </Section>
+          )}
+
+          {isProduct && (
+            <Section title={t('item.sectionLabor')} actions={<span className="muted">{t('labor.total', { time: duration(cost?.laborSeconds) })}</span>}>
+              {form.labor.length === 0 && <p className="muted">{t('labor.empty')}</p>}
+              <div className="recipe">
+                {form.labor.map((l) => {
+                  const sec = parseNum(l.seconds) ?? 0
+                  return (
+                    <div className="labor-line" key={l.key}>
+                      <span className="lb-sec">
+                        <NumInput value={l.seconds} placeholder={t('labor.seconds')} onChange={(v) => setLabor(l.key, { seconds: v })} />
+                      </span>
+                      <span className="lb-time muted">{duration(sec)}</span>
+                      <input className="lb-comment" value={l.comment} placeholder={t('recipe.comment')} onChange={(e) => setLabor(l.key, { comment: e.target.value })} />
+                      <span className="lb-cost num">{money((sec / 3600) * (settings?.labor_rate_per_hour ?? 0), cur, lang, 3)}</span>
+                      <button type="button" className="btn small ghost lb-remove" aria-label={t('common.remove')} onClick={() => setForm((f) => ({ ...f, labor: f.labor.filter((x) => x.key !== l.key) }))}>✕</button>
+                    </div>
+                  )
+                })}
               </div>
+              <button type="button" className="btn" onClick={() => setForm((f) => ({ ...f, labor: [...f.labor, blankLabor()] }))}>
+                + {t('labor.add')}
+              </button>
             </Section>
           )}
 
@@ -387,7 +457,7 @@ export function ItemEdit() {
               {isProduct && (
                 <>
                   <Row label={t('cost.materials')} value={money(cost.materials, cur, lang)} />
-                  <Row label={`${t('cost.labor')} (${draft.labor_minutes}′ × ${money(settings?.labor_rate_per_hour, cur, lang)}/h)`} value={money(cost.labor, cur, lang)} />
+                  <Row label={`${t('cost.labor')} (${duration(cost.laborSeconds)} × ${money(settings?.labor_rate_per_hour, cur, lang)}/h)`} value={money(cost.labor, cur, lang)} />
                   <Row label={`${t('cost.overhead')} (${money(settings?.overhead_rate_per_hour, cur, lang)}/h)`} value={money(cost.overhead, cur, lang)} />
                   <Row label={t('cost.total')} value={money(cost.cost, cur, lang)} strong />
                 </>
@@ -420,7 +490,7 @@ export function ItemEdit() {
           onClose={() => setConflict(null)}
           onReload={async () => {
             setConflict(null)
-            await reload(['items', 'recipe_lines'])
+            await reload(['items', 'recipe_lines', 'labor_entries'])
             setDirty(false)
           }}
           onOverwrite={async () => {
