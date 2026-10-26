@@ -261,13 +261,12 @@ textarea { resize: vertical; }
 /* folder tiles above the tables */
 .folder-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; margin-bottom: 14px; }
 .folder-tile {
-  position: relative; display: flex; align-items: center; gap: 8px; padding: 10px 46px 10px 12px; min-height: 52px;
+  position: relative; display: flex; align-items: center; gap: 8px; padding: 10px 12px; min-height: 52px;
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; user-select: none;
 }
 .folder-tile:hover { border-color: var(--muted); }
 .folder-icon { font-size: 1.4rem; line-height: 1; }
 .folder-name { font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.folder-edit { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); min-height: 28px; padding: 2px 8px; }
 
 /* drag and drop */
 [draggable='true'] { -webkit-user-drag: element; }
@@ -279,8 +278,6 @@ textarea { resize: vertical; }
 .table tr.drop-after td { box-shadow: inset 0 -2px 0 var(--accent); }
 .crumb { border-radius: 6px; }
 
-.sort-select { display: flex; align-items: center; gap: 6px; }
-.sort-select select { width: auto; min-height: 36px; padding: 6px 8px; }
 
 /* price changed by something else */
 .price-dot {
@@ -311,6 +308,32 @@ textarea { resize: vertical; }
 .trend.up { color: #ff6b6b; }
 .trend.down { color: var(--ok); }
 @media (max-width: 720px) {
-  .sort-select .muted { display: none; }
   .folder-tiles { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
 }
+.save-bar { flex-wrap: wrap; }
+.ok-text { color: var(--ok); }
+.bell-actions { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.bell-panel li { align-items: flex-start; }
+.bell-body { flex: 1; }
+.bell-body .btn { margin-top: 4px; }
+.bell-hide { min-height: 28px; padding: 2px 8px; color: var(--muted); }
+.expansion { width: 100%; margin: 0 0 8px; border-color: var(--ok); color: var(--ok); }
+
+/* gear menu */
+.menu { position: relative; }
+.gear { font-size: 1.1rem; padding: 6px 12px; }
+.menu-panel {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 40; min-width: 220px; padding: 6px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 12px 30px rgb(0 0 0 / 0.5);
+}
+.menu-title { font-weight: 600; padding: 6px 10px 4px; }
+.menu-label { font-size: 0.78rem; color: var(--muted); padding: 6px 10px 2px; }
+.menu-panel button {
+  display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; border: 0; border-radius: 6px;
+  background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer;
+}
+.menu-panel button:hover { background: var(--surface-2); }
+.menu-panel button.checked { color: var(--accent); }
+.menu-check { width: 16px; text-align: center; }
+.menu-sep { height: 1px; background: var(--border); margin: 6px 4px; }
+.bell-head strong { white-space: nowrap; }

@@ -42,6 +42,8 @@ interface Data {
   /** ids of the price notifications the current user has not seen, per item */
   unseen: Map<string, number[]>
   markSeen: (ids: number[]) => Promise<void>
+  /** hides notifications for the current user (they also count as seen) */
+  hideNotifications: (ids: number[]) => Promise<void>
   reload: (tables?: Table[]) => Promise<void>
 }
 
@@ -148,6 +150,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     await supabase.rpc('mark_notifications_seen', { p_ids: ids })
   }, [email])
 
+  const hideNotifications = useCallback(async (ids: number[]) => {
+    if (!ids.length || !email) return
+    const set = new Set(ids)
+    const add = (list: string[] | undefined) => (list ?? []).includes(email) ? list ?? [] : [...(list ?? []), email]
+    setNotifications((ns) => ns.map((n) => (set.has(n.id) ? { ...n, seen_by: add(n.seen_by), hidden_by: add(n.hidden_by) } : n)))
+    await supabase.rpc('hide_notifications', { p_ids: ids })
+  }, [email])
+
   const value = useMemo<Data>(() => {
     const supplierMap = new Map(suppliers.map((s) => [s.id, s]))
     const itemMap = new Map(items.map((i) => [i.id, i]))
@@ -176,13 +186,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     const unseen = new Map<string, number[]>()
     for (const n of notifications) {
-      if (email && !n.seen_by.includes(email)) unseen.set(n.item_id, [...(unseen.get(n.item_id) ?? []), n.id])
+      if (email && !n.seen_by.includes(email) && !(n.hidden_by ?? []).includes(email)) unseen.set(n.item_id, [...(unseen.get(n.item_id) ?? []), n.id])
     }
     return {
       loading, error, settings, folders, suppliers, items, lines, laborEntries, notifications, folderMap, supplierMap, itemMap,
-      linesByProduct, laborByProduct, ctx, costs, sortMode, position, unseen, markSeen, reload,
+      linesByProduct, laborByProduct, ctx, costs, sortMode, position, unseen, markSeen, hideNotifications, reload,
     }
-  }, [loading, error, settings, folders, suppliers, items, lines, laborEntries, listSettings, manualOrder, notifications, email, markSeen, reload])
+  }, [loading, error, settings, folders, suppliers, items, lines, laborEntries, listSettings, manualOrder, notifications, email, markSeen, hideNotifications, reload])
 
   // Report computed prices so the database can notice changes caused by other edits (labor rate, a material,
   // a supplier discount…). Only prices that changed since this tab last reported are sent, so a tab that has

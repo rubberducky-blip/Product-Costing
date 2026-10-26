@@ -133,3 +133,19 @@ export function computeItemCost(item: Item, lines: RecipeLine[], ctx: CostContex
     markupPct, price, rawPrice, roundingStep, profit, marginPct,
   }
 }
+
+/**
+ * Markup % (two decimals, as stored) that gives `target` as the final price for an item costing `cost`.
+ * Prefers a markup that hits the target exactly after rounding; otherwise the closest one. Null when cost is 0.
+ */
+export function markupForPrice(cost: number, target: number, step: number, mode: RoundingMode): number | null {
+  if (!(cost > 0) || !(target > 0)) return null
+  const base = Math.round((target / cost - 1) * 10000) / 100
+  for (let i = 0; i <= 500; i++) {
+    for (const d of i ? [-i, i] : [0]) {
+      const m = Math.round(base * 100 + d) / 100
+      if (Math.abs(roundPrice(cost * (1 + m / 100), step, mode) - target) < 1e-6) return m
+    }
+  }
+  return base
+}

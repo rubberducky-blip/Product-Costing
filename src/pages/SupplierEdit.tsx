@@ -44,7 +44,7 @@ export function SupplierEdit() {
   const { supplierMap, items, costs, settings, reload } = useData()
   const record = id ? supplierMap.get(id) : undefined
   const [params] = useSearchParams()
-  const { form, setForm, dirty, setDirty, baseVersion, staleBy, reset } = useVersionedForm(
+  const { form, setForm, dirty, markSaved, baseVersion, staleBy, reset } = useVersionedForm(
     record,
     (r) => toForm(r, params.get('folder') ?? ''),
     JSON.stringify(record),
@@ -90,7 +90,7 @@ export function SupplierEdit() {
     }
     await reload(['suppliers'])
     if (isNew) nav(`/supplier/${(res.data as Supplier).id}`, { replace: true })
-    setDirty(false)
+    markSaved()
     setMsg({ kind: 'ok', text: t('common.saved') })
   }
 
@@ -169,7 +169,8 @@ export function SupplierEdit() {
         </div>
         <aside className="edit-side">
           <div className="save-bar">
-            <button className="btn primary" disabled={busy}>{busy ? t('common.saving') : t('common.save')}</button>
+            <button className="btn primary" disabled={busy || !dirty}>{busy ? t('common.saving') : t('common.save')}</button>
+            <button type="button" className="btn" disabled={busy || !dirty} onClick={() => { reset(); setMsg(null) }}>{t('common.discard')}</button>
             {!isNew && <button type="button" className="btn danger ghost" onClick={remove}>{t('common.delete')}</button>}
           </div>
           {record && (
@@ -186,7 +187,7 @@ export function SupplierEdit() {
           onReload={async () => {
             setConflict(null)
             await reload(['suppliers'])
-            setDirty(false)
+            markSaved()
           }}
           onOverwrite={async () => {
             setConflict(null)

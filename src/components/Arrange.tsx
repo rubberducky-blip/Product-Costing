@@ -1,4 +1,4 @@
-import { useState, type DragEvent } from 'react'
+import { useEffect, useRef, useState, type DragEvent } from 'react'
 import { useData } from '../lib/data'
 import { folderAndDescendants, listFolderOf, type Arrangement } from '../lib/folders'
 import { useI18n } from '../lib/i18n'
@@ -121,22 +121,63 @@ export function placed(ids: string[], id: string, target: string, side: 'before'
   return [...rest.slice(0, at), id, ...rest.slice(at)]
 }
 
-export function SortSelect({ scope, folder }: { scope: FolderScope; folder: Folder | undefined }) {
+/** Gear menu on a list page: sort mode of the open folder (or list), and editing the open folder. */
+export function SettingsMenu({ scope, folder, onEditFolder }: {
+  scope: FolderScope
+  folder: Folder | undefined
+  onEditFolder: () => void
+}) {
   const { t } = useI18n()
   const { sortMode, reload } = useData()
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
   const mode = sortMode(scope, folder?.id ?? null)
+
+  useEffect(() => {
+    if (!open) return
+    const close = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && setOpen(false)
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [open])
+
   const change = async (m: SortMode) => {
     if (folder) await supabase.from('folders').update({ sort_mode: m }).eq('id', folder.id)
     else await supabase.from('list_settings').update({ sort_mode: m }).eq('scope', scope)
     await reload([folder ? 'folders' : 'list_settings'])
   }
+  const modes: [SortMode, string][] = [['code', scope === 'supplier' ? t('sort.name') : t('sort.code')], ['manual', t('sort.manual')]]
+
   return (
-    <label className="sort-select" title={t('sort.title')}>
-      <span className="muted small">{t('sort.title')}</span>
-      <select value={mode} onChange={(e) => change(e.target.value as SortMode)}>
-        <option value="code">{scope === 'supplier' ? t('sort.name') : t('sort.code')}</option>
-        <option value="manual">{t('sort.manual')}</option>
-      </select>
-    </label>
+    <div className="menu" ref={ref}>
+      <button
+        type="button"
+        className="btn gear"
+        aria-label={folder ? t('folder.settings') : t('folder.listSettings')}
+        title={folder ? t('folder.settings') : t('folder.listSettings')}
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      >
+        ⚙
+      </button>
+      {open && (
+        <div className="menu-panel" role="menu">
+          <div className="menu-title">{folder ? t('folder.settings') : t('folder.listSettings')}</div>
+          <div className="menu-label">{t('sort.title')}</div>
+          {modes.map(([m, label]) => (
+            <button key={m} type="button" role="menuitemradio" aria-checked={mode === m} className={mode === m ? 'checked' : ''} onClick={() => change(m)}>
+              <span className="menu-check">{mode === m ? '●' : '○'}</span> {label}
+            </button>
+          ))}
+          {folder && (
+            <>
+              <div className="menu-sep" />
+              <button type="button" role="menuitem" onClick={() => { setOpen(false); onEditFolder() }}>
+                <span className="menu-check">✎</span> {t('folder.edit')}…
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
   )
 }

@@ -26,7 +26,7 @@ const en = {
   'login.submit': 'Sign in',
   'login.notConfigured': 'Supabase is not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY on the host and redeploy.',
 
-  'search.placeholder': 'Search codes, names, suppliers…',
+  'search.placeholder': 'Search codes, names, suppliers, notes…',
   'search.none': 'No results',
 
   'common.new': 'New',
@@ -34,6 +34,7 @@ const en = {
   'common.saving': 'Saving…',
   'common.saved': 'Saved',
   'common.cancel': 'Cancel',
+  'common.discard': 'Cancel changes',
   'common.delete': 'Delete',
   'common.back': 'Back',
   'common.edit': 'Edit',
@@ -103,14 +104,14 @@ const en = {
   'folder.root': '— Top level (no folder)',
   'folder.notEmpty': 'This folder is not empty. Move or delete what is inside it first.',
 
+  'folder.settings': 'Folder settings',
+  'folder.listSettings': 'List settings',
   'folder.materialField': 'Folder in raw materials',
 
   'sort.title': 'Sort',
   'sort.code': 'By code',
   'sort.name': 'By name',
   'sort.manual': 'Manual',
-  'sort.hintManual': 'Drag rows or folders to re-arrange them, or onto a folder (or a folder in the path above) to move them.',
-  'sort.hintCode': 'Drag rows or folders onto a folder (or a folder in the path above) to move them. Choose "Manual" sorting to re-arrange them.',
 
   'notify.title': 'Price changes',
   'notify.empty': 'No price changes yet.',
@@ -118,6 +119,14 @@ const en = {
   'notify.up': 'Price increased',
   'notify.down': 'Price decreased',
   'notify.changed': 'The price changed because of another change',
+  'notify.hide': 'Hide',
+  'notify.hideAll': 'Hide all',
+  'notify.adjust': 'Adjust markup',
+  'notify.adjustHelp': 'Set the markup to {markup} so the price goes back to {price}',
+  'notify.adjusted': 'Markup adjusted to the previous price',
+  'notify.expansion': 'Margin expansion ({count})',
+  'notify.expansionHelp': 'Raises the markup of every item that now sells for less than before, so its price goes back to the previous one',
+  'notify.expansionConfirm': 'Raise the markup of {count} item(s) so their prices go back to the previous ones?',
 
   'cost.listPrice': 'List price',
   'cost.discount': 'Discount',
@@ -238,7 +247,7 @@ const el: Record<TKey, string> = {
   'login.submit': 'Σύνδεση',
   'login.notConfigured': 'Το Supabase δεν έχει ρυθμιστεί. Ορίστε SUPABASE_URL και SUPABASE_ANON_KEY στη φιλοξενία και κάντε νέο deploy.',
 
-  'search.placeholder': 'Αναζήτηση κωδικών, ονομάτων, προμηθευτών…',
+  'search.placeholder': 'Αναζήτηση κωδικών, ονομάτων, προμηθευτών, σημειώσεων…',
   'search.none': 'Κανένα αποτέλεσμα',
 
   'common.new': 'Νέο',
@@ -246,6 +255,7 @@ const el: Record<TKey, string> = {
   'common.saving': 'Αποθήκευση…',
   'common.saved': 'Αποθηκεύτηκε',
   'common.cancel': 'Ακύρωση',
+  'common.discard': 'Ακύρωση αλλαγών',
   'common.delete': 'Διαγραφή',
   'common.back': 'Πίσω',
   'common.edit': 'Επεξεργασία',
@@ -315,14 +325,14 @@ const el: Record<TKey, string> = {
   'folder.root': '— Αρχικό επίπεδο (χωρίς φάκελο)',
   'folder.notEmpty': 'Ο φάκελος δεν είναι άδειος. Μετακινήστε ή διαγράψτε πρώτα ό,τι περιέχει.',
 
+  'folder.settings': 'Ρυθμίσεις φακέλου',
+  'folder.listSettings': 'Ρυθμίσεις λίστας',
   'folder.materialField': 'Φάκελος στις πρώτες ύλες',
 
   'sort.title': 'Ταξινόμηση',
   'sort.code': 'Κατά κωδικό',
   'sort.name': 'Κατά όνομα',
   'sort.manual': 'Χειροκίνητη',
-  'sort.hintManual': 'Σύρετε γραμμές ή φακέλους για να αλλάξετε τη σειρά τους, ή πάνω σε έναν φάκελο (ή σε φάκελο της διαδρομής επάνω) για να τα μετακινήσετε.',
-  'sort.hintCode': 'Σύρετε γραμμές ή φακέλους πάνω σε έναν φάκελο (ή σε φάκελο της διαδρομής επάνω) για να τα μετακινήσετε. Επιλέξτε «Χειροκίνητη» ταξινόμηση για να αλλάξετε τη σειρά τους.',
 
   'notify.title': 'Αλλαγές τιμών',
   'notify.empty': 'Δεν υπάρχουν αλλαγές τιμών.',
@@ -330,6 +340,14 @@ const el: Record<TKey, string> = {
   'notify.up': 'Αύξηση τιμής',
   'notify.down': 'Μείωση τιμής',
   'notify.changed': 'Η τιμή άλλαξε λόγω άλλης αλλαγής',
+  'notify.hide': 'Απόκρυψη',
+  'notify.hideAll': 'Απόκρυψη όλων',
+  'notify.adjust': 'Προσαρμογή markup',
+  'notify.adjustHelp': 'Το markup γίνεται {markup} ώστε η τιμή να επιστρέψει στα {price}',
+  'notify.adjusted': 'Το markup προσαρμόστηκε στην προηγούμενη τιμή',
+  'notify.expansion': 'Margin expansion ({count})',
+  'notify.expansionHelp': 'Αυξάνει το markup σε όσα είδη πωλούνται πλέον φθηνότερα, ώστε η τιμή τους να επιστρέψει στην προηγούμενη',
+  'notify.expansionConfirm': 'Να αυξηθεί το markup σε {count} είδη ώστε οι τιμές τους να επιστρέψουν στις προηγούμενες;',
 
   'cost.listPrice': 'Τιμή καταλόγου',
   'cost.discount': 'Έκπτωση',
