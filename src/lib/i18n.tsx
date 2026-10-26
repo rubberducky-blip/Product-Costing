@@ -103,6 +103,22 @@ const en = {
   'folder.root': '— Top level (no folder)',
   'folder.notEmpty': 'This folder is not empty. Move or delete what is inside it first.',
 
+  'folder.materialField': 'Folder in raw materials',
+
+  'sort.title': 'Sort',
+  'sort.code': 'By code',
+  'sort.name': 'By name',
+  'sort.manual': 'Manual',
+  'sort.hintManual': 'Drag rows or folders to re-arrange them, or onto a folder (or a folder in the path above) to move them.',
+  'sort.hintCode': 'Drag rows or folders onto a folder (or a folder in the path above) to move them. Choose "Manual" sorting to re-arrange them.',
+
+  'notify.title': 'Price changes',
+  'notify.empty': 'No price changes yet.',
+  'notify.markAll': 'Mark all as read',
+  'notify.up': 'Price increased',
+  'notify.down': 'Price decreased',
+  'notify.changed': 'The price changed because of another change',
+
   'cost.listPrice': 'List price',
   'cost.discount': 'Discount',
   'cost.net': 'Net price',
@@ -298,6 +314,22 @@ const el: Record<TKey, string> = {
   'folder.field': 'Φάκελος',
   'folder.root': '— Αρχικό επίπεδο (χωρίς φάκελο)',
   'folder.notEmpty': 'Ο φάκελος δεν είναι άδειος. Μετακινήστε ή διαγράψτε πρώτα ό,τι περιέχει.',
+
+  'folder.materialField': 'Φάκελος στις πρώτες ύλες',
+
+  'sort.title': 'Ταξινόμηση',
+  'sort.code': 'Κατά κωδικό',
+  'sort.name': 'Κατά όνομα',
+  'sort.manual': 'Χειροκίνητη',
+  'sort.hintManual': 'Σύρετε γραμμές ή φακέλους για να αλλάξετε τη σειρά τους, ή πάνω σε έναν φάκελο (ή σε φάκελο της διαδρομής επάνω) για να τα μετακινήσετε.',
+  'sort.hintCode': 'Σύρετε γραμμές ή φακέλους πάνω σε έναν φάκελο (ή σε φάκελο της διαδρομής επάνω) για να τα μετακινήσετε. Επιλέξτε «Χειροκίνητη» ταξινόμηση για να αλλάξετε τη σειρά τους.',
+
+  'notify.title': 'Αλλαγές τιμών',
+  'notify.empty': 'Δεν υπάρχουν αλλαγές τιμών.',
+  'notify.markAll': 'Όλες ως αναγνωσμένες',
+  'notify.up': 'Αύξηση τιμής',
+  'notify.down': 'Μείωση τιμής',
+  'notify.changed': 'Η τιμή άλλαξε λόγω άλλης αλλαγής',
 
   'cost.listPrice': 'Τιμή καταλόγου',
   'cost.discount': 'Έκπτωση',

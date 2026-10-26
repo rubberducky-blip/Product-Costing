@@ -1,5 +1,6 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useArrangement } from '../components/Arrange'
 import { Combobox } from '../components/Combobox'
 import { ConflictDialog, EditGuards } from '../components/EditGuards'
 import { useFolderFieldOptions } from '../components/Folders'
@@ -7,7 +8,7 @@ import { Banner, Field, NumInput, Row, Section } from '../components/ui'
 import { useAuth } from '../lib/auth'
 import { computeItemCost, costPerUnit, materialUnitCost } from '../lib/calc'
 import { useData } from '../lib/data'
-import { treeOptions, type Option } from '../lib/folders'
+import { listFolderOf, treeOptions, type Option } from '../lib/folders'
 import { dateTime, duration, money, parseNum, pct } from '../lib/format'
 import { useI18n } from '../lib/i18n'
 import { usePresence } from '../lib/presence'
@@ -38,6 +39,7 @@ interface ItemForm {
   kind: ItemKind
   usable_as_material: boolean
   folder_id: string
+  material_folder_id: string
   supplier_id: string
   supplier_code: string
   purchase_price: string
@@ -68,6 +70,7 @@ function toForm(item: Item | undefined, lines: RecipeLine[], labor: LaborEntry[]
     kind: item?.kind ?? kind,
     usable_as_material: item?.usable_as_material ?? kind === 'raw_material',
     folder_id: item ? item.folder_id ?? '' : folderId,
+    material_folder_id: item?.material_folder_id ?? '',
     supplier_id: item?.supplier_id ?? '',
     supplier_code: item?.supplier_code ?? '',
     purchase_price: s(item?.purchase_price),
@@ -101,6 +104,7 @@ function formToItem(f: ItemForm, base: Item | undefined): Item {
     kind: f.kind,
     usable_as_material: f.kind === 'raw_material' ? true : f.kind === 'product' ? false : f.usable_as_material,
     folder_id: f.folder_id || null,
+    material_folder_id: f.kind === 'merchandise' && f.usable_as_material ? f.material_folder_id || null : null,
     supplier_id: f.kind === 'product' ? null : f.supplier_id || null,
     supplier_code: f.supplier_code.trim() || null,
     purchase_price: parseNum(f.purchase_price) ?? 0,
@@ -139,7 +143,7 @@ export function ItemEdit() {
   const { t, lang } = useI18n()
   const { email } = useAuth()
   const nav = useNavigate()
-  const { items, itemMap, folders, suppliers, supplierMap, linesByProduct, laborByProduct, settings, ctx, reload } = useData()
+  const { items, itemMap, folders, suppliers, supplierMap, linesByProduct, laborByProduct, settings, ctx, unseen, markSeen, reload } = useData()
   const [params] = useSearchParams()
   const record = id ? itemMap.get(id) : undefined
   const recordLines = (id && linesByProduct.get(id)) || []
@@ -174,25 +178,27 @@ export function ItemEdit() {
     () => items.filter((i) => i.usable_as_material && i.kind !== 'product' && i.id !== id),
     [items, id],
   )
-  // raw materials first, then merchandise used as raw material, each in its folder tree
-  const materialOptions = useMemo<Option[]>(() => {
-    const entry = (m: Item) => ({ value: m.id, label: m.code, sub: m.name || undefined, folderId: m.folder_id })
-    const merch = materials.filter((m) => m.kind === 'merchandise').map(entry)
-    return [
-      ...treeOptions(folders, 'raw_material', materials.filter((m) => m.kind === 'raw_material').map(entry)),
-      ...(merch.length
-        ? [{ value: 'folder:merch', label: t('nav.merchandise'), depth: 0, header: true }, ...treeOptions(folders, 'merchandise', merch, 1, t('nav.merchandise'))]
-        : []),
-    ]
-  }, [materials, folders, t])
-  const supplierOptions = useMemo<Option[]>(
-    () => [
-      { value: '', label: t('item.noSupplier') },
-      ...treeOptions(folders, 'supplier', suppliers.map((sup) => ({ value: sup.id, label: sup.name, folderId: sup.folder_id }))),
-    ],
-    [folders, suppliers, t],
+  // same tree and order as the raw-materials list (merchandise used as raw material included)
+  const rawOrder = useArrangement('raw_material')
+  const supplierOrder = useArrangement('supplier')
+  const materialOptions: Option[] = treeOptions(
+    folders,
+    'raw_material',
+    materials.map((m) => ({ value: m.id, label: m.code, sub: m.name || undefined, folderId: listFolderOf(m, 'raw_material') })),
+    rawOrder,
   )
+  const supplierOptions: Option[] = [
+    { value: '', label: t('item.noSupplier') },
+    ...treeOptions(folders, 'supplier', suppliers.map((sup) => ({ value: sup.id, label: sup.name, folderId: sup.folder_id })), supplierOrder),
+  ]
   const folderOpts = useFolderFieldOptions(form.kind)
+  const rawFolderOpts = useFolderFieldOptions('raw_material')
+
+  // opening an item counts as seeing its price change notifications
+  const fresh = id ? unseen.get(id) : undefined
+  useEffect(() => {
+    if (fresh) markSeen(fresh)
+  }, [fresh, markSeen])
   const usedIn = useMemo(
     () => (id ? items.filter((p) => (linesByProduct.get(p.id) ?? []).some((l) => l.material_id === id)) : []),
     [items, linesByProduct, id],
@@ -222,6 +228,8 @@ export function ItemEdit() {
       p_item: { ...fields, id: record?.id ?? null },
       p_lines: draftLines,
       p_labor: draftLabor,
+      // the item's own new price, so the change is not reported as caused by something else
+      p_price: form.kind !== 'raw_material' && cost && Number.isFinite(cost.price) ? Math.round(cost.price * 1e4) / 1e4 : null,
       p_expected_version: expectedVersion,
     })
     setBusy(false)
@@ -298,6 +306,11 @@ export function ItemEdit() {
                   <input type="checkbox" checked={form.usable_as_material} onChange={(e) => set('usable_as_material', e.target.checked)} />
                   {t('item.usableAsMaterial')}
                 </label>
+              )}
+              {form.kind === 'merchandise' && form.usable_as_material && (
+                <Field label={t('folder.materialField')}>
+                  <Combobox value={form.material_folder_id} options={rawFolderOpts} onChange={(v) => set('material_folder_id', v)} />
+                </Field>
               )}
             </div>
           </Section>

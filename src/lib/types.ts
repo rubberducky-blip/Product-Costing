@@ -18,11 +18,14 @@ export interface Settings {
 
 export type FolderScope = ItemKind | 'supplier'
 
+export type SortMode = 'code' | 'manual'
+
 export interface Folder {
   id: string
   scope: FolderScope
   parent_id: string | null
   name: string
+  sort_mode: SortMode
   version: number
   updated_at: string
   updated_by_email: string | null
@@ -50,6 +53,8 @@ export interface Item {
   kind: ItemKind
   usable_as_material: boolean
   folder_id: string | null
+  /** merchandise used as raw material: its folder in the raw-materials list */
+  material_folder_id: string | null
   supplier_id: string | null
   supplier_code: string | null
   purchase_price: number
@@ -83,6 +88,26 @@ export interface LaborEntry {
   seconds: number
   comment: string | null
   position?: number
+}
+
+export interface ListSetting {
+  scope: FolderScope
+  sort_mode: SortMode
+}
+
+export interface ManualOrder {
+  scope: FolderScope
+  id: string
+  position: number
+}
+
+export interface PriceNotification {
+  id: number
+  item_id: string
+  old_price: number
+  new_price: number
+  created_at: string
+  seen_by: string[]
 }
 
 export interface BackupMeta {

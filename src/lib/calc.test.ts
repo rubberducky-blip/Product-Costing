@@ -13,7 +13,7 @@ const supplier: Supplier = {
 const base: Item = {
   id: '', code: '', name: '', kind: 'raw_material', usable_as_material: true, supplier_id: 's1', supplier_code: null,
   purchase_price: 0, purchase_qty: 1, unit: 'pcs', piece_length_cm: null, piece_area_cm2: null, discount_pct: null,
-  folder_id: null, shipping_pct: null, markup_pct: null, rounding_step: null, notes: null, version: 1,
+  folder_id: null, material_folder_id: null, shipping_pct: null, markup_pct: null, rounding_step: null, notes: null, version: 1,
   updated_at: '', updated_by_email: null,
 }
 const leather: Item = { ...base, id: 'm1', code: 'LEATHER', purchase_price: 100, purchase_qty: 5000, unit: 'cm2' }
