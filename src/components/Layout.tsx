@@ -3,6 +3,7 @@ import { useAuth } from '../lib/auth'
 import { useData } from '../lib/data'
 import { useI18n } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
+import { NotificationBell } from './Notifications'
 import { SearchBar } from './SearchBar'
 import { Banner } from './ui'
 
@@ -40,6 +41,7 @@ export function Layout() {
         </div>
         <SearchBar />
         <div className="topbar-right">
+          <NotificationBell />
           <LangSwitch />
           <span className="user muted" title={email}>{email}</span>
           <button className="btn small ghost" onClick={() => supabase.auth.signOut()}>{t('nav.logout')}</button>

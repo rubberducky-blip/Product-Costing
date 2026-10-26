@@ -1,4 +1,4 @@
-import type { Folder, FolderScope } from './types'
+import type { Folder, FolderScope, Item, SortMode } from './types'
 
 /** One row of a Combobox list. Headers are folder names shown for structure; they cannot be picked. */
 export interface Option {
@@ -16,6 +16,26 @@ export const norm = (s: string | null | undefined) =>
   (s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
 const byName = (a: Folder, b: Folder) => a.name.localeCompare(b.name)
+
+/** How a list is ordered: per folder sort mode and manual positions. */
+export interface Arrangement {
+  mode: (folderId: string | null) => SortMode
+  pos: (id: string) => number | undefined
+}
+
+/**
+ * Sorts by `key` (code / name) or, in manual mode, by manual position; entries never arranged go last, by key.
+ * `numeric` makes "A2" come before "A10".
+ */
+export function arrange<T>(list: T[], mode: SortMode, pos: (t: T) => number | undefined, key: (t: T) => string): T[] {
+  const byKey = (a: T, b: T) => key(a).localeCompare(key(b), undefined, { numeric: true })
+  if (mode !== 'manual') return [...list].sort(byKey)
+  return [...list].sort((a, b) => (pos(a) ?? Infinity) - (pos(b) ?? Infinity) || byKey(a, b))
+}
+
+/** The folder an item sits in within a list; merchandise used as raw material has its own raw-materials folder. */
+export const listFolderOf = (item: Item, scope: FolderScope) =>
+  scope === 'raw_material' && item.kind === 'merchandise' ? item.material_folder_id : item.folder_id
 
 export function childFolders(folders: Folder[], scope: FolderScope, parentId: string | null): Folder[] {
   return folders.filter((f) => f.scope === scope && f.parent_id === parentId).sort(byName)
@@ -62,25 +82,27 @@ interface Entry {
  * Options laid out as a folder tree: sub-folders first (as headers), then the entries of each folder.
  * Folders without entries below them are left out. Entries in an unknown folder are shown at the top level.
  */
-export function treeOptions(folders: Folder[], scope: FolderScope, entries: Entry[], baseDepth = 0, basePath = ''): Option[] {
+export function treeOptions(folders: Folder[], scope: FolderScope, entries: Entry[], order?: Arrangement): Option[] {
   const known = new Set(folders.filter((f) => f.scope === scope).map((f) => f.id))
   const byFolder = new Map<string | null, Entry[]>()
   for (const e of entries) {
     const k = e.folderId && known.has(e.folderId) ? e.folderId : null
     byFolder.set(k, [...(byFolder.get(k) ?? []), e])
   }
+  const sorted = <T extends { id?: string; value?: string }>(list: T[], parentId: string | null, key: (t: T) => string) =>
+    order ? arrange(list, order.mode(parentId), (t) => order.pos((t.id ?? t.value)!), key) : list
   const walk = (parentId: string | null, depth: number, path: string): Option[] => {
     const out: Option[] = []
-    for (const f of childFolders(folders, scope, parentId)) {
+    for (const f of sorted(childFolders(folders, scope, parentId), parentId, (f) => f.name)) {
       const sub = path ? `${path} / ${f.name}` : f.name
       const inner = walk(f.id, depth + 1, sub)
       if (inner.length) out.push({ value: `folder:${f.id}`, label: f.name, depth, header: true, path }, ...inner)
     }
-    const own = (byFolder.get(parentId) ?? []).sort((a, b) => a.label.localeCompare(b.label))
+    const own = sorted((byFolder.get(parentId) ?? []).sort((a, b) => a.label.localeCompare(b.label)), parentId, (e) => e.label)
     for (const e of own) out.push({ value: e.value, label: e.label, sub: e.sub, depth, path })
     return out
   }
-  return walk(null, baseDepth, basePath)
+  return walk(null, 0, '')
 }
 
 /** Every folder of a list as a pickable option, indented by depth. */
