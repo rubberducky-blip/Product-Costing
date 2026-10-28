@@ -47,7 +47,7 @@
             </Style.Triggers>
         </Style>
 
-        <Style x:Key="RowStyle" TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+        <Style x:Key="RowStyle" TargetType="DataGridRow" BasedOn="{StaticResource AppRow}">
             <Setter Property="AllowDrop" Value="True" />
             <Setter Property="BorderThickness" Value="0,2,0,2" />
             <Setter Property="BorderBrush" Value="Transparent" />

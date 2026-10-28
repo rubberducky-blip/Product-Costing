@@ -135,6 +135,7 @@ internal static class Smoke
         s.UsdPerEur = 1.02m;
         store.SaveSettings(s);
         store.Clock = () => DateTime.Now;
+        AppState.ReloadSettings();
         Log("seeded");
     }
 
@@ -162,7 +163,15 @@ internal static class Smoke
         using (var dc = dv.RenderOpen())
         {
             dc.DrawRectangle((Brush)Application.Current.FindResource("WindowBrush"), null, new Rect(0, 0, w, h));
-            dc.DrawRectangle(new VisualBrush(el), null, new Rect(0, 0, w, h));
+            // map the element's own layout box (not its content bounds) onto the image
+            dc.DrawRectangle(new VisualBrush(el)
+            {
+                Stretch = Stretch.None,
+                AlignmentX = AlignmentX.Left,
+                AlignmentY = AlignmentY.Top,
+                ViewboxUnits = BrushMappingMode.Absolute,
+                Viewbox = new Rect(0, 0, w, h),
+            }, null, new Rect(0, 0, w, h));
         }
         rtb.Render(dv);
         var png = new PngBitmapEncoder();
@@ -214,6 +223,9 @@ internal static class Smoke
     {
         var vm = MainViewModel.Instance;
         var store = AppState.Store;
+        // the size the app is designed for; one shot at the minimum size checks that nothing breaks
+        w.Width = 1440;
+        w.Height = 900;
         var root = (FrameworkElement)w.Content;
         long Id(string code) => store.Search(code).First(h => h.Code == code).Id;
 
@@ -258,6 +270,16 @@ internal static class Smoke
             Check("dirty after quantity edit", ed.IsDirty);
             ed.CancelCommand.Execute(null);
             Check("clean after cancel", !ed.IsDirty);
+        });
+        await Step("product editor at minimum size", async () =>
+        {
+            w.Width = w.MinWidth;
+            w.Height = w.MinHeight;
+            await Settle(500);
+            Shot(root, "08b-product-editor-min");
+            w.Width = 1440;
+            w.Height = 900;
+            await Settle();
         });
         await Step("product with warning", async () => { vm.OpenItem(Id("P-300")); await Settle(); Shot(root, "09-product-warning"); });
         await Step("merchandise editor", async () => { vm.OpenItem(Id("M-200")); await Settle(500); Shot(root, "10-merchandise-editor"); });

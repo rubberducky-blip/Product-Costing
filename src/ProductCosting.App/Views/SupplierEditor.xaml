@@ -13,15 +13,13 @@
         <Border BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1" Padding="20,14,28,14">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Style="{StaticResource SecondaryButton}" l:Btn.Icon="&#xE7BF;" Content="{l:T supplier.newOrder}" Command="{Binding NewOrderCommand}"
-                            Visibility="{Binding IsNew, Converter={StaticResource Hidden}}" />
-                    <Button Style="{StaticResource DangerButton}" l:Btn.Icon="&#xE74D;" Content="{l:T common.delete}" Command="{Binding DeleteCommand}" Margin="8,0,0,0" />
+                    <Button Style="{StaticResource DangerButton}" l:Btn.Icon="&#xE74D;" Content="{l:T common.delete}" Command="{Binding DeleteCommand}" />
                     <Button Style="{StaticResource SecondaryButton}" l:Btn.Icon="&#xE7A7;" Content="{l:T common.cancelChanges}" Command="{Binding CancelCommand}"
                             IsEnabled="{Binding Dirty}" Margin="8,0,0,0" />
                     <Button Style="{StaticResource PrimaryButton}" l:Btn.Icon="&#xE74E;" Content="{l:T common.save}" Command="{Binding SaveCommand}"
                             IsEnabled="{Binding Dirty}" Margin="8,0,0,0" MinWidth="120" />
                 </StackPanel>
-                <StackPanel Orientation="Horizontal">
+                <StackPanel Orientation="Horizontal" ClipToBounds="True">
                     <Button Style="{StaticResource IconButton}" l:Btn.Icon="&#xE72B;" Command="{Binding BackCommand}" ToolTip="{l:T common.back}" Margin="0,0,10,0" />
                     <TextBlock Text="{Binding Title}" Style="{StaticResource H1}" FontSize="21" VerticalAlignment="Center" MaxWidth="520" />
                     <Border Style="{StaticResource Badge}" Margin="12,2,0,0">
