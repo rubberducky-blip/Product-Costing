@@ -1,0 +1,169 @@
+<UserControl x:Class="ProductCosting.App.Views.SettingsPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="clr-namespace:ProductCosting.App.Infrastructure"
+             x:Name="Root">
+    <UserControl.Resources>
+        <Style x:Key="Field" TargetType="StackPanel">
+            <Setter Property="Width" Value="240" />
+            <Setter Property="Margin" Value="0,0,16,0" />
+        </Style>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Border BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1" Padding="28,14">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Style="{StaticResource SecondaryButton}" l:Btn.Icon="&#xE7A7;" Content="{l:T common.cancelChanges}" Command="{Binding CancelCommand}"
+                            IsEnabled="{Binding Dirty}" />
+                    <Button Style="{StaticResource PrimaryButton}" l:Btn.Icon="&#xE74E;" Content="{l:T common.save}" Command="{Binding SaveCommand}"
+                            IsEnabled="{Binding Dirty}" Margin="8,0,0,0" MinWidth="120" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{l:T settings.title}" Style="{StaticResource H1}" FontSize="21" VerticalAlignment="Center" />
+                    <Border Style="{StaticResource Badge}" Margin="12,2,0,0" Background="{StaticResource WarningSoftBrush}"
+                            Visibility="{Binding Dirty, Converter={StaticResource Visible}}">
+                        <TextBlock Text="{l:T common.unsaved}" Foreground="{StaticResource WarningTextBrush}" />
+                    </Border>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="28,22,28,28">
+            <StackPanel MaxWidth="1100" HorizontalAlignment="Left">
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="{l:T settings.costs}" Style="{StaticResource H2}" Margin="0,0,0,14" />
+                        <WrapPanel>
+                            <StackPanel Style="{StaticResource Field}">
+                                <TextBlock Text="{l:T settings.laborRate}" Style="{StaticResource FieldLabel}" />
+                                <l:NumBox Field="{Binding LaborRate}" />
+                            </StackPanel>
+                            <StackPanel Style="{StaticResource Field}">
+                                <TextBlock Text="{l:T settings.overheadRate}" Style="{StaticResource FieldLabel}" />
+                                <l:NumBox Field="{Binding OverheadRate}" />
+                            </StackPanel>
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+                    <StackPanel>
+                        <TextBlock Text="{l:T settings.pricing}" Style="{StaticResource H2}" Margin="0,0,0,14" />
+                        <WrapPanel>
+                            <StackPanel Style="{StaticResource Field}">
+                                <TextBlock Text="{l:T settings.defaultMarkup}" Style="{StaticResource FieldLabel}" />
+                                <l:NumBox Field="{Binding DefaultMarkup}" />
+                            </StackPanel>
+                            <StackPanel Style="{StaticResource Field}">
+                                <TextBlock Text="{l:T settings.roundingStep}" Style="{StaticResource FieldLabel}" />
+                                <l:NumBox Field="{Binding RoundingStep}" />
+                            </StackPanel>
+                            <StackPanel Style="{StaticResource Field}">
+                                <TextBlock Text="{l:T settings.roundingMode}" Style="{StaticResource FieldLabel}" />
+                                <ComboBox ItemsSource="{Binding RoundingModes}" SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding RoundingMode}"
+                                          HorizontalAlignment="Stretch" />
+                            </StackPanel>
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+                    <StackPanel>
+                        <TextBlock Text="{l:T settings.currency}" Style="{StaticResource H2}" Margin="0,0,0,14" />
+                        <WrapPanel>
+                            <StackPanel Style="{StaticResource Field}">
+                                <TextBlock Text="{l:T settings.currencySymbol}" Style="{StaticResource FieldLabel}" />
+                                <TextBox Text="{Binding CurrencySymbol, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+                            <StackPanel Style="{StaticResource Field}">
+                                <TextBlock Text="{l:T settings.usdRate}" Style="{StaticResource FieldLabel}" />
+                                <l:NumBox Field="{Binding UsdPerEur}" />
+                            </StackPanel>
+                        </WrapPanel>
+                        <TextBlock Text="{l:T settings.usdRateHelp}" Style="{StaticResource Caption}" Margin="0,8,0,0" />
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+                    <StackPanel>
+                        <TextBlock Text="{l:T settings.appearance}" Style="{StaticResource H2}" Margin="0,0,0,14" />
+                        <StackPanel Style="{StaticResource Field}" HorizontalAlignment="Left">
+                            <TextBlock Text="{l:T settings.language}" Style="{StaticResource FieldLabel}" />
+                            <ComboBox ItemsSource="{Binding Languages}" SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding Language}"
+                                      HorizontalAlignment="Stretch" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- backups: these controls apply immediately -->
+                <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,6">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                <Button Style="{StaticResource SecondaryButton}" l:Btn.Icon="&#xE8E5;" Content="{l:T settings.restoreFile}" Command="{Binding RestoreFileCommand}" />
+                                <Button Style="{StaticResource PrimaryButton}" l:Btn.Icon="&#xE896;" Content="{l:T settings.backupNow}" Command="{Binding BackupNowCommand}" Margin="8,0,0,0" />
+                            </StackPanel>
+                            <TextBlock Text="{l:T settings.backups}" Style="{StaticResource H2}" VerticalAlignment="Center" />
+                        </DockPanel>
+                        <TextBlock Text="{l:T settings.backupsHelp}" Style="{StaticResource Caption}" Margin="0,0,0,14" />
+
+                        <TextBlock Text="{l:T settings.backupFolder}" Style="{StaticResource FieldLabel}" />
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" l:Btn.Icon="&#xE838;" Content="{l:T settings.openFolder}"
+                                    Command="{Binding OpenFolderCommand}" Margin="8,0,0,0" />
+                            <Button DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}" Content="{l:T settings.chooseFolder}"
+                                    Command="{Binding ChooseFolderCommand}" Margin="8,0,0,0" />
+                            <TextBox Text="{Binding BackupFolder, Mode=OneWay}" IsReadOnly="True" />
+                        </DockPanel>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                            <CheckBox Content="{l:T settings.autoBackup}" IsChecked="{Binding AutoBackup}" VerticalAlignment="Center" />
+                            <TextBlock Text="{l:T settings.keep}" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" Margin="28,0,10,0" />
+                            <l:NumBox Field="{Binding KeepCount}" Width="80" LostFocus="Keep_LostFocus" />
+                            <TextBlock Text="{Binding LastAutoText}" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="20,0,0,0" />
+                        </StackPanel>
+
+                        <Border BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="8" Margin="0,16,0,0" MaxHeight="340">
+                            <Grid>
+                                <TextBlock Text="{l:T settings.noBackups}" Style="{StaticResource Muted}" Margin="14,12"
+                                           Visibility="{Binding HasBackups, Converter={StaticResource Hidden}}" />
+                                <DataGrid ItemsSource="{Binding Backups}" Visibility="{Binding HasBackups, Converter={StaticResource Visible}}">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="{l:T backup.date}" Binding="{Binding DateText}" Width="170" ElementStyle="{StaticResource CellText}" />
+                                        <DataGridTextColumn Header="{l:T backup.kind}" Binding="{Binding KindText}" Width="150" ElementStyle="{StaticResource MutedCell}" />
+                                        <DataGridTextColumn Header="{l:T backup.size}" Binding="{Binding SizeBytes, Converter={StaticResource FileSize}}" Width="90"
+                                                            ElementStyle="{StaticResource RightCell}" HeaderStyle="{StaticResource RightHeader}" />
+                                        <DataGridTextColumn Header="" Binding="{Binding FileName}" Width="*" ElementStyle="{StaticResource MutedCell}" />
+                                        <DataGridTemplateColumn Width="130">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Button Style="{StaticResource GhostButton}" Content="{l:T settings.restore}" l:Btn.Icon="&#xE777;"
+                                                            Padding="10,3" MinHeight="0" HorizontalAlignment="Right" Foreground="{StaticResource AccentTextBrush}"
+                                                            Command="{Binding DataContext.RestoreCommand, ElementName=Root}" CommandParameter="{Binding}" />
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+                    <StackPanel>
+                        <TextBlock Text="{l:T settings.data}" Style="{StaticResource H2}" Margin="0,0,0,14" />
+                        <TextBlock Text="{l:T settings.dbLocation}" Style="{StaticResource FieldLabel}" />
+                        <TextBox Text="{Binding DatabasePath, Mode=OneWay}" IsReadOnly="True" />
+                        <Button Style="{StaticResource SecondaryButton}" l:Btn.Icon="&#xE72C;" Content="{l:T settings.recalc}" Command="{Binding RecalculateAllCommand}"
+                                HorizontalAlignment="Left" Margin="0,14,0,0" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

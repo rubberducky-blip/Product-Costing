@@ -1,15 +1,57 @@
 name: CI
 on:
-  pull_request:
   push:
-    branches-ignore: [main]
+  pull_request:
+  workflow_dispatch:
+
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
-      - run: npm ci
-      - run: npm test
-      - run: npm run build
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Unit tests
+        run: dotnet test tests/ProductCosting.Tests -c Release --logger "console;verbosity=normal"
+
+      - name: Publish ProductCosting.exe (self-contained, single file)
+        run: >
+          dotnet publish src/ProductCosting.App -c Release -r win-x64 --self-contained
+          -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true
+          -o publish
+
+      - name: Smoke test (opens every screen on demo data)
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP 'smoke'
+          $p = Start-Process -FilePath publish\ProductCosting.exe -ArgumentList '--smoke', "`"$dir`"" -PassThru
+          if (-not $p.WaitForExit(300000)) { $p.Kill(); Write-Host 'timeout' }
+          Get-Content (Join-Path $dir 'smoke.log')
+          if ($p.ExitCode -ne 0) { Write-Error "smoke test failed ($($p.ExitCode))"; exit 1 }
+
+      - name: Screenshots as base64
+        if: always()
+        shell: pwsh
+        run: |
+          Get-ChildItem (Join-Path $env:RUNNER_TEMP 'smoke\shots\*.b64') -ErrorAction SilentlyContinue |
+            ForEach-Object { "=== SHOT $($_.BaseName)"; Get-Content $_.FullName -Raw }
+
+      - name: Upload smoke results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-results
+          path: |
+            ${{ runner.temp }}/smoke/shots/*.png
+            ${{ runner.temp }}/smoke/*.pdf
+            ${{ runner.temp }}/smoke/smoke.log
+
+      - name: Upload app
+        uses: actions/upload-artifact@v4
+        with:
+          name: ProductCosting-win-x64
+          path: publish/ProductCosting.exe

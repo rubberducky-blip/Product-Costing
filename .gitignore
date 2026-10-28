@@ -1,8 +1,8 @@
-node_modules
-dist
-.env
-.env.local
+bin/
+obj/
+.vs/
+*.user
+*.suo
+artifacts/
+TestResults/
 *.log
-supabase/.temp
-supabase/.branches
-.shots

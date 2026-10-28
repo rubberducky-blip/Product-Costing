@@ -1,0 +1,25 @@
+<Window x:Class="ProductCosting.App.Views.DialogWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Style="{StaticResource AppWindow}"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" SizeToContent="Height" Width="460"
+        ShowInTaskbar="False" Background="{StaticResource CardBrush}">
+    <Grid Margin="24,22,24,20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <StackPanel Orientation="Horizontal">
+            <Border x:Name="IconBox" Width="34" Height="34" CornerRadius="17" Background="{StaticResource AccentSoftBrush}" Margin="0,0,12,0">
+                <TextBlock x:Name="IconText" Style="{StaticResource Icon}" HorizontalAlignment="Center" FontSize="16"
+                           Foreground="{StaticResource AccentTextBrush}" Text="&#xE946;" />
+            </Border>
+            <TextBlock x:Name="TitleText" Style="{StaticResource H2}" FontSize="17" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="360" />
+        </StackPanel>
+        <TextBlock x:Name="MessageText" Grid.Row="1" Margin="0,14,0,0" TextWrapping="Wrap" Foreground="{StaticResource TextMutedBrush}" LineHeight="20" />
+        <TextBox x:Name="InputBox" Grid.Row="2" Margin="0,14,0,0" Visibility="Collapsed" />
+        <StackPanel x:Name="ButtonsPanel" Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,22,0,0" />
+    </Grid>
+</Window>

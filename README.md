@@ -1,79 +1,101 @@
-# Product Costing / Κοστολόγηση
+# Κοστολόγηση Προϊόντων · Product Costing
 
-Web app for calculating product cost, price and margin from raw materials, labor time and supplier terms.
-It works on desktop and mobile, uses a dark theme, and is available in Greek and English. Data lives in Supabase.
+Windows desktop app (Windows 10 and 11) for calculating the cost, selling price and margin of products.
+Single user, data stored locally in SQLite, backups saved to a folder you choose.
+The interface is in Greek, with an English option, uses a dark theme, and shows prices in euro.
+
+## Download and run
+
+Every push builds the app on GitHub Actions:
+
+1. Open **Actions → CI**, select the latest run, and download the **ProductCosting-win-x64** artifact.
+2. Unzip it and run `ProductCosting.exe`. Nothing needs to be installed, because the .NET runtime is included in the file.
+
+The data lives in `%LOCALAPPDATA%\ProductCosting\data.db`. Backups go to `Documents\Product Costing Backups` until you choose another folder in Settings.
 
 ## Features
 
-- **Suppliers**: country, default discount %, shipping % (shipping as a share of each product's cost, e.g. 14%).
-- **Three item types**
-  - **Products (Προϊόντα)**: made in-house. Each one has a recipe of raw materials (quantity in pcs / cm / cm², with an optional comment) plus one or more labor time entries (in seconds, each with an optional comment).
-  - **Merchandise (Εμπορεύματα)**: bought and resold. Each one is linked to a supplier, with an optional custom discount or shipping %. It can also be flagged *also used as raw material*.
-  - **Raw materials (Πρώτες ύλες)**: bought and used in recipes. Each one has a default unit, and an optional piece length/area so recipes can use a different unit.
-- **Cost**
-  - purchase price × (1 − discount) × (1 + shipping) ÷ quantity per purchase
-  - products: Σ materials + labor hours (sum of the labor entries) × (labor rate + production overhead rate)
-- **Pricing**: markup per item (or the default from settings) → final price, profit and margin. Prices are rounded to 0.05 by default. The rounding step can be changed per item or globally, and rounding can go to nearest, up or down.
-- **Folders**: products, merchandise, raw materials and suppliers can be organised in nested folders. Pickers (supplier, raw material, folder) show the folder tree and can be filtered by typing.
-- **Sorting and drag-and-drop**: each folder (and each list's top level) sorts by code or manually. Drag rows or folders onto a folder, or onto a folder in the path, to move them; with manual sorting, drag them to re-arrange.
-- **Price change notifications**: when a price changes because of another change (labor rate, a material, a supplier discount…), the item gets a glowing red dot until hovered, and the bell in the top bar lists the change (increase or decrease). From there a notification can be hidden, or its item's markup adjusted so the price goes back to the previous one; *Margin expansion* does this for every item whose price dropped.
-- **Global search** across item codes, names, supplier codes, suppliers, notes and recipe/labor comments.
-- **Backups**: a daily automatic snapshot (pg_cron) plus manual backups in Settings. Backups can be downloaded as JSON, and you can restore from a stored backup or from a file. A safety snapshot is always taken before a restore. An optional weekly off-site dump runs through GitHub Actions.
-- **Password-only login** through Supabase Auth. Every table is protected by Row Level Security.
-- **Protection against conflicting edits**
-  - *Optimistic locking*: every record has a `version`. A save that was based on an outdated version is rejected, and the user chooses to **load the other version** or **overwrite** it.
-  - *Live presence*: a banner shows when another user has the same record open.
-  - *Live updates*: lists refresh in real time when someone saves. An open form follows the changes until you start editing; after that it warns you that a newer version exists.
+**Item types**
+- **Products (Προϊόντα)**: made in-house from a recipe of raw materials plus labor time.
+- **Merchandise (Εμπορεύματα)**: bought from a supplier and resold. Can be marked *also used as raw material*, so it can go into recipes and gets its own place in the raw-materials folders.
+- **Raw materials (Πρώτες ύλες)**: bought from a supplier and used in recipes.
+- **Suppliers (Προμηθευτές)**: name, country, default discount %, shipping %, price currency (€ or $), email, phone, notes, and the list of items bought from them.
 
-## Setup
+**Costing**
+- Bought items: purchase price, quantity per purchase and unit (pcs, cm, cm², kg). Cost = (price → €) − discount + shipping, ÷ quantity. Discount, shipping and currency come from the supplier unless set on the item.
+- Dollar prices are converted to euro first, using the rate set in Settings (1 € = X $).
+- An item can have several suppliers, each with its own supplier code, price and **weight**. For example, weights 2 and 3 mean that 40% of the stock comes from A and 60% from B, so the cost is the weighted average.
+- Products: cost = raw materials + labor time × labor rate + labor time × production overhead rate.
+- Labor time is entered in seconds, as several entries with optional comments. The total is shown in minutes and seconds.
+- Recipe lines: raw material, quantity, unit and optional comment. Units convert through the piece size (length / area / weight) set on the material.
+- A live cost breakdown is shown on every item while editing, with warnings for units that can't be converted and for missing materials.
+- Each raw material shows which products use it.
 
-### 1. Database (Supabase)
+**Pricing**
+- Price = cost × (1 + markup %), rounded to a step (default 0.05 €), to the nearest step, up or down. Profit and margin % are shown.
+- Markup and rounding step can be set per item, otherwise the defaults from Settings apply.
+- Any change to settings, a material or a supplier updates every price that depends on it.
 
-The schema is in `supabase/migrations/`.
+**Price change notifications**
+- When a price changes because of another change, the item gets a glowing red dot next to its code until you hover over it. The bell lists the change (increase/decrease, old → new price, reason).
+- From the bell you can hide a notification, or adjust the item's markup so the price goes back to the previous one. **Margin expansion** does this for every item whose price dropped.
+- **Export PDF** lists every price change in the bell: code, name, type, old price, new price, change %, final price (after any markup adjustment) and reason.
 
-- With the Supabase GitHub integration, the migration is applied when the branch is merged.
-- Otherwise, paste each file in `supabase/migrations/` into **Supabase → SQL Editor** and run them in order (oldest first).
+**Price history**
+- One entry per item per day (the last price of the day), with every reason it changed that day: supplier cost increase/decrease, raw material cost increase/decrease, labor/overhead increase/decrease, euro/dollar rate change, margin adjustment and rounding change.
+- **Price history** on every item shows a chart (hover a point for details) and a table.
 
-Then in the Supabase dashboard:
+**Orders to suppliers**
+- **New order** on a supplier opens a form with every item bought from them. Items with variations (e.g. colours, each with its own supplier code) get one line per variation.
+- Export the order to PDF. Lines without a quantity are left out.
 
-1. **Authentication → Sign In / Providers → Email**: turn **off** "Allow new users to sign up". Only users you create can log in.
-2. **Authentication → Users → Add user**: create each user with an email and password (tick *Auto confirm*).
-3. **Database → Extensions**: make sure **pg_cron** is enabled. The migration enables it and schedules the daily backup when allowed. If it wasn't scheduled, run this once:
-   ```sql
-   select cron.schedule('product-costing-daily-backup', '0 2 * * *', 'select public.create_backup(''auto'')');
-   ```
-4. Optional: on paid plans Supabase also takes its own daily backups and point-in-time recovery (Database → Backups).
+**Organising**
+- Nested folders in every list, shown as tiles above the table, each sorted by code (by name for suppliers) or manually.
+- Drag rows or folders onto a folder tile or onto the folder path to move them. With manual sorting, drag rows to reorder them, and drop a folder on the left or right edge of another folder to reorder folders.
+- A filter box on every list searches all folders. The supplier, raw-material and folder fields use search-as-you-type pickers that show the folder tree.
+- **Global search** (Ctrl+K) across codes, names, supplier codes, suppliers, notes and recipe/labor comments. It ignores Greek accents and case.
 
-### 2. Front-end
+**Editing**
+- Save is enabled only when something actually changed, so a value changed and then put back counts as no change. Ctrl+S saves.
+- *Cancel changes* restores the values from before editing.
+- Leaving with unsaved changes asks whether to discard, save or stay. Every delete asks for confirmation.
+
+**Backups**
+- An automatic daily backup runs while the app is open, and the newest N are kept. There is also a **Back up now** button.
+- You can restore from a listed backup or from any backup file. A safety backup is always taken first.
+
+## Architecture
+
+```
+src/ProductCosting.Core     .NET 10 library, no UI
+  Calc/Costing.cs           all cost, currency, unit-conversion, rounding and markup rules (pure functions)
+  Data/Db.cs                SQLite connection, WAL mode, schema and migrations
+  Data/PricingEngine.cs     incremental repricing of exactly the affected items, history and notifications
+  Data/Store*.cs            all queries and writes, each write one transaction
+  Services/BackupService.cs SQLite online backups, daily auto-backup, restore
+  Pdf/PdfReports.cs         price-change report and supplier order (QuestPDF, embedded Inter font)
+src/ProductCosting.App      WPF (.NET 10, Fluent dark theme), MVVM
+tests/ProductCosting.Tests  xUnit tests: costing rules, engine, notifications, history, search, backups, PDFs, performance
+```
+
+**Data and performance**
+- SQLite with an indexed relational schema: items, item sources (suppliers with weights), recipe lines, labor entries, variants, folders, notifications and history. There are indexes on every foreign key and list path, `(kind, folder)` for lists, and `material_id` for "used in" and repricing.
+- Each item's cost, cost components and price are stored on the item and kept up to date by the pricing engine. Lists therefore read a single indexed table and never recalculate.
+- A change reprices only what it affects: a supplier change reprices its items, then only the products whose recipes use a material whose cost changed. Only rows whose values changed are written, using prepared statements inside one transaction.
+- Price history has one row per item per day (`WITHOUT ROWID`, keyed by item and day), and the bell keeps at most one open notification per item. Both stay small however many price changes you make.
+- Global search uses an SQLite FTS5 trigram index over accent-folded text.
+- Every table is virtualized (row recycling), so lists with tens of thousands of rows scroll smoothly.
+- In the test suite, a supplier change that reprices 1,000 materials and 3,000 products takes about 0.1 s, and so does margin expansion over 4,000 items.
+
+## Development
+
+Requires the .NET 10 SDK.
 
 ```bash
-cp .env.example .env    # fill in Project URL and anon key (Supabase → Project Settings → Data API)
-npm install
-npm run dev             # http://localhost:5173
-npm test                # cost calculation tests
-npm run build           # static site in dist/
+dotnet test tests/ProductCosting.Tests     # runs anywhere
+dotnet run --project src/ProductCosting.App   # Windows
 ```
 
-### 3. Hosting
+`ProductCosting.exe --smoke <folder>` starts the app on demo data in that folder, opens every screen, and saves screenshots and a log there. CI runs it on Windows for every push.
 
-The build is a static site, so any static host works.
-
-- **Vercel / Netlify** (free, works with private repos): import the repo, use build command `npm run build` and output folder `dist`, and add the env vars `SUPABASE_URL` and `SUPABASE_ANON_KEY` (Secret is fine; `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` also work). Redeploy after changing them.
-- **GitHub Pages**: `.github/workflows/deploy.yml` deploys on every push to `main`. Add the two values above as repository secrets and set Settings → Pages → Source = *GitHub Actions*. Private repos need a paid GitHub plan for Pages.
-
-On a phone, open the site and use **Add to Home Screen** to get an app-like icon.
-
-### 4. Off-site backup (optional)
-
-Add the repository secret `SUPABASE_DB_URL` (Supabase → Connect → Session pooler URI, with your DB password). `.github/workflows/backup.yml` then dumps the database weekly and keeps each dump as a workflow artifact for 90 days.
-
-## Project layout
-
-```
-supabase/migrations/   schema, RLS, save_item RPC (optimistic locking), backups, pg_cron
-src/lib/calc.ts        all cost / price / rounding logic (+ calc.test.ts)
-src/lib/data.tsx       loads data, realtime refresh
-src/lib/useVersionedForm.ts, presence.ts   concurrent-edit protection
-src/lib/i18n.tsx       Greek / English texts
-src/pages/             lists, item editor (recipe), suppliers, settings & backups
-```
+PDFs are made with [QuestPDF](https://www.questpdf.com) under its Community license, which is free for individuals and for companies with under $1M annual revenue. The Inter font is embedded under the SIL Open Font License.
