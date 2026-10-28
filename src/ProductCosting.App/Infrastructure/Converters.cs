@@ -39,6 +39,12 @@ public sealed class NumberConverter : IValueConverter
     public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => Binding.DoNothing;
 }
 
+public sealed class Decimals2Converter : IValueConverter
+{
+    public object Convert(object? value, Type t, object? p, CultureInfo c) => value is decimal d ? d.ToString("0.00###", Loc.Culture) : "";
+    public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => Binding.DoNothing;
+}
+
 public sealed class UnitConverter : IValueConverter
 {
     public object Convert(object? value, Type t, object? p, CultureInfo c) => value is QtyUnit u ? Strings.Unit(u) : "";

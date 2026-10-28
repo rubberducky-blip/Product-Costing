@@ -15,6 +15,7 @@
             <l:Money4Converter x:Key="Money4" />
             <l:PercentConverter x:Key="Pct" />
             <l:NumberConverter x:Key="Num" />
+            <l:Decimals2Converter x:Key="Num2" />
             <l:UnitConverter x:Key="UnitName" />
             <l:KindConverter x:Key="KindName" />
             <l:CurrencyConverter x:Key="CurrencyName" />

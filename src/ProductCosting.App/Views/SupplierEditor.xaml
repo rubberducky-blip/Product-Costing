@@ -120,7 +120,7 @@
                                 <DataGridTextColumn Header="{l:T list.code}" Binding="{Binding Code}" Width="110" ElementStyle="{StaticResource CellText}" />
                                 <DataGridTextColumn Header="{l:T list.name}" Binding="{Binding Name}" Width="*" ElementStyle="{StaticResource CellText}" />
                                 <DataGridTextColumn Header="{l:T list.supplierCode}" Binding="{Binding SupplierCode}" Width="120" ElementStyle="{StaticResource MutedCell}" />
-                                <DataGridTextColumn Header="{l:T item.purchasePrice}" Binding="{Binding PurchasePrice, Converter={StaticResource Num}}" Width="100"
+                                <DataGridTextColumn Header="{l:T item.purchasePrice}" Binding="{Binding PurchasePrice, Converter={StaticResource Num2}}" Width="100"
                                                     ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
                                 <DataGridTextColumn Header="{l:T list.currency}" Binding="{Binding Currency, Converter={StaticResource CurrencyName}}" Width="80" ElementStyle="{StaticResource MutedCell}" />
                             </DataGrid.Columns>
