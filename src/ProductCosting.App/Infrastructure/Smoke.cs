@@ -170,11 +170,16 @@ internal static class Smoke
         using (var f = File.Create(Path.Combine(_dir, "shots", name + ".png"))) png.Save(f);
 
         // small JPEG copy as base64, so screenshots can be read from the CI log
-        var small = new TransformedBitmap(rtb, new ScaleTransform(0.55, 0.55));
-        var jpg = new JpegBitmapEncoder { QualityLevel = 72 };
-        jpg.Frames.Add(BitmapFrame.Create(small));
-        using var ms = new MemoryStream();
-        jpg.Save(ms);
+        // check-run text is limited to 64 KB, so shrink until it fits
+        var ms = new MemoryStream();
+        foreach (var (scale, quality) in new[] { (0.62, 70), (0.55, 62), (0.48, 55), (0.4, 50), (0.32, 45) })
+        {
+            ms = new MemoryStream();
+            var jpg = new JpegBitmapEncoder { QualityLevel = quality };
+            jpg.Frames.Add(BitmapFrame.Create(new TransformedBitmap(rtb, new ScaleTransform(scale, scale))));
+            jpg.Save(ms);
+            if (ms.Length * 4 / 3 < 60000) break;
+        }
         File.WriteAllText(Path.Combine(_dir, "shots", name + ".b64"), Convert.ToBase64String(ms.ToArray()));
         Log($"shot {name} {w}x{h}");
     }
