@@ -82,7 +82,7 @@ public sealed partial class Store
         var sups = ids.Where(r => r % 2 == 1).Select(r => r / 2).ToList();
         var hits = new List<SearchHit>();
         if (items.Count > 0)
-            hits.AddRange(c.Query<SearchHit>("SELECT 0 AS is_supplier, id, kind, code, name, price FROM items WHERE id IN @items", new { items }));
+            hits.AddRange(c.Query<SearchHit>("SELECT 0 AS is_supplier, id, kind, code, name, price, cost, unit FROM items WHERE id IN @items", new { items }));
         if (sups.Count > 0)
             hits.AddRange(c.Query<SearchHit>("SELECT 1 AS is_supplier, id, 0 AS kind, '' AS code, name, 0 AS price FROM suppliers WHERE id IN @sups", new { sups }));
         var norm = TextNorm.Normalize(query).Trim();

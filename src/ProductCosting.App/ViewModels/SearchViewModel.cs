@@ -14,7 +14,10 @@ public sealed class SearchResult(SearchHit hit)
     public string Code => Hit.IsSupplier ? "" : Hit.Code;
     public string Name => Hit.Name;
     public string KindText => Hit.IsSupplier ? Loc.T("kind.supplier") : Strings.Kind(Hit.Kind);
-    public string PriceText => Hit.IsSupplier ? "" : Fmt.Money(Hit.Price);
+    // raw materials are bought per cm, cm², kg…: their cost per unit says more than a rounded price
+    public string PriceText => Hit.IsSupplier ? ""
+        : Hit.Kind == ItemKind.RawMaterial ? $"{Fmt.Money4(Hit.Cost)}/{Strings.Unit(Hit.Unit)}"
+        : Fmt.Money(Hit.Price);
     public string Glyph => Hit.IsSupplier ? "\uE716" : Hit.Kind switch
     {
         ItemKind.Product => "\uE7B8",

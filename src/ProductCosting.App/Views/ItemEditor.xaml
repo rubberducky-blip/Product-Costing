@@ -63,7 +63,7 @@
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="380" />
+                <ColumnDefinition Width="350" />
             </Grid.ColumnDefinitions>
 
             <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="28,22,14,28">
@@ -265,12 +265,12 @@
                                 <TextBlock DockPanel.Dock="Right" Text="{Binding MaterialsTotalText}" FontWeight="SemiBold" VerticalAlignment="Center" />
                                 <TextBlock Text="{l:T item.recipe}" Style="{StaticResource H2}" />
                             </DockPanel>
-                            <Grid Margin="0,0,40,0">
+                            <Grid Margin="0,0,36,0">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" MinWidth="200" />
-                                    <ColumnDefinition Width="96" />
-                                    <ColumnDefinition Width="92" />
-                                    <ColumnDefinition Width="112" />
+                                    <ColumnDefinition Width="*" MinWidth="140" />
+                                    <ColumnDefinition Width="86" />
+                                    <ColumnDefinition Width="84" />
+                                    <ColumnDefinition Width="100" />
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Text="{l:T item.material}" Style="{StaticResource ColHead}" />
                                 <TextBlock Grid.Column="1" Text="{l:T item.quantity}" Style="{StaticResource ColHead}" Margin="10,0,0,6" />
@@ -284,11 +284,11 @@
                                             <StackPanel>
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*" MinWidth="200" />
-                                                        <ColumnDefinition Width="96" />
-                                                        <ColumnDefinition Width="92" />
-                                                        <ColumnDefinition Width="112" />
-                                                        <ColumnDefinition Width="40" />
+                                                        <ColumnDefinition Width="*" MinWidth="140" />
+                                                        <ColumnDefinition Width="86" />
+                                                        <ColumnDefinition Width="84" />
+                                                        <ColumnDefinition Width="100" />
+                                                        <ColumnDefinition Width="36" />
                                                     </Grid.ColumnDefinitions>
                                                     <c:SearchPicker ItemsSource="{Binding DataContext.MaterialEntries, ElementName=Root}" SelectedId="{Binding MaterialId}"
                                                                     Placeholder="{l:T item.pickMaterial}" Picked="MaterialPicker_Picked" />

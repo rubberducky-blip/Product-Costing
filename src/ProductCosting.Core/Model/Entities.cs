@@ -235,6 +235,8 @@ public sealed class SearchHit
     public string Code { get; set; } = "";
     public string Name { get; set; } = "";
     public decimal Price { get; set; }
+    public decimal Cost { get; set; }
+    public QtyUnit Unit { get; set; }
 }
 
 /// <summary>A product that uses a material in its recipe.</summary>
