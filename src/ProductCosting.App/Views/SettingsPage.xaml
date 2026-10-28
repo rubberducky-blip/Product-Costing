@@ -40,11 +40,11 @@
                         <WrapPanel>
                             <StackPanel Style="{StaticResource Field}">
                                 <TextBlock Text="{l:T settings.laborRate}" Style="{StaticResource FieldLabel}" />
-                                <l:NumBox Field="{Binding LaborRate}" />
+                                <l:NumBox Field="{Binding LaborRate}" Decimals="2" />
                             </StackPanel>
                             <StackPanel Style="{StaticResource Field}">
                                 <TextBlock Text="{l:T settings.overheadRate}" Style="{StaticResource FieldLabel}" />
-                                <l:NumBox Field="{Binding OverheadRate}" />
+                                <l:NumBox Field="{Binding OverheadRate}" Decimals="2" />
                             </StackPanel>
                         </WrapPanel>
                     </StackPanel>
@@ -60,7 +60,7 @@
                             </StackPanel>
                             <StackPanel Style="{StaticResource Field}">
                                 <TextBlock Text="{l:T settings.roundingStep}" Style="{StaticResource FieldLabel}" />
-                                <l:NumBox Field="{Binding RoundingStep}" />
+                                <l:NumBox Field="{Binding RoundingStep}" Decimals="2" />
                             </StackPanel>
                             <StackPanel Style="{StaticResource Field}">
                                 <TextBlock Text="{l:T settings.roundingMode}" Style="{StaticResource FieldLabel}" />
@@ -136,7 +136,7 @@
                                         <DataGridTextColumn Header="{l:T backup.date}" Binding="{Binding DateText}" Width="170" ElementStyle="{StaticResource CellText}" />
                                         <DataGridTextColumn Header="{l:T backup.kind}" Binding="{Binding KindText}" Width="150" ElementStyle="{StaticResource MutedCell}" />
                                         <DataGridTextColumn Header="{l:T backup.size}" Binding="{Binding SizeBytes, Converter={StaticResource FileSize}}" Width="90"
-                                                            ElementStyle="{StaticResource RightCell}" HeaderStyle="{StaticResource RightHeader}" />
+                                                            ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
                                         <DataGridTextColumn Header="" Binding="{Binding FileName}" Width="*" ElementStyle="{StaticResource MutedCell}" />
                                         <DataGridTemplateColumn Width="130">
                                             <DataGridTemplateColumn.CellTemplate>

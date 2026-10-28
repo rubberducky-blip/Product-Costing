@@ -57,13 +57,14 @@
             <EventSetter Event="DragLeave" Handler="Target_DragLeave" />
             <EventSetter Event="Drop" Handler="Row_Drop" />
             <Style.Triggers>
+                <!-- same total thickness as normal rows, so the row height doesn't jump while dragging -->
                 <Trigger Property="l:DropHint.Position" Value="1">
                     <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
-                    <Setter Property="BorderThickness" Value="0,2,0,0" />
+                    <Setter Property="BorderThickness" Value="0,4,0,0" />
                 </Trigger>
                 <Trigger Property="l:DropHint.Position" Value="2">
                     <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
-                    <Setter Property="BorderThickness" Value="0,0,0,2" />
+                    <Setter Property="BorderThickness" Value="0,0,0,4" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -114,9 +115,6 @@
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="{Binding Title}" Style="{StaticResource H1}" Visibility="{Binding InFolder, Converter={StaticResource Hidden}}" />
                 <TextBlock Text="{Binding CurrentFolderName}" Style="{StaticResource H1}" Visibility="{Binding InFolder, Converter={StaticResource Visible}}" />
-                <Border Style="{StaticResource Badge}" Margin="12,4,0,0" Background="{StaticResource CardHoverBrush}">
-                    <TextBlock Text="{Binding CountText}" Foreground="{StaticResource TextMutedBrush}" />
-                </Border>
                 <Button Style="{StaticResource IconButton}" l:Btn.Icon="&#xE70F;" ToolTip="{l:T folder.rename}" Margin="10,2,0,0"
                         Command="{Binding RenameFolderCommand}" Visibility="{Binding InFolder, Converter={StaticResource Visible}}" />
                 <Button Style="{StaticResource IconButton}" l:Btn.Icon="&#xE74D;" ToolTip="{l:T folder.delete}" Margin="2,2,0,0"
@@ -176,12 +174,7 @@
                                 <TextBlock Style="{StaticResource Icon}" Text="&#xE8B7;" FontSize="17" HorizontalAlignment="Center"
                                            Foreground="{StaticResource WarningTextBrush}" />
                             </Border>
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Style="{StaticResource Caption}" Margin="0,2,0,0">
-                                    <Run Text="{Binding ItemCount, Mode=OneWay}" /> <Run Text="{l:T folder.items}" /><Run Text=" · " /><Run Text="{Binding FolderCount, Mode=OneWay}" /> <Run Text="{l:T folder.folders}" />
-                                </TextBlock>
-                            </StackPanel>
+                            <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                         </Grid>
                     </Border>
                 </DataTemplate>
@@ -189,12 +182,15 @@
         </ItemsControl>
 
         <!-- table -->
-        <Border Grid.Row="4" Style="{StaticResource Card}" Padding="0" ClipToBounds="True">
+        <Grid Grid.Row="4">
+        <Border Style="{StaticResource Card}" Padding="0" ClipToBounds="True" VerticalAlignment="Top"
+                Visibility="{Binding HasRows, Converter={StaticResource Visible}}">
             <Grid>
                 <DataGrid x:Name="ItemsGrid" ItemsSource="{Binding Rows}" RowStyle="{StaticResource RowStyle}"
                           Visibility="{Binding IsSuppliers, Converter={StaticResource Hidden}}"
                           PreviewMouseLeftButtonDown="Grid_PreviewMouseLeftButtonDown" PreviewMouseMove="Grid_PreviewMouseMove"
-                          PreviewMouseLeftButtonUp="Grid_PreviewMouseLeftButtonUp" PreviewKeyDown="Grid_PreviewKeyDown">
+                          PreviewMouseLeftButtonUp="Grid_PreviewMouseLeftButtonUp" PreviewKeyDown="Grid_PreviewKeyDown"
+                          ContextMenuOpening="Grid_ContextMenuOpening">
                     <DataGrid.ContextMenu>
                         <ContextMenu>
                             <MenuItem Header="{l:T common.open}" Click="Menu_Open" />
@@ -231,25 +227,32 @@
                         <DataGridTextColumn x:Name="SupplierCodeCol" Header="{l:T list.supplierCode}" Binding="{Binding SupplierCode}" Width="130" ElementStyle="{StaticResource MutedCell}" />
                         <DataGridTextColumn x:Name="UnitCol" Header="{l:T list.unit}" Binding="{Binding Unit, Converter={StaticResource UnitName}}" Width="70" ElementStyle="{StaticResource MutedCell}" />
                         <DataGridTextColumn Header="{l:T list.cost}" Binding="{Binding Cost, Converter={StaticResource Money4}}" Width="110"
-                                            ElementStyle="{StaticResource RightCell}" HeaderStyle="{StaticResource RightHeader}" SortMemberPath="Cost" />
-                        <DataGridTemplateColumn Header="{l:T list.price}" Width="110" SortMemberPath="Price" HeaderStyle="{StaticResource RightHeader}">
+                                            ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" SortMemberPath="Cost" />
+                        <DataGridTemplateColumn Header="{l:T list.price}" Width="110" SortMemberPath="Price" HeaderStyle="{StaticResource NumHeader}">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <TextBlock Text="{Binding Price, Converter={StaticResource Money}}" FontWeight="SemiBold" Style="{StaticResource RightCell}" />
+                                    <TextBlock Text="{Binding Price, Converter={StaticResource Money}}" FontWeight="SemiBold" Style="{StaticResource NumCell}" />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
                         <DataGridTextColumn x:Name="ProfitCol" Header="{l:T list.profit}" Binding="{Binding Profit, Converter={StaticResource Money}}" Width="100"
-                                            ElementStyle="{StaticResource RightCell}" HeaderStyle="{StaticResource RightHeader}" SortMemberPath="Profit" />
-                        <DataGridTextColumn Header="{l:T list.margin}" Binding="{Binding MarginPct, Converter={StaticResource Pct}}" Width="90"
-                                            ElementStyle="{StaticResource RightCell}" HeaderStyle="{StaticResource RightHeader}" SortMemberPath="MarginPct" />
+                                            ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" SortMemberPath="Profit" />
+                        <DataGridTemplateColumn Header="{l:T list.margin}" Width="100" SortMemberPath="MarginPct" HeaderStyle="{StaticResource NumHeader}">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding MarginPct, Converter={StaticResource Pct}}" Style="{StaticResource NumCell}" FontWeight="SemiBold"
+                                               Foreground="{Binding MarginPct, Converter={StaticResource MarginBrush}}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
                     </DataGrid.Columns>
                 </DataGrid>
 
                 <DataGrid x:Name="SuppliersGrid" ItemsSource="{Binding Rows}" RowStyle="{StaticResource RowStyle}"
                           Visibility="{Binding IsSuppliers, Converter={StaticResource Visible}}"
                           PreviewMouseLeftButtonDown="Grid_PreviewMouseLeftButtonDown" PreviewMouseMove="Grid_PreviewMouseMove"
-                          PreviewMouseLeftButtonUp="Grid_PreviewMouseLeftButtonUp" PreviewKeyDown="Grid_PreviewKeyDown">
+                          PreviewMouseLeftButtonUp="Grid_PreviewMouseLeftButtonUp" PreviewKeyDown="Grid_PreviewKeyDown"
+                          ContextMenuOpening="Grid_ContextMenuOpening">
                     <DataGrid.ContextMenu>
                         <ContextMenu>
                             <MenuItem Header="{l:T common.open}" Click="Menu_Open" />
@@ -269,26 +272,27 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTextColumn Header="{l:T list.country}" Binding="{Binding Country}" Width="*" ElementStyle="{StaticResource MutedCell}" />
+                        <DataGridTextColumn Header="{l:T list.country}" Binding="{Binding CountryName}" Width="*" ElementStyle="{StaticResource MutedCell}" />
                         <DataGridTextColumn Header="{l:T list.currency}" Binding="{Binding Currency, Converter={StaticResource CurrencyName}}" Width="90" ElementStyle="{StaticResource MutedCell}" />
                         <DataGridTextColumn Header="{l:T list.discount}" Binding="{Binding DiscountPct, Converter={StaticResource Pct}}" Width="95"
-                                            ElementStyle="{StaticResource RightCell}" HeaderStyle="{StaticResource RightHeader}" />
+                                            ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
                         <DataGridTextColumn Header="{l:T list.shipping}" Binding="{Binding ShippingPct, Converter={StaticResource Pct}}" Width="100"
-                                            ElementStyle="{StaticResource RightCell}" HeaderStyle="{StaticResource RightHeader}" />
+                                            ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
                         <DataGridTextColumn Header="{l:T list.items}" Binding="{Binding ItemCount}" Width="70"
-                                            ElementStyle="{StaticResource RightCell}" HeaderStyle="{StaticResource RightHeader}" />
+                                            ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
                         <DataGridTextColumn Header="{l:T list.email}" Binding="{Binding Email}" Width="*" ElementStyle="{StaticResource MutedCell}" />
                         <DataGridTextColumn Header="{l:T list.phone}" Binding="{Binding Phone}" Width="130" ElementStyle="{StaticResource MutedCell}" />
                     </DataGrid.Columns>
                 </DataGrid>
 
-                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding IsEmpty, Converter={StaticResource Visible}}"
-                            IsHitTestVisible="False">
-                    <TextBlock Style="{StaticResource Icon}" Text="&#xE7B8;" FontSize="34" HorizontalAlignment="Center" Foreground="{StaticResource TextFaintBrush}" />
-                    <TextBlock Text="{l:T common.empty}" Style="{StaticResource Muted}" Margin="0,10,0,0" HorizontalAlignment="Center" />
-                    <TextBlock Text="{l:T list.dragHint}" Style="{StaticResource Caption}" Margin="0,4,0,0" HorizontalAlignment="Center" />
-                </StackPanel>
             </Grid>
         </Border>
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding IsEmpty, Converter={StaticResource Visible}}"
+                    IsHitTestVisible="False">
+            <TextBlock Style="{StaticResource Icon}" Text="&#xE7B8;" FontSize="34" HorizontalAlignment="Center" Foreground="{StaticResource TextFaintBrush}" />
+            <TextBlock Text="{l:T common.empty}" Style="{StaticResource Muted}" Margin="0,10,0,0" HorizontalAlignment="Center" />
+            <TextBlock Text="{l:T list.dragHint}" Style="{StaticResource Caption}" Margin="0,4,0,0" HorizontalAlignment="Center" />
+        </StackPanel>
+        </Grid>
     </Grid>
 </UserControl>

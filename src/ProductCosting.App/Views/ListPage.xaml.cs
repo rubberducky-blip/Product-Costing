@@ -122,6 +122,15 @@ public partial class ListPage : UserControl
         }
     }
 
+    /// <summary>The Open/Delete menu belongs to rows only, not to headers or empty space.</summary>
+    void Grid_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        var row = FindParent<DataGridRow>(e.OriginalSource as DependencyObject);
+        if (row is null) { e.Handled = true; return; }
+        var grid = (DataGrid)sender;
+        if (!row.IsSelected) grid.SelectedItem = row.DataContext;
+    }
+
     void Menu_Open(object sender, RoutedEventArgs e)
     {
         if (ActiveGrid.SelectedItem is { } row) _vm?.OpenRow(row);
@@ -177,7 +186,7 @@ public partial class ListPage : UserControl
         if (_vm is { CanReorder: true } && e.Data.GetData(RowsFormat) is long[])
         {
             var after = e.GetPosition(row).Y > row.ActualHeight / 2;
-            DropHint.SetPosition(row, after ? 2 : 1);
+            SetHint(row, after ? 2 : 1);
             e.Effects = DragDropEffects.Move;
         }
         e.Handled = true;
@@ -195,10 +204,21 @@ public partial class ListPage : UserControl
 
     void Target_DragLeave(object sender, DragEventArgs e)
     {
-        if (sender is DependencyObject d) DropHint.SetPosition(d, 0);
+        // DragLeave also fires when moving between the target's own children: only clear when really outside
+        if (sender is FrameworkElement el)
+        {
+            var p = e.GetPosition(el);
+            if (p.X >= 0 && p.Y >= 0 && p.X < el.ActualWidth && p.Y < el.ActualHeight) return;
+            DropHint.SetPosition(el, 0);
+        }
     }
 
     // ---------- folder tiles ----------
+
+    static void SetHint(DependencyObject d, int hint)
+    {
+        if (DropHint.GetPosition(d) != hint) DropHint.SetPosition(d, hint);
+    }
 
     static long TileId(object sender) => (long)((FrameworkElement)sender).Tag;
 
@@ -233,14 +253,14 @@ public partial class ListPage : UserControl
         e.Effects = DragDropEffects.None;
         if (e.Data.GetData(RowsFormat) is long[])
         {
-            DropHint.SetPosition(tile, 3);
+            SetHint(tile, 3);
             e.Effects = DragDropEffects.Move;
         }
         else if (e.Data.GetData(FolderFormat) is long folder && folder != id)
         {
             var x = e.GetPosition(tile).X / tile.ActualWidth;
             var hint = _vm is { CanReorder: true } ? (x < 0.25 ? 1 : x > 0.75 ? 2 : 3) : 3;
-            DropHint.SetPosition(tile, hint);
+            SetHint(tile, hint);
             e.Effects = DragDropEffects.Move;
         }
         e.Handled = true;
@@ -288,7 +308,7 @@ public partial class ListPage : UserControl
         e.Effects = DragDropEffects.None;
         if (e.Data.GetData(RowsFormat) is long[] || (e.Data.GetData(FolderFormat) is long f && f != target))
         {
-            DropHint.SetPosition(b, 3);
+            SetHint(b, 3);
             e.Effects = DragDropEffects.Move;
         }
         e.Handled = true;

@@ -22,6 +22,7 @@ public static class Hint
         {
             tb.Loaded += (_, _) => Attach(tb);
             tb.TextChanged += (_, _) => Refresh(tb);
+            tb.SizeChanged += (_, _) => Refresh(tb);
             if (tb.IsLoaded) Attach(tb);
         }
         Refresh(tb);
@@ -64,11 +65,13 @@ public static class Hint
                 MaxLineCount = 1,
                 Trimming = TextTrimming.CharacterEllipsis,
             };
-            var left = _tb.Padding.Left + _tb.BorderThickness.Left + 3;
-            var x = _tb.HorizontalContentAlignment == HorizontalAlignment.Right
-                ? _tb.ActualWidth - ft.Width - _tb.Padding.Right - _tb.BorderThickness.Right - 4
-                : left;
-            dc.DrawText(ft, new Point(x, (_tb.ActualHeight - ft.Height) / 2));
+            // line the hint up with where the typed text goes: the template's content host
+            var box = new Rect(_tb.Padding.Left + _tb.BorderThickness.Left, 0,
+                Math.Max(0, _tb.ActualWidth - _tb.Padding.Left - _tb.Padding.Right), _tb.ActualHeight);
+            if (_tb.Template?.FindName("PART_ContentHost", _tb) is FrameworkElement host && host.IsVisible && host.ActualHeight > 0)
+                box = host.TransformToAncestor(_tb).TransformBounds(new Rect(0, 0, host.ActualWidth, host.ActualHeight));
+            var x = _tb.HorizontalContentAlignment == HorizontalAlignment.Right ? box.Right - ft.Width - 3 : box.Left + 3;
+            dc.DrawText(ft, new Point(x, box.Top + (box.Height - ft.Height) / 2));
         }
     }
 }

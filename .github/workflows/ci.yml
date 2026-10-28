@@ -31,8 +31,12 @@ jobs:
       - name: Smoke test (opens every screen on demo data)
         shell: pwsh
         run: |
+          # run the exe alone in an empty folder, exactly as it is downloaded
           $dir = Join-Path $env:RUNNER_TEMP 'smoke'
-          $p = Start-Process -FilePath publish\ProductCosting.exe -ArgumentList '--smoke', "`"$dir`"" -PassThru
+          $app = Join-Path $env:RUNNER_TEMP 'app'
+          New-Item -ItemType Directory -Force $app | Out-Null
+          Copy-Item publish\ProductCosting.exe $app
+          $p = Start-Process -FilePath (Join-Path $app 'ProductCosting.exe') -WorkingDirectory $app -ArgumentList '--smoke', "`"$dir`"" -PassThru
           if (-not $p.WaitForExit(300000)) { $p.Kill(); Write-Host 'timeout' }
           Get-Content (Join-Path $dir 'smoke.log')
           if ($p.ExitCode -ne 0) { Write-Error "smoke test failed ($($p.ExitCode))"; exit 1 }

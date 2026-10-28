@@ -69,9 +69,9 @@ internal static class Smoke
         var abroad = store.CreateFolder(ListScope.Suppliers, null, "Εξωτερικού");
         store.CreateFolder(ListScope.Merchandise, null, "Κεραμικά");
 
-        var crete = store.SaveSupplier(new Supplier { Name = "Δερμάτινα Κρήτης ΑΕ", Country = "Ελλάδα", DiscountPct = 8, ShippingPct = 5, Email = "orders@dermata.gr", Phone = "2810 123456" });
-        var usa = store.SaveSupplier(new Supplier { Name = "Leather Works Inc", Country = "USA", Currency = Currency.Usd, ShippingPct = 14, FolderId = abroad, Email = "sales@leatherworks.com" });
-        var italy = store.SaveSupplier(new Supplier { Name = "Metalli Srl", Country = "Italia", DiscountPct = 5, ShippingPct = 10, FolderId = abroad });
+        var crete = store.SaveSupplier(new Supplier { Name = "Δερμάτινα Κρήτης ΑΕ", Country = "GR", DiscountPct = 8, ShippingPct = 5, Email = "orders@dermata.gr", Phone = "2810 123456" });
+        var usa = store.SaveSupplier(new Supplier { Name = "Leather Works Inc", Country = "US", Currency = Currency.Usd, ShippingPct = 14, FolderId = abroad, Email = "sales@leatherworks.com" });
+        var italy = store.SaveSupplier(new Supplier { Name = "Metalli Srl", Country = "IT", DiscountPct = 5, ShippingPct = 10, FolderId = abroad });
 
         long Raw(string code, string name, long? folder, long sup, string supCode, decimal price, decimal qty, QtyUnit unit, decimal? len = null, decimal? area = null) =>
             store.SaveItem(new ItemDocument
@@ -299,6 +299,7 @@ internal static class Smoke
             vm.Search.Query = "δερμα";
             await Settle(700);
             Check("search has results", vm.Search.Results.Count > 0);
+            Check("search shows the matching comment", store.Search("διπλη ραφη").Any(h => h.Code == "P-100" && h.Snippet == "διπλή ραφή"));
             Shot(root, "15-search-page");
             if (OpenPopup(w) is { } p) Shot(p, "15-search-popup");
             else Check("search popup open", false);

@@ -76,13 +76,14 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <Grid HorizontalAlignment="Left" Width="520" DataContext="{Binding Search}">
-                        <TextBox x:Name="SearchBox" Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}" Padding="34,6,64,6"
+                        <TextBox x:Name="SearchBox" Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}" Padding="34,0,64,0" MinHeight="36"
+                                 VerticalContentAlignment="Center"
                                  l:Hint.Text="{l:T search.placeholder}" PreviewKeyDown="SearchBox_PreviewKeyDown" />
                         <TextBlock Style="{StaticResource Icon}" Text="&#xE721;" Margin="12,0,0,0" HorizontalAlignment="Left"
                                    Foreground="{StaticResource TextMutedBrush}" IsHitTestVisible="False" FontSize="13" />
                         <Border HorizontalAlignment="Right" Margin="0,0,10,0" Background="{StaticResource CardHoverBrush}" CornerRadius="4" Padding="6,1"
                                 VerticalAlignment="Center" IsHitTestVisible="False">
-                            <TextBlock Text="Ctrl K" FontSize="11" Foreground="{StaticResource TextFaintBrush}" />
+                            <TextBlock Text="Ctrl F" FontSize="11" Foreground="{StaticResource TextFaintBrush}" />
                         </Border>
                         <Popup IsOpen="{Binding IsOpen}" PlacementTarget="{Binding ElementName=SearchBox}" Placement="Bottom" VerticalOffset="6"
                                StaysOpen="False" AllowsTransparency="True" Width="620">
@@ -114,7 +115,14 @@
                                                     <TextBlock Grid.Column="1" Text="{Binding Code}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="4,0,10,0" />
                                                     <StackPanel Grid.Column="2" VerticalAlignment="Center">
                                                         <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-                                                        <TextBlock Text="{Binding KindText}" Style="{StaticResource Caption}" />
+                                                        <TextBlock Text="{Binding KindText}" Style="{StaticResource Caption}"
+                                                                   Visibility="{Binding HasSnippet, Converter={StaticResource Hidden}}" />
+                                                        <StackPanel Orientation="Horizontal" Visibility="{Binding HasSnippet, Converter={StaticResource Visible}}">
+                                                            <TextBlock Style="{StaticResource Icon}" Text="&#xE90A;" FontSize="11" Margin="0,1,6,0"
+                                                                       Foreground="{StaticResource AccentTextBrush}" />
+                                                            <TextBlock Text="{Binding Snippet}" FontSize="12" FontStyle="Italic" Foreground="{StaticResource TextMutedBrush}"
+                                                                       TextTrimming="CharacterEllipsis" MaxWidth="420" />
+                                                        </StackPanel>
                                                     </StackPanel>
                                                     <TextBlock Grid.Column="3" Text="{Binding PriceText}" VerticalAlignment="Center" Foreground="{StaticResource TextMutedBrush}" Margin="12,0,4,0" />
                                                 </Grid>

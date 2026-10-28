@@ -58,7 +58,7 @@
                             </StackPanel>
                             <StackPanel Grid.Column="2">
                                 <TextBlock Text="{l:T supplier.country}" Style="{StaticResource FieldLabel}" />
-                                <TextBox Text="{Binding Country, UpdateSourceTrigger=PropertyChanged}" />
+                                <c:SearchPicker ItemsSource="{Binding CountryEntries}" SelectedId="{Binding CountryId}" Placeholder="{l:T supplier.pickCountry}" />
                             </StackPanel>
                         </Grid>
                         <Grid Margin="0,14,0,0">
@@ -71,11 +71,11 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel>
                                 <TextBlock Text="{l:T supplier.discount}" Style="{StaticResource FieldLabel}" TextTrimming="CharacterEllipsis" />
-                                <l:NumBox Field="{Binding Discount}" />
+                                <l:NumBox Field="{Binding Discount}" l:Hint.Text="0" />
                             </StackPanel>
                             <StackPanel Grid.Column="2">
                                 <TextBlock Text="{l:T supplier.shipping}" Style="{StaticResource FieldLabel}" />
-                                <l:NumBox Field="{Binding Shipping}" ToolTip="{l:T supplier.shippingHelp}" />
+                                <l:NumBox Field="{Binding Shipping}" ToolTip="{l:T supplier.shippingHelp}" l:Hint.Text="0" />
                             </StackPanel>
                             <StackPanel Grid.Column="4">
                                 <TextBlock Text="{l:T supplier.currency}" Style="{StaticResource FieldLabel}" />
@@ -105,7 +105,7 @@
                 </Border>
             </ScrollViewer>
 
-            <Border Grid.Column="2" Style="{StaticResource Card}" Padding="0">
+            <Border Grid.Column="2" Style="{StaticResource Card}" Padding="0" VerticalAlignment="Top">
                 <DockPanel>
                     <DockPanel DockPanel.Dock="Top" Margin="20,16,16,12">
                         <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" l:Btn.Icon="&#xE7BF;" Content="{l:T supplier.newOrder}"
@@ -113,7 +113,7 @@
                         <TextBlock Text="{l:T supplier.items}" Style="{StaticResource H2}" VerticalAlignment="Center" />
                     </DockPanel>
                     <Grid>
-                        <TextBlock Text="{l:T supplier.noItems}" Style="{StaticResource Muted}" Margin="20,10" Visibility="{Binding HasItems, Converter={StaticResource Hidden}}" />
+                        <TextBlock Text="{l:T supplier.noItems}" Style="{StaticResource Muted}" Margin="20,0,20,16" Visibility="{Binding HasItems, Converter={StaticResource Hidden}}" />
                         <DataGrid x:Name="ItemsGrid" ItemsSource="{Binding Items}" Visibility="{Binding HasItems, Converter={StaticResource Visible}}"
                                   MouseDoubleClick="ItemsGrid_MouseDoubleClick">
                             <DataGrid.Columns>
@@ -121,7 +121,7 @@
                                 <DataGridTextColumn Header="{l:T list.name}" Binding="{Binding Name}" Width="*" ElementStyle="{StaticResource CellText}" />
                                 <DataGridTextColumn Header="{l:T list.supplierCode}" Binding="{Binding SupplierCode}" Width="120" ElementStyle="{StaticResource MutedCell}" />
                                 <DataGridTextColumn Header="{l:T item.purchasePrice}" Binding="{Binding PurchasePrice, Converter={StaticResource Num}}" Width="100"
-                                                    ElementStyle="{StaticResource RightCell}" HeaderStyle="{StaticResource RightHeader}" />
+                                                    ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
                                 <DataGridTextColumn Header="{l:T list.currency}" Binding="{Binding Currency, Converter={StaticResource CurrencyName}}" Width="80" ElementStyle="{StaticResource MutedCell}" />
                             </DataGrid.Columns>
                         </DataGrid>

@@ -40,9 +40,9 @@ public sealed partial class NotificationsViewModel(MainViewModel main) : Observa
     [ObservableProperty] private int _expansionCount;
     [ObservableProperty] private bool _isOpen;
 
-    public string ExpansionText => Loc.F("notify.expansion", ExpansionCount);
+    public bool CanExpand => ExpansionCount > 0;
 
-    partial void OnExpansionCountChanged(int value) => OnPropertyChanged(nameof(ExpansionText));
+    partial void OnExpansionCountChanged(int value) => OnPropertyChanged(nameof(CanExpand));
 
     public void Refresh()
     {
@@ -51,7 +51,6 @@ public sealed partial class NotificationsViewModel(MainViewModel main) : Observa
         foreach (var n in list) Items.Add(new NotificationItem(n));
         Count = list.Count;
         ExpansionCount = list.Count(n => n.NewPrice < n.OldPrice && !n.Adjusted);
-        OnPropertyChanged(nameof(ExpansionText));
     }
 
     [RelayCommand]
@@ -67,9 +66,8 @@ public sealed partial class NotificationsViewModel(MainViewModel main) : Observa
     [RelayCommand]
     void HideAll()
     {
-        if (Count == 0) return;
         IsOpen = false;
-        if (Dialogs.Confirm(Loc.T("notify.hideAllConfirm"), Loc.T("notify.hideAll"))) AppState.Store.HideAllNotifications();
+        if (Count > 0) AppState.Store.HideAllNotifications();
     }
 
     [RelayCommand]
@@ -80,9 +78,9 @@ public sealed partial class NotificationsViewModel(MainViewModel main) : Observa
     {
         if (ExpansionCount == 0) return;
         IsOpen = false;
-        if (!Dialogs.Confirm(Loc.F("notify.expansionConfirm", ExpansionCount), Loc.F("notify.expansion", ExpansionCount))) return;
+        if (!Dialogs.Confirm(Loc.F("notify.expansionConfirm", ExpansionCount), Loc.T("notify.expansion"))) return;
         var n = AppState.Store.MarginExpansion();
-        main.ShowToast(Loc.F("notify.expansion", n));
+        main.ShowToast(Loc.F("notify.expanded", n));
     }
 
     [RelayCommand]

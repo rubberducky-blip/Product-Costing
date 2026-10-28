@@ -23,7 +23,7 @@ public static class Choices
 }
 
 /// <summary>A line of the live cost breakdown.</summary>
-public sealed record BreakdownLine(string Label, string Value, string Kind = "row")
+public sealed record BreakdownLine(string Label, string Value, string Kind = "row", string? Tone = null)
 {
     public bool IsHeader => Kind == "header";
     public bool IsTotal => Kind == "total";

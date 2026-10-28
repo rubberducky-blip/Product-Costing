@@ -106,3 +106,26 @@ public sealed class DateTimeConverter : IValueConverter
     };
     public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => Binding.DoNothing;
 }
+
+/// <summary>Colour of a margin %: low is bad (red), middling amber, high good (green).</summary>
+public sealed class MarginBrushConverter : IValueConverter
+{
+    public const decimal Low = 20m, Good = 35m;
+
+    public static string Tone(decimal margin) => margin < Low ? "bad" : margin < Good ? "ok" : "good";
+
+    /// <summary>Parameter "soft" gives the matching background colour.</summary>
+    public object Convert(object? value, Type t, object? p, CultureInfo c) => value is decimal m
+        ? Application.Current.FindResource((Tone(m), p as string) switch
+        {
+            ("bad", "soft") => "DangerSoftBrush",
+            ("ok", "soft") => "WarningSoftBrush",
+            (_, "soft") => "SuccessSoftBrush",
+            ("bad", _) => "DangerTextBrush",
+            ("ok", _) => "WarningTextBrush",
+            _ => "SuccessTextBrush",
+        })
+        : DependencyProperty.UnsetValue;
+
+    public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => Binding.DoNothing;
+}

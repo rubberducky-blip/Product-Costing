@@ -6,6 +6,7 @@ using ProductCosting.App.Controls;
 using ProductCosting.App.Infrastructure;
 using ProductCosting.App.Views;
 using ProductCosting.Core.Data;
+using ProductCosting.Core.Localization;
 using ProductCosting.Core.Model;
 
 namespace ProductCosting.App.ViewModels;
@@ -21,8 +22,9 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
     {
         _main = main;
         _model = s;
-        Discount = new NumField(0);
-        Shipping = new NumField(0);
+        // empty = 0, shown as a "0" placeholder
+        Discount = new NumField(null, allowEmpty: true);
+        Shipping = new NumField(null, allowEmpty: true);
         Discount.Changed += Edited;
         Shipping.Changed += Edited;
         FolderEntries = PickerEntry.Folders(AppState.Store.GetFolders(ListScope.Suppliers), Loc.T("folder.root"));
@@ -33,7 +35,7 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
 
     [ObservableProperty] private string _name = "";
     [ObservableProperty] private long? _folderId;
-    [ObservableProperty] private string _country = "";
+    [ObservableProperty] private long? _countryId;
     [ObservableProperty] private Currency _currency;
     [ObservableProperty] private string _email = "";
     [ObservableProperty] private string _phone = "";
@@ -43,6 +45,8 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
     public NumField Discount { get; }
     public NumField Shipping { get; }
     public List<PickerEntry> FolderEntries { get; }
+    public List<PickerEntry> CountryEntries { get; private set; } = [];
+    string? _otherCountry;
     public List<Choice<Currency>> Currencies { get; } = Choices.Currencies();
     public ObservableCollection<SupplierItemRow> Items { get; } = [];
 
@@ -57,13 +61,21 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
         _model = s;
         Name = s.Name;
         FolderId = s.FolderId;
-        Country = s.Country ?? "";
+        // countries are stored by ISO code; anything else (older free text) is kept as an extra choice
+        var code = string.IsNullOrWhiteSpace(s.Country) ? (s.Id == 0 ? Countries.Default : null) : s.Country.Trim();
+        var all = Countries.All;
+        _otherCountry = code is not null && Countries.Find(code) is null ? code : null;
+        CountryEntries = PickerEntry.Flat(all.Select((c, i) => ((long)i, c.Name, c.El + " " + c.En + " " + c.Code))
+            .Concat(_otherCountry is null ? [] : [((long)all.Count, _otherCountry, _otherCountry)]));
+        OnPropertyChanged(nameof(CountryEntries));
+        CountryId = code is null ? null
+            : Countries.Find(code) is { } found ? all.ToList().FindIndex(c => c.Code == found.Code) : all.Count;
         Currency = s.Currency;
         Email = s.Email ?? "";
         Phone = s.Phone ?? "";
         Notes = s.Notes ?? "";
-        Discount.Set(s.DiscountPct);
-        Shipping.Set(s.ShippingPct);
+        Discount.Set(s.DiscountPct == 0 ? null : s.DiscountPct);
+        Shipping.Set(s.ShippingPct == 0 ? null : s.ShippingPct);
         Items.Clear();
         if (!IsNew) foreach (var i in AppState.Store.GetSupplierItems(s.Id)) Items.Add(i);
         _loading = false;
@@ -77,7 +89,7 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
     protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
     {
         base.OnPropertyChanged(e);
-        if (e.PropertyName is nameof(Name) or nameof(FolderId) or nameof(Country) or nameof(Currency) or nameof(Email) or nameof(Phone) or nameof(Notes))
+        if (e.PropertyName is nameof(Name) or nameof(FolderId) or nameof(CountryId) or nameof(Currency) or nameof(Email) or nameof(Phone) or nameof(Notes))
             Edited();
     }
 
@@ -88,10 +100,14 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
         OnPropertyChanged(nameof(Title));
     }
 
+    string? CountryCode => CountryId is long i
+        ? i < Countries.All.Count ? Countries.All[(int)i].Code : _otherCountry
+        : null;
+
     string Snapshot()
     {
-        string N(NumField f) => f.IsValid ? f.Value?.ToString(CultureInfo.InvariantCulture) ?? "" : "!" + f.Text;
-        return string.Join("|", Name.Trim(), FolderId, Country.Trim(), Currency, Email.Trim(), Phone.Trim(), Notes.Trim(), N(Discount), N(Shipping));
+        string N(NumField f) => f.IsValid ? (f.Value ?? 0).ToString(CultureInfo.InvariantCulture) : "!" + f.Text;
+        return string.Join("|", Name.Trim(), FolderId, CountryCode, Currency, Email.Trim(), Phone.Trim(), Notes.Trim(), N(Discount), N(Shipping));
     }
 
     [RelayCommand]
@@ -120,12 +136,12 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
         static string? Opt(string s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
         var s = new Supplier
         {
-            Id = _model.Id, Name = Name.Trim(), FolderId = FolderId, Country = Opt(Country), Currency = Currency,
+            Id = _model.Id, Name = Name.Trim(), FolderId = FolderId, Country = CountryCode, Currency = Currency,
             Email = Opt(Email), Phone = Opt(Phone), Notes = Opt(Notes), DiscountPct = Discount.Or0, ShippingPct = Shipping.Or0,
         };
         var id = AppState.Store.SaveSupplier(s);
         Load(AppState.Store.GetSupplier(id)!);
-        _main.ShowToast(Loc.T("common.save") + " ✓");
+        _main.ShowToast(Loc.T("common.saved"));
         return true;
     }
 

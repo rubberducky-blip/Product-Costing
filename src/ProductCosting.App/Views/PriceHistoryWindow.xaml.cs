@@ -27,6 +27,7 @@ public partial class PriceHistoryWindow : Window
         var entries = AppState.Store.GetHistory(itemId);
         Chart.Entries = entries;
         Table.ItemsSource = entries.AsEnumerable().Reverse().Select(e => new HistoryRow(e)).ToList();
+        if (entries.Count == 0) TableCard.Visibility = Visibility.Collapsed;
     }
 
     void Close_Click(object sender, RoutedEventArgs e) => Close();

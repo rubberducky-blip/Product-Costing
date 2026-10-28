@@ -83,7 +83,7 @@ public sealed partial class Store
 
     static void RefreshSupplierSearch(SqliteConnection c, SqliteTransaction t, Supplier s)
     {
-        var key = TextNorm.Join(s.Name, s.Country, s.Email, s.Phone);
+        var key = TextNorm.Join(s.Name, Localization.Countries.SearchText(s.Country), s.Email, s.Phone);
         var body = TextNorm.Join(key, s.Notes);
         c.Execute("UPDATE suppliers SET list_key=@key WHERE id=@Id", new { key, s.Id }, t);
         c.Execute("DELETE FROM search_index WHERE rowid=@r; INSERT INTO search_index(rowid, body) VALUES(@r, @body);", new { r = s.Id * 2 + 1, body }, t);

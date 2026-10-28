@@ -53,7 +53,7 @@ The data lives in `%LOCALAPPDATA%\ProductCosting\data.db`. Backups go to `Docume
 - Nested folders in every list, shown as tiles above the table, each sorted by code (by name for suppliers) or manually.
 - Drag rows or folders onto a folder tile or onto the folder path to move them. With manual sorting, drag rows to reorder them, and drop a folder on the left or right edge of another folder to reorder folders.
 - A filter box on every list searches all folders. The supplier, raw-material and folder fields use search-as-you-type pickers that show the folder tree.
-- **Global search** (Ctrl+K) across codes, names, supplier codes, suppliers, notes and recipe/labor comments. It ignores Greek accents and case.
+- **Global search** (Ctrl+F) across codes, names, supplier codes, suppliers, notes and recipe/labor comments. It ignores Greek accents and case. When the match is in a note or comment, that text is shown under the result.
 
 **Editing**
 - Save is enabled only when something actually changed, so a value changed and then put back counts as no change. Ctrl+S saves.

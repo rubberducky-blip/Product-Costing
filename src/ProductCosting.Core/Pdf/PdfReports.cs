@@ -21,6 +21,8 @@ public static class PdfReports
     {
         QuestPDF.Settings.License = LicenseType.Community;
         QuestPDF.Settings.UseSystemFonts = false;
+        // never fail an export over a missing fallback font (QuestPDF looks for Lato next to the exe); Inter is embedded below
+        QuestPDF.Settings.ThrowOnMissingFontFamilies = false;
         // Inter (SIL Open Font License) is embedded so Greek renders the same on every PC
         var asm = typeof(PdfReports).Assembly;
         foreach (var name in new[] { "Fonts.Inter-Regular.otf", "Fonts.Inter-SemiBold.otf" })
@@ -125,7 +127,7 @@ public static class PdfReports
                     row.RelativeItem().Column(info =>
                     {
                         info.Item().Text(supplier.Name).FontSize(11).SemiBold();
-                        foreach (var v in new[] { supplier.Country, supplier.Email, supplier.Phone })
+                        foreach (var v in new[] { Countries.Name(supplier.Country), supplier.Email, supplier.Phone })
                             if (!string.IsNullOrWhiteSpace(v)) info.Item().Text(v).FontColor(Muted);
                     });
                     row.ConstantItem(160).AlignRight().Column(info =>

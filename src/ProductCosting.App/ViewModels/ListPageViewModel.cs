@@ -60,6 +60,7 @@ public sealed partial class ListPageViewModel : PageViewModel
     [ObservableProperty] private SortMode _sortMode;
     [ObservableProperty] private string _countText = "";
     [ObservableProperty] private bool _isEmpty;
+    [ObservableProperty] private bool _hasRows;
 
     public bool IsFiltering => !string.IsNullOrWhiteSpace(Filter);
     public bool InFolder => FolderId is not null && !IsFiltering;
@@ -131,6 +132,7 @@ public sealed partial class ListPageViewModel : PageViewModel
         for (var i = 0; i < chain.Count; i++) Crumbs.Add(new Crumb(chain[i].Id, chain[i].Name, i == chain.Count - 1));
 
         CountText = Loc.F("list.count", Rows.Count);
+        HasRows = Rows.Count > 0;
         IsEmpty = Rows.Count == 0 && (IsFiltering || Tiles.Count == 0);
         OnPropertyChanged(nameof(InFolder));
         OnPropertyChanged(nameof(CanReorder));

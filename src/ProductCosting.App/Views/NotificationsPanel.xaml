@@ -22,10 +22,11 @@
                         </StackPanel>
                     </DockPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                        <Button Style="{StaticResource PrimaryButton}" l:Btn.Icon="&#xE8C9;" Content="{Binding ExpansionText}"
-                                Command="{Binding ExpansionCommand}" ToolTip="{l:T notify.expansionHelp}" Padding="12,6" MinHeight="0" />
+                        <Button Style="{StaticResource PrimaryButton}" l:Btn.Icon="&#xE8C9;" Content="{l:T notify.expansion}"
+                                Command="{Binding ExpansionCommand}" ToolTip="{l:T notify.expansionHelp}" Padding="12,6" MinHeight="0" Margin="0,0,8,0"
+                                Visibility="{Binding CanExpand, Converter={StaticResource Visible}}" />
                         <Button Style="{StaticResource SecondaryButton}" l:Btn.Icon="&#xE896;" Content="{l:T notify.export}"
-                                Command="{Binding ExportCommand}" Margin="8,0,0,0" Padding="12,6" MinHeight="0" />
+                                Command="{Binding ExportCommand}" Padding="12,6" MinHeight="0" />
                     </StackPanel>
                 </StackPanel>
             </Border>

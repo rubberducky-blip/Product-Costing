@@ -80,15 +80,56 @@ public sealed partial class Store
         var ids = c.Query<long>("SELECT rowid FROM search_index WHERE body LIKE @p LIMIT @limit", new { p, limit }).ToList();
         var items = ids.Where(r => r % 2 == 0).Select(r => r / 2).ToList();
         var sups = ids.Where(r => r % 2 == 1).Select(r => r / 2).ToList();
+        var q = TextNorm.Normalize(query).Trim();
         var hits = new List<SearchHit>();
         if (items.Count > 0)
-            hits.AddRange(c.Query<SearchHit>("SELECT 0 AS is_supplier, id, kind, code, name, price, cost, unit FROM items WHERE id IN @items", new { items }));
+        {
+            foreach (var (hit, key, notes) in c.Query<SearchHit, string, string?, (SearchHit, string, string?)>(
+                "SELECT 0 AS is_supplier, id, kind, code, name, price, cost, unit, list_key, notes FROM items WHERE id IN @items",
+                (h, k, n) => (h, k, n), new { items }, splitOn: "list_key,notes"))
+            {
+                if (!TextNorm.Normalize(key).Contains(q))
+                {
+                    hit.Snippet = Snippet(notes, q);
+                    if (hit.Snippet is null)
+                    {
+                        var texts = c.Query<string>("""
+                            SELECT comment FROM recipe_lines WHERE product_id=@id AND comment IS NOT NULL
+                            UNION ALL SELECT comment FROM labor_entries WHERE product_id=@id AND comment IS NOT NULL
+                            UNION ALL SELECT name FROM item_variants WHERE item_id=@id
+                            """, new { id = hit.Id });
+                        hit.Snippet = texts.Select(t => Snippet(t, q)).FirstOrDefault(x => x is not null);
+                    }
+                }
+                hits.Add(hit);
+            }
+        }
         if (sups.Count > 0)
-            hits.AddRange(c.Query<SearchHit>("SELECT 1 AS is_supplier, id, 0 AS kind, '' AS code, name, 0 AS price FROM suppliers WHERE id IN @sups", new { sups }));
-        var norm = TextNorm.Normalize(query).Trim();
+        {
+            foreach (var (hit, key, notes) in c.Query<SearchHit, string, string?, (SearchHit, string, string?)>(
+                "SELECT 1 AS is_supplier, id, 0 AS kind, '' AS code, name, 0 AS price, list_key, notes FROM suppliers WHERE id IN @sups",
+                (h, k, n) => (h, k, n), new { sups }, splitOn: "list_key,notes"))
+            {
+                if (!TextNorm.Normalize(key).Contains(q)) hit.Snippet = Snippet(notes, q);
+                hits.Add(hit);
+            }
+        }
         // exact code / name prefix first
-        return hits.OrderBy(h => TextNorm.Normalize(h.Code).StartsWith(norm) || TextNorm.Normalize(h.Name).StartsWith(norm) ? 0 : 1)
+        return hits.OrderBy(h => TextNorm.Normalize(h.Code).StartsWith(q) || TextNorm.Normalize(h.Name).StartsWith(q) ? 0 : 1)
             .ThenBy(h => h.IsSupplier)
             .ThenBy(h => h.IsSupplier ? h.Name : h.Code, NaturalComparer.Instance).ToList();
     });
+
+    /// <summary>A short excerpt of <paramref name="text"/> around the first match of the normalized query.</summary>
+    internal static string? Snippet(string? text, string normalizedQuery)
+    {
+        if (string.IsNullOrWhiteSpace(text) || normalizedQuery.Length == 0) return null;
+        var flat = string.Join(' ', text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        var at = TextNorm.Normalize(flat).IndexOf(normalizedQuery, StringComparison.Ordinal);
+        if (at < 0) return null;
+        // normalizing keeps one character per character for Greek and Latin text, so positions line up
+        var start = Math.Max(0, at - 30);
+        var end = Math.Min(flat.Length, at + normalizedQuery.Length + 45);
+        return (start > 0 ? "…" : "") + flat[start..end] + (end < flat.Length ? "…" : "");
+    }
 }

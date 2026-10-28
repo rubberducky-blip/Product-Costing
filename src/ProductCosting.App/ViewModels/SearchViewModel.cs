@@ -13,6 +13,8 @@ public sealed class SearchResult(SearchHit hit)
     public SearchHit Hit { get; } = hit;
     public string Code => Hit.IsSupplier ? "" : Hit.Code;
     public string Name => Hit.Name;
+    public string? Snippet => Hit.Snippet is null ? null : $"“{Hit.Snippet}”";
+    public bool HasSnippet => Hit.Snippet is not null;
     public string KindText => Hit.IsSupplier ? Loc.T("kind.supplier") : Strings.Kind(Hit.Kind);
     // raw materials are bought per cm, cm², kg…: their cost per unit says more than a rounded price
     public string PriceText => Hit.IsSupplier ? ""

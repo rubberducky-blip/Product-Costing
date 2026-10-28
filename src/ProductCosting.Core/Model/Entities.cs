@@ -215,6 +215,7 @@ public sealed class SupplierRow
     public string? Phone { get; set; }
     public int ItemCount { get; set; }
     public string? FolderPath { get; set; }
+    public string CountryName => Localization.Countries.Name(Country);
 }
 
 public sealed class FolderTile
@@ -237,6 +238,8 @@ public sealed class SearchHit
     public decimal Price { get; set; }
     public decimal Cost { get; set; }
     public QtyUnit Unit { get; set; }
+    /// <summary>The note or comment that matched, when the match isn't in the code, name or suppliers.</summary>
+    public string? Snippet { get; set; }
 }
 
 /// <summary>A product that uses a material in its recipe.</summary>

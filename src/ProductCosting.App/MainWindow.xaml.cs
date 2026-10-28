@@ -27,7 +27,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         NativeWindow.UseDarkTitleBar(this);
         DataContext = _vm = new MainViewModel();
-        InputBindings.Add(new KeyBinding(FocusSearchCommand, Key.K, ModifierKeys.Control));
+        // Ctrl+F (also Ctrl+Φ: on the Greek layout it is the same key)
         InputBindings.Add(new KeyBinding(FocusSearchCommand, Key.F, ModifierKeys.Control));
         InputBindings.Add(new KeyBinding(SaveCommand, Key.S, ModifierKeys.Control));
         Closing += OnClosing;

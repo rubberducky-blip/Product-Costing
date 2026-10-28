@@ -18,10 +18,29 @@ public sealed class NumBox : TextBox
         set => SetValue(FieldProperty, value);
     }
 
+    public static readonly DependencyProperty DecimalsProperty = DependencyProperty.Register(
+        nameof(Decimals), typeof(int), typeof(NumBox), new PropertyMetadata(-1, (d, _) => ((NumBox)d).Pretty()));
+
+    /// <summary>Minimum decimals shown while the box isn't being edited (2 for prices); -1 shows the number as typed.</summary>
+    public int Decimals
+    {
+        get => (int)GetValue(DecimalsProperty);
+        set => SetValue(DecimalsProperty, value);
+    }
+
     public NumBox()
     {
         HorizontalContentAlignment = HorizontalAlignment.Right;
         GotKeyboardFocus += (_, _) => SelectAll();
+        LostKeyboardFocus += (_, _) => Pretty();
+    }
+
+    /// <summary>Shows e.g. "12,50" instead of "12,5" when not editing. The value doesn't change, so nothing becomes "unsaved".</summary>
+    void Pretty()
+    {
+        if (Decimals < 0 || IsKeyboardFocusWithin || Field is not { IsValid: true, Value: decimal v }) return;
+        var text = v.ToString("0." + new string('0', Decimals) + "#####", Loc.Culture);
+        if (Field.Text != text) Field.Text = text;
     }
 
     static void OnFieldChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -35,11 +54,13 @@ public sealed class NumBox : TextBox
         }
         else BindingOperations.ClearBinding(box, TextProperty);
         box.UpdateValidity();
+        box.Pretty();
     }
 
     void OnFieldPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(NumField.IsValid)) UpdateValidity();
+        else if (e.PropertyName == nameof(NumField.Text)) Pretty();
     }
 
     void UpdateValidity()

@@ -87,6 +87,7 @@ public sealed partial class ItemEditorViewModel : PageViewModel
     [ObservableProperty] private string _priceText = "";
     [ObservableProperty] private string _costText = "";
     [ObservableProperty] private string _marginText = "";
+    [ObservableProperty] private decimal _marginPct;
     [ObservableProperty] private string _laborTotalText = "";
     [ObservableProperty] private string _materialsTotalText = "";
     [ObservableProperty] private string _markupHint = "";
@@ -293,7 +294,7 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         Breakdown.Add(new(Loc.T("cost.rawPrice"), Fmt.Money4(price.RawPrice), "sub"));
         Breakdown.Add(new(Loc.T("cost.price"), Fmt.Money(price.Price), "big"));
         Breakdown.Add(new(Loc.T("cost.profit"), Fmt.Money(price.Profit)));
-        Breakdown.Add(new(Loc.T("cost.margin"), Fmt.Pct(Math.Round(price.MarginPct, 1))));
+        Breakdown.Add(new(Loc.T("cost.margin"), Fmt.Pct(Math.Round(price.MarginPct, 1)), "row", MarginBrushConverter.Tone(price.MarginPct)));
         if (warn.HasFlag(CostWarning.MissingMaterial)) Breakdown.Add(new(Loc.T("cost.warnMissing"), "", "warn"));
         if (warn.HasFlag(CostWarning.NoConversion)) Breakdown.Add(new(Loc.T("cost.warnConversion"), "", "warn"));
         if (warn.HasFlag(CostWarning.NoPrice)) Breakdown.Add(new(Loc.T("cost.warnNoPrice"), "", "warn"));
@@ -301,6 +302,7 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         PriceText = Fmt.Money(price.Price);
         CostText = Fmt.Money4(cost);
         MarginText = Fmt.Pct(Math.Round(price.MarginPct, 1));
+        MarginPct = price.MarginPct;
         Title = IsNew && string.IsNullOrWhiteSpace(Code) ? Loc.F("item.newTitle", KindText.ToLower(Loc.Culture)) : $"{Code}";
         OnPropertyChanged(nameof(MultipleSources));
         Dirty = Snapshot() != _original;
@@ -471,7 +473,7 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         {
             var id = AppState.Store.SaveItem(doc);
             Load(AppState.Store.LoadItem(id)!);
-            _main.ShowToast(Loc.T("common.save") + " ✓");
+            _main.ShowToast(Loc.T("common.saved"));
             return true;
         }
         catch (DuplicateCodeException ex)

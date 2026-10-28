@@ -24,6 +24,7 @@
             <l:EqualsConverter x:Key="Equals" />
             <l:SizeConverter x:Key="FileSize" />
             <l:DateTimeConverter x:Key="DateTime" />
+            <l:MarginBrushConverter x:Key="MarginBrush" />
 
             <!-- windows -->
             <Style x:Key="AppWindow" TargetType="Window">
@@ -175,6 +176,7 @@
                 </Style.Triggers>
             </Style>
             <Style x:Key="GhostButton" TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                <Setter Property="Focusable" Value="False" />
                 <Setter Property="Background" Value="Transparent" />
                 <Setter Property="BorderBrush" Value="Transparent" />
                 <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
@@ -275,6 +277,9 @@
             </Style>
 
             <!-- inputs: keep the Fluent look, add our numeric box -->
+            <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+            </Style>
             <Style TargetType="l:NumBox" BasedOn="{StaticResource {x:Type TextBox}}" />
             <Style x:Key="MultiLine" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
                 <Setter Property="AcceptsReturn" Value="True" />
@@ -335,7 +340,51 @@
             <Style TargetType="DataGridCell" BasedOn="{StaticResource AppCell}" />
             <Style TargetType="DataGridRow" BasedOn="{StaticResource AppRow}" />
 
+            <Style x:Key="AppHeader" TargetType="DataGridColumnHeader">
+                <Setter Property="Background" Value="{StaticResource CardBrush}" />
+                <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource LineBrush}" />
+                <Setter Property="BorderThickness" Value="0,0,0,1" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="Padding" Value="12,0" />
+                <Setter Property="MinHeight" Value="38" />
+                <Setter Property="HorizontalContentAlignment" Value="Left" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="DataGridColumnHeader">
+                            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center">
+                                    <ContentPresenter VerticalAlignment="Center" RecognizesAccessKey="True" />
+                                    <Path x:Name="Arrow" Width="8" Height="5" Margin="6,1,0,0" Stretch="Fill" VerticalAlignment="Center"
+                                          Fill="{StaticResource AccentTextBrush}" Visibility="Collapsed" Data="M0,5 L4,0 L8,5 Z" />
+                                </StackPanel>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+                                </Trigger>
+                                <Trigger Property="SortDirection" Value="Ascending">
+                                    <Setter TargetName="Arrow" Property="Visibility" Value="Visible" />
+                                    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+                                </Trigger>
+                                <Trigger Property="SortDirection" Value="Descending">
+                                    <Setter TargetName="Arrow" Property="Visibility" Value="Visible" />
+                                    <Setter TargetName="Arrow" Property="Data" Value="M0,0 L8,0 L4,5 Z" />
+                                    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource AppHeader}" />
+
             <Style TargetType="DataGrid" BasedOn="{StaticResource {x:Type DataGrid}}">
+                <Setter Property="ColumnHeaderStyle" Value="{StaticResource AppHeader}" />
+                <Setter Property="CanUserResizeColumns" Value="False" />
                 <Setter Property="RowStyle" Value="{StaticResource AppRow}" />
                 <Setter Property="CellStyle" Value="{StaticResource AppCell}" />
                 <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
@@ -364,10 +413,10 @@
                 <Setter Property="FontSize" Value="13" />
             </Style>
 
-            <Style x:Key="RightCell" TargetType="TextBlock">
-                <Setter Property="HorizontalAlignment" Value="Right" />
+            <Style x:Key="NumCell" TargetType="TextBlock">
+                <Setter Property="HorizontalAlignment" Value="Center" />
                 <Setter Property="VerticalAlignment" Value="Center" />
-                <Setter Property="Margin" Value="0,0,10,0" />
+                <Setter Property="TextAlignment" Value="Center" />
             </Style>
             <Style x:Key="CellText" TargetType="TextBlock">
                 <Setter Property="VerticalAlignment" Value="Center" />
@@ -377,8 +426,8 @@
             <Style x:Key="MutedCell" TargetType="TextBlock" BasedOn="{StaticResource CellText}">
                 <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
             </Style>
-            <Style x:Key="RightHeader" TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
-                <Setter Property="HorizontalContentAlignment" Value="Right" />
+            <Style x:Key="NumHeader" TargetType="DataGridColumnHeader" BasedOn="{StaticResource AppHeader}">
+                <Setter Property="HorizontalContentAlignment" Value="Center" />
             </Style>
 
             <!-- glowing red dot for prices changed by another change -->

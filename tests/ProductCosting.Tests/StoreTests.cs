@@ -281,12 +281,26 @@ public class StoreTests
             Lines = [new RecipeLine { MaterialId = mat, Quantity = 1, Comment = "διπλή ραφή" }],
         });
         Assert.Contains(f.Store.Search("xk-99"), h => h.Id == mat);
-        Assert.Contains(f.Store.Search("ΡΑΦΗ"), h => h.Code == "P-1");
+        Assert.Contains(f.Store.Search("ΡΑΦΗ"), h => h.Code == "P-1" && h.Snippet == "διπλή ραφή");
+        Assert.Null(f.Store.Search("τσαντ").Single().Snippet);   // matched on the name: no snippet
         Assert.Contains(f.Store.Search("παπαδοπ"), h => h.IsSupplier);
         Assert.Contains(f.Store.Search("παπαδοπ"), h => h.Id == mat);   // item found by its supplier
         Assert.Single(f.Store.FilterItemRows(ListScope.RawMaterials, "βαμβακ"));
 
         Assert.Throws<DuplicateCodeException>(() => f.Store.SaveItem(new ItemDocument { Item = new Item { Kind = ItemKind.Product, Code = "p-1", Name = "x" } }));
+    }
+
+    [Fact]
+    public void Snippet_AroundTheMatch()
+    {
+        var text = "Πρώτα κόβουμε το δέρμα στο σωστό μέγεθος, μετά περνάμε διπλή ραφή στις άκρες και τέλος βάφουμε.";
+        var snip = Store.Snippet(text, ProductCosting.Core.Calc.TextNorm.Normalize("ΡΑΦΗ"));
+        Assert.NotNull(snip);
+        Assert.Contains("διπλή ραφή", snip);
+        Assert.StartsWith("…", snip);
+        Assert.Null(Store.Snippet(text, "χρυσο"));
+        Assert.Equal("Ελλάδα", ProductCosting.Core.Localization.Countries.Name("GR"));
+        Assert.Equal("κάτι άλλο", ProductCosting.Core.Localization.Countries.Name("κάτι άλλο"));
     }
 
     [Fact]

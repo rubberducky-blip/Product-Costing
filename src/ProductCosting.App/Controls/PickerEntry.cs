@@ -82,6 +82,10 @@ public sealed class PickerEntry
         Key = TextNorm.Join(v.Text, v.Detail, path),
     };
 
+    /// <summary>A plain list without folders; <paramref name="searchText"/> is what typing matches against.</summary>
+    public static List<PickerEntry> Flat(IEnumerable<(long Id, string Text, string SearchText)> values) =>
+        values.Select(v => new PickerEntry { Id = v.Id, Text = v.Text, Key = TextNorm.Join(v.Text, v.SearchText) }).ToList();
+
     /// <summary>Every folder of a list, indented, plus the top level.</summary>
     public static List<PickerEntry> Folders(IReadOnlyList<Folder> folders, string rootText)
     {
