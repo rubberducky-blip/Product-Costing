@@ -209,8 +209,8 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTemplateColumn Header="{l:T list.name}" Width="2*" MinWidth="200" CellTemplate="{StaticResource NameCell}" SortMemberPath="Name" />
-                        <DataGridTemplateColumn x:Name="TypeCol" Header="{l:T list.type}" Width="130">
+                        <DataGridTemplateColumn Header="{l:T list.name}" Width="2*" MinWidth="170" CellTemplate="{StaticResource NameCell}" SortMemberPath="Name" />
+                        <DataGridTemplateColumn x:Name="TypeCol" Header="{l:T list.type}" Width="120">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Border Style="{StaticResource Badge}" HorizontalAlignment="Left" Margin="4,0"
@@ -220,14 +220,14 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTextColumn x:Name="SupplierCol" Header="{l:T list.supplier}" Binding="{Binding Suppliers}" Width="*" MinWidth="120" ElementStyle="{StaticResource MutedCell}" />
-                        <DataGridTextColumn x:Name="SupplierCodeCol" Header="{l:T list.supplierCode}" Binding="{Binding SupplierCode}" Width="130" ElementStyle="{StaticResource MutedCell}" />
-                        <DataGridTextColumn x:Name="UnitCol" Header="{l:T list.unit}" Binding="{Binding Unit, Converter={StaticResource UnitName}}" Width="70" ElementStyle="{StaticResource MutedCell}" />
-                        <DataGridTextColumn x:Name="PurchaseCol" Header="{l:T list.purchase}" Binding="{Binding Converter={StaticResource PurchasePrice}}" Width="110"
+                        <DataGridTextColumn x:Name="SupplierCol" Header="{l:T list.supplier}" Binding="{Binding Suppliers}" Width="*" MinWidth="100" ElementStyle="{StaticResource MutedCell}" />
+                        <DataGridTextColumn x:Name="SupplierCodeCol" Header="{l:T list.supplierCode}" Binding="{Binding SupplierCode}" Width="115" ElementStyle="{StaticResource MutedCell}" />
+                        <DataGridTextColumn x:Name="UnitCol" Header="{l:T list.unit}" Binding="{Binding Unit, Converter={StaticResource UnitName}}" Width="64" ElementStyle="{StaticResource MutedCell}" />
+                        <DataGridTextColumn x:Name="PurchaseCol" Header="{l:T list.purchase}" Binding="{Binding Converter={StaticResource PurchasePrice}}" Width="96"
                                             ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" SortMemberPath="PurchasePrice" />
-                        <DataGridTextColumn Header="{l:T list.cost}" Binding="{Binding Cost, Converter={StaticResource Money4}}" Width="110"
+                        <DataGridTextColumn Header="{l:T list.cost}" Binding="{Binding Cost, Converter={StaticResource Money4}}" Width="96"
                                             ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" SortMemberPath="Cost" />
-                        <DataGridTemplateColumn Header="{l:T list.price}" Width="110" SortMemberPath="Price" HeaderStyle="{StaticResource NumHeader}">
+                        <DataGridTemplateColumn Header="{l:T list.price}" Width="96" SortMemberPath="Price" HeaderStyle="{StaticResource NumHeader}">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <TextBlock Text="{Binding Price, Converter={StaticResource Money}}" FontWeight="SemiBold" Style="{StaticResource NumCell}" />
