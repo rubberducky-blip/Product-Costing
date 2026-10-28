@@ -56,15 +56,6 @@
             <EventSetter Event="DragOver" Handler="Row_DragOver" />
             <EventSetter Event="DragLeave" Handler="Target_DragLeave" />
             <EventSetter Event="Drop" Handler="Row_Drop" />
-            <Setter Property="ContextMenu">
-                <Setter.Value>
-                    <ContextMenu>
-                        <MenuItem Header="{l:T common.open}" Click="Menu_Open" />
-                        <Separator />
-                        <MenuItem Header="{l:T common.delete}" Click="Menu_Delete" />
-                    </ContextMenu>
-                </Setter.Value>
-            </Setter>
             <Style.Triggers>
                 <Trigger Property="l:DropHint.Position" Value="1">
                     <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
@@ -204,6 +195,13 @@
                           Visibility="{Binding IsSuppliers, Converter={StaticResource Hidden}}"
                           PreviewMouseLeftButtonDown="Grid_PreviewMouseLeftButtonDown" PreviewMouseMove="Grid_PreviewMouseMove"
                           PreviewMouseLeftButtonUp="Grid_PreviewMouseLeftButtonUp" PreviewKeyDown="Grid_PreviewKeyDown">
+                    <DataGrid.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="{l:T common.open}" Click="Menu_Open" />
+                            <Separator />
+                            <MenuItem Header="{l:T common.delete}" Click="Menu_Delete" />
+                        </ContextMenu>
+                    </DataGrid.ContextMenu>
                     <DataGrid.Columns>
                         <DataGridTemplateColumn x:Name="CodeCol" Header="{l:T list.code}" Width="150" SortMemberPath="Code">
                             <DataGridTemplateColumn.CellTemplate>
@@ -252,6 +250,13 @@
                           Visibility="{Binding IsSuppliers, Converter={StaticResource Visible}}"
                           PreviewMouseLeftButtonDown="Grid_PreviewMouseLeftButtonDown" PreviewMouseMove="Grid_PreviewMouseMove"
                           PreviewMouseLeftButtonUp="Grid_PreviewMouseLeftButtonUp" PreviewKeyDown="Grid_PreviewKeyDown">
+                    <DataGrid.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="{l:T common.open}" Click="Menu_Open" />
+                            <Separator />
+                            <MenuItem Header="{l:T common.delete}" Click="Menu_Delete" />
+                        </ContextMenu>
+                    </DataGrid.ContextMenu>
                     <DataGrid.Columns>
                         <DataGridTemplateColumn Header="{l:T supplier.name}" Width="2*" MinWidth="200" SortMemberPath="Name">
                             <DataGridTemplateColumn.CellTemplate>

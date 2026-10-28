@@ -124,16 +124,11 @@ public partial class ListPage : UserControl
 
     void Menu_Open(object sender, RoutedEventArgs e)
     {
-        if (sender is MenuItem { DataContext: { } row }) _vm?.OpenRow(row);
+        if (ActiveGrid.SelectedItem is { } row) _vm?.OpenRow(row);
     }
 
-    void Menu_Delete(object sender, RoutedEventArgs e)
-    {
-        if (sender is not MenuItem { DataContext: { } row }) return;
-        var grid = ActiveGrid;
-        var rows = grid.SelectedItems.Contains(row) ? grid.SelectedItems.Cast<object>().ToList() : [row];
-        _vm?.DeleteRows(rows);
-    }
+    void Menu_Delete(object sender, RoutedEventArgs e) =>
+        _vm?.DeleteRows(ActiveGrid.SelectedItems.Cast<object>().ToList());
 
     void Grid_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {

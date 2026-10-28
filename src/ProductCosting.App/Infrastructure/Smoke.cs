@@ -35,6 +35,8 @@ internal static class Smoke
     {
         _errors++;
         Log($"FAIL {step}: {ex}");
+        // a broken template fails on every layout pass: stop early instead of looping until the CI timeout
+        if (_errors > 20) Application.Current.Dispatcher.BeginInvoke(() => Application.Current.Shutdown(_errors));
     }
 
     static void Check(string what, bool ok)
