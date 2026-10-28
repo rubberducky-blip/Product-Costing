@@ -398,7 +398,12 @@ public sealed partial class ItemEditorViewModel : PageViewModel
     void OpenUsage(UsageRow row) => _main.OpenItem(row.ProductId);
 
     [RelayCommand]
-    void Back() => _main.GoToList(_from);
+    void Back() => _main.GoBack(_from);
+
+    public override bool IsGone => !IsNew && AppState.Store.GetItem(Id) is null;
+
+    /// <summary>Coming back to this page: show what changed meanwhile (unless there are unsaved edits).</summary>
+    public override void OnShown() => OnDataChanged(DataChange.All);
 
     [RelayCommand]
     void History()

@@ -181,6 +181,9 @@ public sealed class ItemRow : System.ComponentModel.INotifyPropertyChanged
     public decimal Price { get; set; }
     public CostWarning Warnings { get; set; }
     public bool UsableAsMaterial { get; set; }
+    /// <summary>Purchase price from the (first) supplier, in its own currency, before discount and shipping.</summary>
+    public decimal? PurchasePrice { get; set; }
+    public Currency PurchaseCurrency { get; set; }
     /// <summary>Set by the list when showing filter results from several folders.</summary>
     public string? FolderPath { get; set; }
 

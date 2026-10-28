@@ -84,7 +84,11 @@ public sealed partial class MainViewModel : ObservableObject
         }
     }
 
-    public bool Navigate(PageViewModel page)
+    // pages visited before the current one, for the back buttons
+    readonly List<PageViewModel> _history = [];
+
+    /// <summary>Shows a page. With <paramref name="remember"/>, the current page is kept so Back can return to it.</summary>
+    public bool Navigate(PageViewModel page, bool remember = true)
     {
         if (page == Current) return true;
         if (!CanLeave())
@@ -92,9 +96,28 @@ public sealed partial class MainViewModel : ObservableObject
             OnPropertyChanged(nameof(Section));   // undo the sidebar click
             return false;
         }
+        if (remember && Current is not null)
+        {
+            _history.Remove(Current);
+            _history.Add(Current);
+            if (_history.Count > 50) _history.RemoveAt(0);
+        }
         Current = page;
         page.OnShown();
         return true;
+    }
+
+    /// <summary>Back: returns to the page this one was opened from, or to the given list.</summary>
+    public void GoBack(ListScope fallback)
+    {
+        while (_history.Count > 0)
+        {
+            var previous = _history[^1];
+            if (previous.IsGone) { _history.RemoveAt(_history.Count - 1); continue; }
+            if (Navigate(previous, remember: false)) _history.RemoveAt(_history.Count - 1);
+            return;
+        }
+        Navigate(List(fallback), remember: false);
     }
 
     [RelayCommand]
@@ -109,10 +132,11 @@ public sealed partial class MainViewModel : ObservableObject
             _ => List(ListScope.Products),
         };
         if (page is SettingsViewModel && Current is SettingsViewModel) return;
-        Navigate(page);
+        // the sidebar starts a fresh trail
+        if (Navigate(page, remember: false)) _history.Clear();
     }
 
-    public void GoToList(ListScope scope) => Navigate(List(scope));
+    public void GoToList(ListScope scope) => Navigate(List(scope), remember: false);
 
     public void OpenItem(long id, ListScope? from = null)
     {
@@ -144,6 +168,7 @@ public sealed partial class MainViewModel : ObservableObject
     public void ResetPages(PageViewModel? keep = null)
     {
         _lists.Clear();
+        _history.Clear();
         if (keep is null)
         {
             Current = List(ListScope.Products);

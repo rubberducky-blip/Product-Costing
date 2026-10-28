@@ -160,7 +160,10 @@ public sealed partial class Store
         SELECT i.id, i.kind, i.code, i.name, {0} AS folder_id, {1} AS position, i.unit, i.cost, i.price, i.warnings,
                i.has_unseen_change, i.usable_as_material,
                (SELECT group_concat(name, ', ') FROM (SELECT DISTINCT s.name FROM item_sources src JOIN suppliers s ON s.id = src.supplier_id WHERE src.item_id = i.id)) AS suppliers,
-               (SELECT src.supplier_code FROM item_sources src WHERE src.item_id = i.id ORDER BY src.position LIMIT 1) AS supplier_code
+               (SELECT src.supplier_code FROM item_sources src WHERE src.item_id = i.id ORDER BY src.position LIMIT 1) AS supplier_code,
+               (SELECT src.purchase_price FROM item_sources src WHERE src.item_id = i.id ORDER BY src.position LIMIT 1) AS purchase_price,
+               (SELECT COALESCE(src.currency, s.currency, 0) FROM item_sources src LEFT JOIN suppliers s ON s.id = src.supplier_id
+                 WHERE src.item_id = i.id ORDER BY src.position LIMIT 1) AS purchase_currency
         FROM items i
         """;
 

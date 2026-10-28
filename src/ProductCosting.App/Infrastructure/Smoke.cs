@@ -304,6 +304,13 @@ internal static class Smoke
             vm.OpenSupplier(store.GetSuppliers().First(s => s.Name.StartsWith("Metalli")).Id);
             await Settle();
             Shot(root, "13-supplier-editor");
+            var sup = (SupplierEditorViewModel)vm.Current!;
+            sup.OpenItemCommand.Execute(sup.Items[0]);
+            await Settle();
+            Check("item opened from supplier", vm.Current is ItemEditorViewModel);
+            ((ItemEditorViewModel)vm.Current!).BackCommand.Execute(null);
+            await Settle();
+            Check("back returns to the supplier", vm.Current == sup);
         });
         await Step("settings", async () => { vm.GoCommand.Execute("settings"); await Settle(); Shot(root, "14-settings"); });
 

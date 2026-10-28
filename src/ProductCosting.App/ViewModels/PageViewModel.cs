@@ -21,4 +21,7 @@ public abstract class PageViewModel : ObservableObject
     public virtual void OnDataChanged(DataChange change) { }
 
     public virtual void OnShown() { }
+
+    /// <summary>True when the record behind the page no longer exists, so Back skips it.</summary>
+    public virtual bool IsGone => false;
 }

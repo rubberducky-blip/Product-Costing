@@ -127,7 +127,7 @@
                             <TextBlock Text="{Binding LastAutoText}" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="20,0,0,0" />
                         </StackPanel>
 
-                        <Border BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="8" Margin="0,16,0,0" MaxHeight="340">
+                        <Border BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="8" Margin="0,16,0,0" MaxHeight="340" l:RoundClip.Enabled="True">
                             <Grid>
                                 <TextBlock Text="{l:T settings.noBackups}" Style="{StaticResource Muted}" Margin="14,12"
                                            Visibility="{Binding HasBackups, Converter={StaticResource Hidden}}" />

@@ -135,12 +135,9 @@
                                  IsChecked="{Binding SortMode, Mode=OneWay, Converter={StaticResource Equals}, ConverterParameter=Manual}" />
                 </StackPanel>
             </Border>
-            <Grid Width="340" HorizontalAlignment="Left">
-                <TextBox x:Name="FilterBox" Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged, Delay=150}" Padding="32,6,10,6"
-                         l:Hint.Text="{l:T common.filter}" PreviewKeyDown="FilterBox_PreviewKeyDown" />
-                <TextBlock Style="{StaticResource Icon}" Text="&#xE71C;" FontSize="12" Margin="11,0,0,0" HorizontalAlignment="Left"
-                           Foreground="{StaticResource TextMutedBrush}" IsHitTestVisible="False" />
-            </Grid>
+            <TextBox x:Name="FilterBox" Style="{StaticResource SearchBox}" Tag="&#xE71C;" Width="340" HorizontalAlignment="Left"
+                     Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged, Delay=150}"
+                     l:Hint.Text="{l:T common.filter}" PreviewKeyDown="FilterBox_PreviewKeyDown" />
             <TextBlock Text="{l:T list.filterResults}" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="14,0,0,0"
                        Visibility="{Binding IsFiltering, Converter={StaticResource Visible}}" />
         </DockPanel>
@@ -183,7 +180,7 @@
 
         <!-- table -->
         <Grid Grid.Row="4">
-        <Border Style="{StaticResource Card}" Padding="0" ClipToBounds="True" VerticalAlignment="Top"
+        <Border Style="{StaticResource Card}" Padding="0" VerticalAlignment="Top" l:RoundClip.Enabled="True"
                 Visibility="{Binding HasRows, Converter={StaticResource Visible}}">
             <Grid>
                 <DataGrid x:Name="ItemsGrid" ItemsSource="{Binding Rows}" RowStyle="{StaticResource RowStyle}"
@@ -226,6 +223,8 @@
                         <DataGridTextColumn x:Name="SupplierCol" Header="{l:T list.supplier}" Binding="{Binding Suppliers}" Width="*" MinWidth="120" ElementStyle="{StaticResource MutedCell}" />
                         <DataGridTextColumn x:Name="SupplierCodeCol" Header="{l:T list.supplierCode}" Binding="{Binding SupplierCode}" Width="130" ElementStyle="{StaticResource MutedCell}" />
                         <DataGridTextColumn x:Name="UnitCol" Header="{l:T list.unit}" Binding="{Binding Unit, Converter={StaticResource UnitName}}" Width="70" ElementStyle="{StaticResource MutedCell}" />
+                        <DataGridTextColumn x:Name="PurchaseCol" Header="{l:T list.purchase}" Binding="{Binding Converter={StaticResource PurchasePrice}}" Width="110"
+                                            ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" SortMemberPath="PurchasePrice" />
                         <DataGridTextColumn Header="{l:T list.cost}" Binding="{Binding Cost, Converter={StaticResource Money4}}" Width="110"
                                             ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" SortMemberPath="Cost" />
                         <DataGridTemplateColumn Header="{l:T list.price}" Width="110" SortMemberPath="Price" HeaderStyle="{StaticResource NumHeader}">

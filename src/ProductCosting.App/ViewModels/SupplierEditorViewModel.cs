@@ -111,7 +111,11 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
     }
 
     [RelayCommand]
-    void Back() => _main.GoToList(ListScope.Suppliers);
+    void Back() => _main.GoBack(ListScope.Suppliers);
+
+    public override bool IsGone => !IsNew && AppState.Store.GetSupplier(_model.Id) is null;
+
+    public override void OnShown() => OnDataChanged(DataChange.All);
 
     [RelayCommand]
     void Save() => TrySave();

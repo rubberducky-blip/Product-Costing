@@ -45,6 +45,14 @@ public sealed class Decimals2Converter : IValueConverter
     public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => Binding.DoNothing;
 }
 
+/// <summary>An item row's purchase price in its own currency, e.g. "3,10 $".</summary>
+public sealed class PurchasePriceConverter : IValueConverter
+{
+    public object Convert(object? value, Type t, object? p, CultureInfo c) =>
+        value is ItemRow { PurchasePrice: decimal price } r ? Fmt.InCurrency(price, r.PurchaseCurrency) : "";
+    public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => Binding.DoNothing;
+}
+
 public sealed class UnitConverter : IValueConverter
 {
     public object Convert(object? value, Type t, object? p, CultureInfo c) => value is QtyUnit u ? Strings.Unit(u) : "";

@@ -95,6 +95,7 @@ public static class Strings
         ["list.supplier"] = ("Προμηθευτής", "Supplier"),
         ["list.supplierCode"] = ("Κωδ. προμηθευτή", "Supplier code"),
         ["list.unit"] = ("Μονάδα", "Unit"),
+        ["list.purchase"] = ("Αγορά", "Purchase"),
         ["list.cost"] = ("Κόστος", "Cost"),
         ["list.price"] = ("Τιμή", "Price"),
         ["list.profit"] = ("Κέρδος", "Profit"),

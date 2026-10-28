@@ -41,6 +41,7 @@ public partial class ListPage : UserControl
         SupplierCol.Visibility = Vis(_vm.IsBought);
         SupplierCodeCol.Visibility = Vis(_vm.IsBought);
         UnitCol.Visibility = Vis(_vm.IsBought);
+        PurchaseCol.Visibility = Vis(_vm.IsBought);
         ProfitCol.Visibility = Vis(_vm.IsProducts);
     }
 
