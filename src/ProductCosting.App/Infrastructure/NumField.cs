@@ -51,7 +51,8 @@ public sealed partial class NumField : ObservableObject
         s = s.Replace(',', '.');
         if (decimal.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var d) && d >= _min)
         {
-            Value = d;
+            // "3,10" and "3,1" are the same number: drop trailing zeros so edits compare by value
+            Value = d / 1.000000000000000000000000000000000m;
             IsValid = true;
         }
         else

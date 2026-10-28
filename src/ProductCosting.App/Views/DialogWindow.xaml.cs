@@ -63,8 +63,12 @@ public static class Dialogs
 {
     static Window? Owner => Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive) ?? Application.Current.MainWindow;
 
+    /// <summary>Set by the self-test: answers instead of showing a window (which would wait forever on CI).</summary>
+    public static Func<string, string?>? AutoAnswer { get; set; }
+
     static string? Show(string title, string message, DialogKind kind, params (string, string, string)[] buttons)
     {
+        if (AutoAnswer is not null) return AutoAnswer(title + ": " + message);
         var d = new DialogWindow(title, message, kind, buttons);
         if (Owner is { IsLoaded: true } o && o != d) d.Owner = o;
         else d.WindowStartupLocation = WindowStartupLocation.CenterScreen;

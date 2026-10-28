@@ -223,6 +223,8 @@ internal static class Smoke
     {
         var vm = MainViewModel.Instance;
         var store = AppState.Store;
+        // no dialog may appear on its own during the tour
+        Dialogs.AutoAnswer = text => { Check("unexpected dialog: " + text, false); return null; };
         // the size the app is designed for; one shot at the minimum size checks that nothing breaks
         w.Width = 1440;
         w.Height = 900;
@@ -282,8 +284,20 @@ internal static class Smoke
             await Settle();
         });
         await Step("product with warning", async () => { vm.OpenItem(Id("P-300")); await Settle(); Shot(root, "09-product-warning"); });
-        await Step("merchandise editor", async () => { vm.OpenItem(Id("M-200")); await Settle(500); Shot(root, "10-merchandise-editor"); });
-        await Step("raw material editor", async () => { vm.OpenItem(Id("R-001")); await Settle(500); Shot(root, "11-raw-editor"); });
+        await Step("merchandise editor", async () =>
+        {
+            vm.OpenItem(Id("M-200"));
+            await Settle(500);
+            Shot(root, "10-merchandise-editor");
+            Check("merchandise editor clean after load (prices shown with 2 decimals)", !vm.Current!.IsDirty);
+        });
+        await Step("raw material editor", async () =>
+        {
+            vm.OpenItem(Id("R-001"));
+            await Settle(500);
+            Shot(root, "11-raw-editor");
+            Check("raw editor clean after load", !vm.Current!.IsDirty);
+        });
         await Step("new product", async () => { vm.NewItem(ItemKind.Product, null); await Settle(); Shot(root, "12-new-product"); vm.Current!.Discard(); });
         await Step("supplier editor", async () =>
         {
