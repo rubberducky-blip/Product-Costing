@@ -58,7 +58,13 @@
 
         <DataTemplate x:Key="NameCell">
             <StackPanel VerticalAlignment="Center" Margin="4,0">
-                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                    <Border Style="{StaticResource Badge}" Margin="10,0,0,0" Padding="7,1"
+                            Visibility="{Binding IsMerchandiseAsMaterial, Converter={StaticResource Visible}}">
+                        <TextBlock Text="{l:T kind.merchandise}" FontSize="11" />
+                    </Border>
+                </StackPanel>
                 <TextBlock Text="{Binding FolderPath}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis"
                            Visibility="{Binding FolderPath, Converter={StaticResource Visible}}" />
             </StackPanel>
@@ -96,16 +102,17 @@
         <!-- title + actions -->
         <DockPanel Grid.Row="1" Margin="0,0,0,18">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                <Button Style="{StaticResource SecondaryButton}" l:Btn.Icon="&#xE8F4;" Content="{l:T folder.new}" Command="{Binding NewFolderCommand}" />
+                <Button Style="{StaticResource SecondaryButton}" Command="{Binding NewFolderCommand}">
+                    <StackPanel Orientation="Horizontal">
+                        <ContentControl Style="{StaticResource FolderPlusIcon}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                        <TextBlock Text="{l:T folder.new}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
                 <Button Style="{StaticResource PrimaryButton}" l:Btn.Icon="&#xE710;" Content="{Binding NewText}" Command="{Binding NewCommand}" Margin="10,0,0,0" />
             </StackPanel>
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="{Binding Title}" Style="{StaticResource H1}" Visibility="{Binding InFolder, Converter={StaticResource Hidden}}" />
                 <TextBlock Text="{Binding CurrentFolderName}" Style="{StaticResource H1}" Visibility="{Binding InFolder, Converter={StaticResource Visible}}" />
-                <Button Style="{StaticResource IconButton}" l:Btn.Icon="&#xE70F;" ToolTip="{l:T folder.rename}" Margin="10,2,0,0"
-                        Command="{Binding RenameFolderCommand}" Visibility="{Binding InFolder, Converter={StaticResource Visible}}" />
-                <Button Style="{StaticResource IconButton}" l:Btn.Icon="&#xE74D;" ToolTip="{l:T folder.delete}" Margin="2,2,0,0"
-                        Command="{Binding DeleteFolderCommand}" Visibility="{Binding InFolder, Converter={StaticResource Visible}}" />
             </StackPanel>
         </DockPanel>
 
@@ -176,6 +183,10 @@
                         <ContextMenu>
                             <MenuItem Header="{l:T common.open}" Click="Menu_Open" />
                             <MenuItem Header="{l:T common.duplicate}" Click="Menu_Duplicate" />
+                            <MenuItem Header="{l:T item.history}" Click="Menu_History" Tag="item" />
+                            <MenuItem Header="{l:T menu.setPrice}" Click="Menu_SetPrice" Tag="item" />
+                            <MenuItem Header="{l:T menu.setPurchase}" Click="Menu_SetPurchase" Tag="bought" />
+                            <MenuItem Header="{l:T supplier.newOrder}" Click="Menu_NewOrder" Tag="supplier" />
                             <Separator />
                             <MenuItem Header="{l:T common.delete}" Click="Menu_Delete" Foreground="{StaticResource DangerTextBrush}" />
                         </ContextMenu>
@@ -195,17 +206,7 @@
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
                         <DataGridTemplateColumn Header="{l:T list.name}" Width="2*" MinWidth="260" CellTemplate="{StaticResource NameCell}" SortMemberPath="Name" />
-                        <DataGridTemplateColumn x:Name="TypeCol" Header="{l:T list.type}" Width="130">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <Border Style="{StaticResource Badge}" HorizontalAlignment="Left" Margin="4,0"
-                                            Visibility="{Binding IsMerchandiseAsMaterial, Converter={StaticResource Visible}}">
-                                        <TextBlock Text="{l:T kind.merchandise}" />
-                                    </Border>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                        <DataGridTextColumn x:Name="SupplierCol" Header="{l:T list.supplier}" Binding="{Binding Suppliers}" Width="*" MinWidth="170" ElementStyle="{StaticResource MutedCell}" />
+                        <DataGridTextColumn x:Name="SupplierCol" Header="{l:T list.supplier}" Binding="{Binding Suppliers}" Width="1.5*" MinWidth="240" ElementStyle="{StaticResource MutedCell}" />
                         <DataGridTextColumn x:Name="SupplierCodeCol" Header="{l:T list.supplierCode}" Binding="{Binding SupplierCode}" Width="150" ElementStyle="{StaticResource MutedCell}" />
                         <DataGridTextColumn x:Name="UnitCol" Header="{l:T list.unit}" Binding="{Binding Unit, Converter={StaticResource UnitName}}" Width="80" ElementStyle="{StaticResource MutedCell}" />
                         <DataGridTextColumn x:Name="PurchaseCol" Header="{l:T list.purchase}" Binding="{Binding Converter={StaticResource PurchasePrice}}" Width="120"
@@ -243,6 +244,10 @@
                         <ContextMenu>
                             <MenuItem Header="{l:T common.open}" Click="Menu_Open" />
                             <MenuItem Header="{l:T common.duplicate}" Click="Menu_Duplicate" />
+                            <MenuItem Header="{l:T item.history}" Click="Menu_History" Tag="item" />
+                            <MenuItem Header="{l:T menu.setPrice}" Click="Menu_SetPrice" Tag="item" />
+                            <MenuItem Header="{l:T menu.setPurchase}" Click="Menu_SetPurchase" Tag="bought" />
+                            <MenuItem Header="{l:T supplier.newOrder}" Click="Menu_NewOrder" Tag="supplier" />
                             <Separator />
                             <MenuItem Header="{l:T common.delete}" Click="Menu_Delete" Foreground="{StaticResource DangerTextBrush}" />
                         </ContextMenu>
@@ -265,10 +270,8 @@
                                             ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
                         <DataGridTextColumn Header="{l:T list.shipping}" Binding="{Binding ShippingPct, Converter={StaticResource Pct}}" Width="120"
                                             ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
-                        <DataGridTextColumn Header="{l:T list.items}" Binding="{Binding ItemCount}" Width="90"
-                                            ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
                         <DataGridTextColumn Header="{l:T list.email}" Binding="{Binding Email}" Width="*" ElementStyle="{StaticResource MutedCell}" />
-                        <DataGridTextColumn Header="{l:T list.phone}" Binding="{Binding Phone}" Width="160" ElementStyle="{StaticResource MutedCell}" />
+                        <DataGridTextColumn Header="{l:T list.phone}" Binding="{Binding Phone}" Width="*" ElementStyle="{StaticResource MutedCell}" />
                     </DataGrid.Columns>
                 </DataGrid>
 

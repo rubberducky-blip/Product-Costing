@@ -92,6 +92,56 @@ public class FeatureTests
     }
 
     [Fact]
+    public void SetPrice_RoundsThenAdjustsMarkup_AndPurchasePrice()
+    {
+        using var f = new StoreFixture();
+        var sup = f.Supplier("Acme");
+        var m = f.Bought(ItemKind.Merchandise, "M", 10, sup);
+        Assert.Equal(25.00m, f.Store.SetPrice(m, 24.98m));      // rounded to the 0,05 step first
+        var it = f.Store.GetItem(m)!;
+        Assert.Equal(25.00m, it.Price);
+        Assert.Equal(150m, it.EffMarkup);
+        Assert.Contains(f.Store.GetHistory(m), h => h.Reasons.HasFlag(PriceReason.MarginAdjustment));
+
+        Assert.True(f.Store.SetPurchasePrice(m, 12));
+        Assert.Equal(12m, f.Store.GetItem(m)!.Cost);
+        var doc = f.Store.LoadItem(m)!;
+        doc.Sources.Add(new ItemSource { PurchasePrice = 5 });
+        f.Store.SaveItem(doc);
+        Assert.False(f.Store.SetPurchasePrice(m, 1));            // two suppliers: not from the list
+        Assert.Equal(2, f.Store.GetItemRows(ListScope.Merchandise, null).Single().SourceCount);
+    }
+
+    [Fact]
+    public void SavedOrders_AndVariantsPerSupplier()
+    {
+        using var f = new StoreFixture();
+        var a = f.Supplier("A");
+        var b = f.Supplier("B");
+        var m = f.Store.SaveItem(new ItemDocument
+        {
+            Item = new Item { Kind = ItemKind.Merchandise, Code = "M", Name = "Κούπα" },
+            Sources = [new ItemSource { SupplierId = a, PurchasePrice = 1 }, new ItemSource { SupplierId = b, PurchasePrice = 2 }],
+            Variants = [new ItemVariant { Name = "Μπλε", SupplierId = a }, new ItemVariant { Name = "Κόκκινη" }, new ItemVariant { Name = "Χ", SupplierId = 999 }],
+        });
+        var vs = f.Store.LoadItem(m)!.Variants;
+        Assert.Equal(a, vs[0].SupplierId);
+        Assert.Null(vs[1].SupplierId);
+        Assert.Null(vs[2].SupplierId);   // not one of the item's suppliers → every supplier
+
+        var id = f.Store.SaveOrder(null, a, [new PurchaseOrderLine { ItemId = m, Code = "M", Name = "Κούπα", Variant = "Μπλε", Quantity = 12 }]);
+        f.Store.SaveOrder(id, a, [new PurchaseOrderLine { ItemId = m, Code = "M", Name = "Κούπα", Variant = "Μπλε", Quantity = 24 },
+                                  new PurchaseOrderLine { ItemId = m, Code = "M", Name = "Κούπα", Quantity = 6 }]);
+        var order = Assert.Single(f.Store.GetOrders(a));
+        Assert.Equal(2, order.LineCount);
+        Assert.Equal(30m, order.TotalQuantity);
+        Assert.Equal(24m, f.Store.GetOrderLines(id)[0].Quantity);
+        Assert.Empty(f.Store.GetOrders(b));
+        f.Store.DeleteOrder(id);
+        Assert.Empty(f.Store.GetOrders(a));
+    }
+
+    [Fact]
     public void Upgrade_FromSchemaVersion1()
     {
         var dir = Path.Combine(Path.GetTempPath(), "pc-up-" + Guid.NewGuid().ToString("N"));

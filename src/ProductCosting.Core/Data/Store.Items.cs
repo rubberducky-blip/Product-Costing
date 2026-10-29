@@ -25,7 +25,7 @@ public sealed partial class Store
             Sources = c.Query<ItemSource>("SELECT id, item_id, supplier_id, supplier_code, purchase_price, purchase_qty, currency, discount_pct, shipping_pct, weight, moq, pack_qty FROM item_sources WHERE item_id=@id ORDER BY position", new { id }).ToList(),
             Lines = c.Query<RecipeLine>("SELECT id, product_id, material_id, quantity, unit, comment, waste_pct FROM recipe_lines WHERE product_id=@id ORDER BY position", new { id }).ToList(),
             Labor = c.Query<LaborEntry>("SELECT id, product_id, seconds, comment FROM labor_entries WHERE product_id=@id ORDER BY position", new { id }).ToList(),
-            Variants = c.Query<ItemVariant>("SELECT id, item_id, name, code FROM item_variants WHERE item_id=@id ORDER BY position", new { id }).ToList(),
+            Variants = c.Query<ItemVariant>("SELECT id, item_id, name, code, supplier_id FROM item_variants WHERE item_id=@id ORDER BY position", new { id }).ToList(),
         };
     });
 
@@ -98,8 +98,8 @@ public sealed partial class Store
             }
             i = 0;
             foreach (var v in doc.Variants.Where(v => !string.IsNullOrWhiteSpace(v.Name) || !string.IsNullOrWhiteSpace(v.Code)))
-                c.Execute("INSERT INTO item_variants(item_id, name, code, position) VALUES(@id, @Name, @Code, @pos)",
-                    new { id, Name = v.Name.Trim(), Code = v.Code?.Trim(), pos = i++ }, t);
+                c.Execute("INSERT INTO item_variants(item_id, name, code, supplier_id, position) VALUES(@id, @Name, @Code, @SupplierId, @pos)",
+                    new { id, Name = v.Name.Trim(), Code = v.Code?.Trim(), SupplierId = doc.Sources.Any(s => s.SupplierId == v.SupplierId) ? v.SupplierId : null, pos = i++ }, t);
         }
         else
         {
@@ -146,13 +146,46 @@ public sealed partial class Store
         """, new { materialId }).OrderBy(r => r.Code, NaturalComparer.Instance).ToList());
 
     /// <summary>Everything that can go into a recipe (raw materials, merchandise, products), with its folder in its own list.</summary>
-    public List<(MaterialInfo Info, long? FolderId)> GetMaterials() => Read(c => c.Query<MaterialInfo, long?, (MaterialInfo, long?)>("""
-        SELECT id, kind, code, name, unit, piece_length_cm, piece_area_cm2, piece_weight_kg, cost, has_waste, folder_id AS folder
+    public List<(MaterialInfo Info, long? FolderId, long? MaterialFolderId)> GetMaterials() => Read(c => c.Query<MaterialInfo, long?, long?, (MaterialInfo, long?, long?)>("""
+        SELECT id, kind, code, name, unit, piece_length_cm, piece_area_cm2, piece_weight_kg, cost, has_waste, usable_as_material,
+               folder_id AS folder, material_folder_id AS mfolder
         FROM items
-        """, (m, f) => (m, f), splitOn: "folder").OrderBy(x => x.Item1.Code, NaturalComparer.Instance).ToList());
+        """, (m, f, mf) => (m, f, mf), splitOn: "folder,mfolder").OrderBy(x => x.Item1.Code, NaturalComparer.Instance).ToList());
 
     public MaterialInfo? GetMaterial(long id) => Read(c => c.QuerySingleOrDefault<MaterialInfo>(
         "SELECT id, kind, code, name, unit, piece_length_cm, piece_area_cm2, piece_weight_kg, cost, has_waste FROM items WHERE id=@id", new { id }));
+
+    /// <summary>
+    /// Sets the markup so the item sells at <paramref name="price"/> (first rounded to the item's step).
+    /// Returns the price actually reached, or null when the item has no cost.
+    /// </summary>
+    public decimal? SetPrice(long id, decimal price) => Write(DataChange.Items | DataChange.Notifications, (c, t) =>
+    {
+        var s = LoadSettings(c, t);
+        var it = c.QuerySingle<(double Cost, double EffStep)>("SELECT cost, eff_step FROM items WHERE id=@id", new { id }, t);
+        var target = Costing.RoundPrice(price, (decimal)it.EffStep, s.RoundingMode);
+        var markup = Costing.MarkupForPrice((decimal)it.Cost, target, (decimal)it.EffStep, s.RoundingMode);
+        if (markup is null) return (decimal?)null;
+        c.Execute("UPDATE items SET markup_pct=@m, updated_at=@now WHERE id=@id", new { m = (double)markup.Value, now = Now, id }, t);
+        var req = new RecalcRequest();
+        req.Items.Add(id);
+        req.Direct.Add(id);
+        new PricingEngine(this, c, t).Run(req);
+        return (decimal?)(decimal)c.ExecuteScalar<double>("SELECT price FROM items WHERE id=@id", new { id }, t);
+    });
+
+    /// <summary>Changes the purchase price of an item with exactly one supplier and reprices what depends on it.</summary>
+    public bool SetPurchasePrice(long id, decimal price) => Write(DataChange.Items | DataChange.Notifications, (c, t) =>
+    {
+        if (c.ExecuteScalar<int>("SELECT count(*) FROM item_sources WHERE item_id=@id", new { id }, t) != 1) return false;
+        c.Execute("UPDATE item_sources SET purchase_price=@p WHERE item_id=@id", new { p = (double)price, id }, t);
+        c.Execute("UPDATE items SET updated_at=@now WHERE id=@id", new { now = Now, id }, t);
+        var req = new RecalcRequest();
+        req.Items.Add(id);
+        req.Direct.Add(id);
+        new PricingEngine(this, c, t).Run(req);
+        return true;
+    });
 
     /// <summary>A product can't contain itself, directly or through another product.</summary>
     static void CheckNoCycle(SqliteConnection c, SqliteTransaction t, long productId, IEnumerable<RecipeLine> lines)
@@ -198,7 +231,8 @@ public sealed partial class Store
                (SELECT src.supplier_code FROM item_sources src WHERE src.item_id = i.id ORDER BY src.position LIMIT 1) AS supplier_code,
                (SELECT src.purchase_price FROM item_sources src WHERE src.item_id = i.id ORDER BY src.position LIMIT 1) AS purchase_price,
                (SELECT COALESCE(src.currency, s.currency, 0) FROM item_sources src LEFT JOIN suppliers s ON s.id = src.supplier_id
-                 WHERE src.item_id = i.id ORDER BY src.position LIMIT 1) AS purchase_currency
+                 WHERE src.item_id = i.id ORDER BY src.position LIMIT 1) AS purchase_currency,
+               (SELECT count(*) FROM item_sources src WHERE src.item_id = i.id) AS source_count
         FROM items i
         """;
 

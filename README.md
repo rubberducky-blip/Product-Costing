@@ -27,7 +27,7 @@ The data lives in `%LOCALAPPDATA%\ProductCosting\data.db`. Backups go to `Docume
 - An item can have several suppliers, each with its own supplier code, price and **weight**. For example, weights 2 and 3 mean that 40% of the stock comes from A and 60% from B, so the cost is the weighted average.
 - Products: cost = raw materials + labor time × labor rate + labor time × production overhead rate.
 - Labor time is entered in seconds, as several entries with optional comments. The total is shown in minutes and seconds.
-- Recipe lines: raw material, merchandise **or another product** (e.g. a finished product plus an extra), quantity, unit and optional comment. Units convert through the piece size (length / area / weight) set on the material. When a product inside a recipe changes price, every product built on it is repriced too. A product can never contain itself.
+- Recipe lines: **Add raw material** (raw materials and merchandise marked as raw material) or **Add product** (products and merchandise, always counted in pieces, no waste) — (e.g. a finished product plus an extra), quantity, unit and optional comment. Units convert through the piece size (length / area / weight) set on the material. When a product inside a recipe changes price, every product built on it is repriced too. A product can never contain itself.
 - **Waste**: a raw material can be marked *has waste* with a percentage. 30% waste means the remaining 70% carries the whole purchase price. In a recipe, such a material gets an extra waste % per line: 30 cm² with 10% waste counts as 33 cm².
 - A live cost breakdown is shown on every item while editing, with warnings for units that can't be converted and for missing materials.
 - Each raw material shows which products use it.
@@ -49,12 +49,14 @@ The data lives in `%LOCALAPPDATA%\ProductCosting\data.db`. Backups go to `Docume
 **Orders to suppliers**
 - **New order** on a supplier opens a form with every item bought from them. Items with variations (e.g. colours, each with its own supplier code) get one line per variation.
 - Each item can have a **minimum order quantity** and a **pack size** per supplier. The order form shows them, flags quantities below the minimum or not in whole packs, and *Fix quantities* rounds them up.
+- Variations can belong to one supplier or to all suppliers of the item; an order shows only the ones of its supplier.
+- Orders can be **saved**. Saved orders are listed on the supplier: double-click to continue editing, right-click to export to PDF or delete.
 - Export the order to PDF. Lines without a quantity are left out.
 
 **Organising**
 - Nested folders in every list, shown as tiles above the table, each sorted by code (by name for suppliers) or manually.
 - Drag rows or folders onto a folder tile or onto the folder path to move them. With manual sorting, drag rows to reorder them, and drop a folder on the left or right edge of another folder to reorder folders.
-- Right-click a row to open, **duplicate** or delete it. A duplicated item gets the next free code (P-100 → P-100-2).
+- Right-click a row to open, **duplicate** or delete it, see its **price history**, **set its selling price** (the markup is adjusted, after rounding the price to the item's step) or **change its purchase price** (items with one supplier). On suppliers, right-click starts a **new order**. A duplicated item gets the next free code (P-100 → P-100-2).
 - A filter box on every list searches all folders. The supplier, raw-material and folder fields use search-as-you-type pickers that show the folder tree.
 - **Global search** (Ctrl+F) across codes, names, supplier codes, suppliers, notes and recipe/labor comments. It ignores Greek accents and case. When the match is in a note or comment, that text is shown under the result.
 

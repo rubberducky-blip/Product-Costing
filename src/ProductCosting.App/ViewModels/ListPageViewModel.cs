@@ -229,6 +229,29 @@ public sealed partial class ListPageViewModel : PageViewModel
         }
     }
 
+    /// <summary>Asks for a selling price and sets the markup to reach it (the price is rounded to the item's step first).</summary>
+    public void SetPrice(ItemRow row)
+    {
+        var text = Dialogs.Prompt(Loc.F("menu.setPriceTitle", row.Code, row.Name), Fmt.Num(row.Price));
+        if (text is null) return;
+        var field = new NumField(null);
+        field.Text = text;
+        if (field.Value is not decimal price || price <= 0) { Dialogs.Error(Loc.T("common.invalidNumber")); return; }
+        if (AppState.Store.SetPrice(row.Id, price) is decimal applied) _main.ShowToast(Loc.F("menu.priceSet", row.Code, Fmt.Money(applied)));
+        else Dialogs.Error(Loc.T("menu.noCost"));
+    }
+
+    /// <summary>Quick change of the purchase price (items with a single supplier).</summary>
+    public void SetPurchasePrice(ItemRow row)
+    {
+        var text = Dialogs.Prompt(Loc.F("menu.setPurchaseTitle", row.Code, row.Name), Fmt.Num(row.PurchasePrice));
+        if (text is null) return;
+        var field = new NumField(null);
+        field.Text = text;
+        if (field.Value is not decimal price) { Dialogs.Error(Loc.T("common.invalidNumber")); return; }
+        if (AppState.Store.SetPurchasePrice(row.Id, price)) _main.ShowToast(Loc.F("menu.purchaseSet", row.Code, Fmt.InCurrency(price, row.PurchaseCurrency)));
+    }
+
     public void DuplicateRows(IReadOnlyList<object> rows)
     {
         string? last = null;

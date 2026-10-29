@@ -85,6 +85,11 @@ public sealed partial class ItemEditorViewModel : PageViewModel
     public List<PickerEntry> MaterialFolderEntries { get; private set; } = [];
     public List<PickerEntry> SupplierEntries { get; private set; } = [];
     public List<PickerEntry> MaterialEntries { get; private set; } = [];
+    public List<PickerEntry> ProductEntries { get; private set; } = [];
+    /// <summary>Supplier choices for variations: every supplier of the item, plus "all" (0).</summary>
+    [ObservableProperty] private List<Choice<long>> _variantSupplierChoices = [];
+    /// <summary>Waste column of the recipe: only shown when some line uses a material with waste.</summary>
+    [ObservableProperty] private System.Windows.GridLength _wasteWidth = new(0);
     public List<Choice<QtyUnit>> Units { get; } = Choices.Units();
 
     [ObservableProperty] private string _title = "";
@@ -100,6 +105,8 @@ public sealed partial class ItemEditorViewModel : PageViewModel
     [ObservableProperty] private bool _hasUnseenChange;
 
     public bool MultipleSources => Sources.Count > 1;
+    public bool HasVariants => Variants.Count > 0;
+    public System.Windows.GridLength VariantSupplierWidth => new(MultipleSources ? 1 : 0, System.Windows.GridUnitType.Star);
     public bool HasUsage => Usage.Count > 0;
     public bool ShowUsage => IsMaterial || HasUsage;
     public override bool IsDirty => Dirty;
@@ -128,23 +135,31 @@ public sealed partial class ItemEditorViewModel : PageViewModel
 
         if (Kind == ItemKind.Product)
         {
-            // anything can go into a recipe: raw materials, merchandise and other products (never the product itself)
+            // raw materials (with merchandise marked as raw material) for "add raw material",
+            // products and merchandise for "add product" (never the product itself)
             var mats = store.GetMaterials().Where(m => m.Info.Id != _doc.Item.Id).ToList();
             _materials = mats.ToDictionary(m => m.Info.Id, m => m.Info);
-            IEnumerable<(long, string, string?, long?)> Of(ItemKind k) => mats.Where(m => m.Info.Kind == k)
-                .Select(m => (m.Info.Id, $"{m.Info.Code} · {m.Info.Name}", (string?)$"{Fmt.Money4(m.Info.Cost)}/{Strings.Unit(m.Info.Unit)}", m.FolderId));
-            MaterialEntries =
+            (long, string, string?, long?) Entry(MaterialInfo m, long? folder) =>
+                (m.Id, $"{m.Code} · {m.Name}", $"{Fmt.Money4(m.Cost)}/{Strings.Unit(m.Unit)}", folder);
+            MaterialEntries = PickerEntry.Tree(rawFolders, mats
+                .Where(m => m.Info.Kind == ItemKind.RawMaterial || (m.Info.Kind == ItemKind.Merchandise && m.Info.UsableAsMaterial))
+                .Select(m => Entry(m.Info, m.Info.Kind == ItemKind.RawMaterial ? m.FolderId : m.MaterialFolderId)));
+            ProductEntries =
             [
-                .. PickerEntry.Tree(rawFolders, Of(ItemKind.RawMaterial), section: Loc.T("nav.raw")),
-                .. PickerEntry.Tree(store.GetFolders(ListScope.Merchandise), Of(ItemKind.Merchandise), section: Loc.T("nav.merchandise")),
-                .. PickerEntry.Tree(scopeFolders, Of(ItemKind.Product), section: Loc.T("nav.products")),
+                .. PickerEntry.Tree(scopeFolders, mats.Where(m => m.Info.Kind == ItemKind.Product).Select(m => Entry(m.Info, m.FolderId)), section: Loc.T("nav.products")),
+                .. PickerEntry.Tree(store.GetFolders(ListScope.Merchandise), mats.Where(m => m.Info.Kind == ItemKind.Merchandise).Select(m => Entry(m.Info, m.FolderId)), section: Loc.T("nav.merchandise")),
             ];
         }
         OnPropertyChanged(nameof(FolderEntries));
         OnPropertyChanged(nameof(MaterialFolderEntries));
         OnPropertyChanged(nameof(SupplierEntries));
         OnPropertyChanged(nameof(MaterialEntries));
+        OnPropertyChanged(nameof(ProductEntries));
     }
+
+    /// <summary>Lines with a finished product or (plain) merchandise: counted in pieces, no unit or waste fields.</summary>
+    bool IsProductComponent(long? id) => id is long i && _materials.TryGetValue(i, out var m)
+        && (m.Kind == ItemKind.Product || (m.Kind == ItemKind.Merchandise && !m.UsableAsMaterial));
 
     void Load(ItemDocument doc)
     {
@@ -168,9 +183,14 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         HasUnseenChange = it.HasUnseenChange;
 
         Reset(Sources, doc.Sources.Select(s => new SourceRow(s)));
-        Reset(Lines, doc.Lines.Select(l => new LineRow(l)));
+        Reset(Lines, doc.Lines.Select(l => new LineRow(l, IsProductComponent(l.MaterialId))));
         Reset(Labor, doc.Labor.Select(l => new LaborRow(l)));
-        Reset(Variants, doc.Variants.Select(v => new VariantRow(v)));
+        // variations sorted by supplier name, then supplier code
+        string SupplierName(long? id) => id is long i && _suppliers.TryGetValue(i, out var sup) ? sup.Name : "";
+        Reset(Variants, doc.Variants
+            .OrderBy(v => SupplierName(v.SupplierId), NaturalComparer.Instance)
+            .ThenBy(v => v.Code ?? "", NaturalComparer.Instance)
+            .Select(v => new VariantRow(v)));
 
         Usage.Clear();
         if (!IsNew) foreach (var u in AppState.Store.GetUsage(it.Id)) Usage.Add(u);
@@ -240,7 +260,7 @@ public sealed partial class ItemEditorViewModel : PageViewModel
                     line.WarningText = Loc.T("cost.warnMissing");
                     continue;
                 }
-                line.IsWasteMaterial = m.HasWaste;
+                line.IsWasteMaterial = m.HasWaste && !line.IsProductLine;
                 var unitCost = Costing.CostPerUnit(m, line.Unit);
                 if (unitCost is null)
                 {
@@ -250,12 +270,15 @@ public sealed partial class ItemEditorViewModel : PageViewModel
                     line.WarningText = Loc.T("cost.warnConversion");
                     continue;
                 }
-                var c = unitCost.Value * line.Quantity.Or0 * (1 + (m.HasWaste ? line.Waste.Or0 : 0) / 100m);
+                var c = unitCost.Value * line.Quantity.Or0 * (1 + (line.IsWasteMaterial ? line.Waste.Or0 : 0) / 100m);
                 materials += c;
                 line.CostText = Fmt.Money4(c);
                 line.UnitCostText = $"{Fmt.Money4(unitCost.Value)}/{Strings.Unit(line.Unit)}";
                 line.WarningText = "";
             }
+            var width = new System.Windows.GridLength(Lines.Any(l => l.IsWasteMaterial) ? 96 : 0);
+            WasteWidth = width;
+            foreach (var line in Lines) line.SetWasteWidth(width);
             var seconds = Labor.Sum(l => l.Secs);
             var hours = seconds / 3600m;
             var labor = hours * s.LaborRatePerHour;
@@ -273,6 +296,11 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         else
         {
             var models = Sources.Select(r => r.ToModel()).ToList();
+            var choices = new List<Choice<long>> { new(0, Loc.T("item.allSuppliers")) };
+            foreach (var sid in models.Select(m => m.SupplierId).OfType<long>().Distinct())
+                if (_suppliers.TryGetValue(sid, out var sup)) choices.Add(new(sid, sup.Name));
+            if (!choices.Select(c => c.Value).SequenceEqual(VariantSupplierChoices.Select(c => c.Value)))
+                VariantSupplierChoices = choices;
             foreach (var r in Sources) r.UpdateHints(r.SupplierId is long sid ? _suppliers.GetValueOrDefault(sid) : null);
             var bc = Costing.ComputeBought(models, id => _suppliers.GetValueOrDefault(id), s.UsdPerEur);
             warn |= bc.Warnings;
@@ -328,6 +356,8 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         MarginPct = price.MarginPct;
         Title = IsNew && string.IsNullOrWhiteSpace(Code) ? Loc.F("item.newTitle", KindText.ToLower(Loc.Culture)) : $"{Code}";
         OnPropertyChanged(nameof(MultipleSources));
+        OnPropertyChanged(nameof(HasVariants));
+        OnPropertyChanged(nameof(VariantSupplierWidth));
         Dirty = Snapshot() != _original;
     }
 
@@ -342,7 +372,7 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         foreach (var r in Sources) { sb.Append("S:"); S(r.SupplierId); S(r.SupplierCode); S(r.Currency); N(r.Price); N(r.Qty); N(r.Discount); N(r.Shipping); N(r.Weight); N(r.Moq); N(r.Pack); }
         foreach (var r in Lines) { sb.Append("L:"); S(r.MaterialId); S(r.Unit); S(r.Comment); N(r.Quantity); N(r.Waste); }
         foreach (var r in Labor) { sb.Append("T:"); S(r.Comment); N(r.Seconds); }
-        foreach (var r in Variants) { sb.Append("V:"); S(r.Name); S(r.Code); }
+        foreach (var r in Variants) { sb.Append("V:"); S(r.Name); S(r.Code); S(r.SupplierKey); }
         return sb.ToString();
     }
 
@@ -370,6 +400,13 @@ public sealed partial class ItemEditorViewModel : PageViewModel
     }
 
     [RelayCommand]
+    void AddProduct()
+    {
+        Attach(Lines, new LineRow(new RecipeLine { Quantity = 1, Unit = QtyUnit.Pcs }, isProduct: true));
+        Recalc();
+    }
+
+    [RelayCommand]
     void RemoveLine(LineRow row)
     {
         Lines.Remove(row);
@@ -379,7 +416,7 @@ public sealed partial class ItemEditorViewModel : PageViewModel
     /// <summary>A newly picked material starts in its own unit.</summary>
     public void MaterialPicked(LineRow row)
     {
-        if (row.MaterialId is long id && _materials.TryGetValue(id, out var m)) row.Unit = m.Unit;
+        if (row.MaterialId is long id && _materials.TryGetValue(id, out var m)) row.Unit = row.IsProductLine ? QtyUnit.Pcs : m.Unit;
     }
 
     /// <summary>Picking a supplier fills the supplier code field focus and resets the currency to the supplier's.</summary>

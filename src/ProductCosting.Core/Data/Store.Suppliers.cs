@@ -83,6 +83,44 @@ public sealed partial class Store
         return SaveSupplier(s);
     }
 
+    // ---------- saved purchase orders ----------
+
+    public List<PurchaseOrder> GetOrders(long supplierId) => Read(c => c.Query<PurchaseOrder>("""
+        SELECT o.id, o.supplier_id, o.created_at, o.updated_at,
+               (SELECT count(*) FROM purchase_order_lines l WHERE l.order_id = o.id) AS line_count,
+               (SELECT COALESCE(SUM(quantity), 0) FROM purchase_order_lines l WHERE l.order_id = o.id) AS total_quantity
+        FROM purchase_orders o WHERE o.supplier_id = @supplierId ORDER BY o.updated_at DESC
+        """, new { supplierId }).ToList());
+
+    public List<PurchaseOrderLine> GetOrderLines(long orderId) => Read(c => c.Query<PurchaseOrderLine>(
+        "SELECT item_id, variant, code, supplier_code, name, unit, quantity FROM purchase_order_lines WHERE order_id=@orderId ORDER BY position",
+        new { orderId }).ToList());
+
+    /// <summary>Saves an order (new when <paramref name="orderId"/> is null) and returns its id.</summary>
+    public long SaveOrder(long? orderId, long supplierId, IReadOnlyList<PurchaseOrderLine> lines) => Write(DataChange.Suppliers, (c, t) =>
+    {
+        var now = Now;
+        long id;
+        if (orderId is long existing && c.ExecuteScalar<long>("SELECT count(*) FROM purchase_orders WHERE id=@existing", new { existing }, t) > 0)
+        {
+            id = existing;
+            c.Execute("UPDATE purchase_orders SET updated_at=@now WHERE id=@id; DELETE FROM purchase_order_lines WHERE order_id=@id", new { now, id }, t);
+        }
+        else
+            id = c.ExecuteScalar<long>("INSERT INTO purchase_orders(supplier_id, created_at, updated_at) VALUES(@supplierId, @now, @now) RETURNING id",
+                new { supplierId, now }, t);
+        var i = 0;
+        foreach (var l in lines)
+            c.Execute("""
+                INSERT INTO purchase_order_lines(order_id, item_id, variant, code, supplier_code, name, unit, quantity, position)
+                VALUES(@id, @ItemId, @Variant, @Code, @SupplierCode, @Name, @Unit, @Quantity, @pos)
+                """, new DynamicParameters(l).Also(p => { p.Add("id", id); p.Add("pos", i++); }), t);
+        return id;
+    });
+
+    public void DeleteOrder(long id) => Write(DataChange.Suppliers, (c, t) =>
+        c.Execute("DELETE FROM purchase_orders WHERE id=@id", new { id }, t));
+
     public void DeleteSupplier(long id) => Write(DataChange.Suppliers | DataChange.Items | DataChange.Notifications, (c, t) =>
     {
         var items = c.Query<long>("SELECT DISTINCT item_id FROM item_sources WHERE supplier_id=@id", new { id }, t).ToList();
@@ -114,7 +152,7 @@ public sealed partial class Store
     {
         var ids = itemIds.ToList();
         if (ids.Count == 0) return [];
-        return c.Query<ItemVariant>("SELECT id, item_id, name, code FROM item_variants WHERE item_id IN @ids ORDER BY item_id, position", new { ids })
+        return c.Query<ItemVariant>("SELECT id, item_id, name, code, supplier_id FROM item_variants WHERE item_id IN @ids ORDER BY item_id, position", new { ids })
             .GroupBy(v => v.ItemId).ToDictionary(g => g.Key, g => g.ToList());
     });
 }

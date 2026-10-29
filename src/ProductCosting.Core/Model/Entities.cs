@@ -128,6 +128,30 @@ public sealed class ItemVariant
     public long ItemId { get; set; }
     public string Name { get; set; } = "";
     public string? Code { get; set; }
+    /// <summary>The supplier this variation is ordered from; null = from every supplier of the item.</summary>
+    public long? SupplierId { get; set; }
+}
+
+/// <summary>A purchase order saved on a supplier.</summary>
+public sealed class PurchaseOrder
+{
+    public long Id { get; set; }
+    public long SupplierId { get; set; }
+    public string CreatedAt { get; set; } = "";
+    public string UpdatedAt { get; set; } = "";
+    public int LineCount { get; set; }
+    public decimal TotalQuantity { get; set; }
+}
+
+public sealed class PurchaseOrderLine
+{
+    public long? ItemId { get; set; }
+    public string? Variant { get; set; }
+    public string Code { get; set; } = "";
+    public string? SupplierCode { get; set; }
+    public string Name { get; set; } = "";
+    public QtyUnit Unit { get; set; }
+    public decimal Quantity { get; set; }
 }
 
 /// <summary>An item with everything that is edited on its form.</summary>
@@ -195,6 +219,8 @@ public sealed class ItemRow : System.ComponentModel.INotifyPropertyChanged
     /// <summary>Purchase price from the (first) supplier, in its own currency, before discount and shipping.</summary>
     public decimal? PurchasePrice { get; set; }
     public Currency PurchaseCurrency { get; set; }
+    /// <summary>Number of suppliers (the purchase price can only be changed from the list when it is 1).</summary>
+    public int SourceCount { get; set; }
     /// <summary>Set by the list when showing filter results from several folders.</summary>
     public string? FolderPath { get; set; }
 
@@ -297,6 +323,7 @@ public sealed class MaterialInfo
     /// <summary>Cost of one <see cref="Unit"/>.</summary>
     public decimal Cost { get; set; }
     public bool HasWaste { get; set; }
+    public bool UsableAsMaterial { get; set; }
 }
 
 public sealed class BackupInfo

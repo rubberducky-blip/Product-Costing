@@ -101,28 +101,25 @@
 
                                 <StackPanel Grid.Row="2" Grid.ColumnSpan="3">
                                     <TextBlock Text="{l:T common.notes}" Style="{StaticResource FieldLabel}" />
-                                    <TextBox Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource MultiLine}" MinHeight="0" Height="58" />
+                                    <TextBox Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource MultiLine}" MinHeight="0" Height="78" />
                                 </StackPanel>
 
-                                <!-- merchandise: also a raw material, with its folder in the raw-materials list -->
+                                <!-- merchandise: also a raw material, with its folder in the raw-materials list (the tick box never moves) -->
                                 <StackPanel Grid.Row="2" Grid.Column="4" Visibility="{Binding IsMerchandise, Converter={StaticResource Visible}}">
-                                    <StackPanel Visibility="{Binding UsableAsMaterial, Converter={StaticResource Visible}}" Margin="0,0,0,10">
+                                    <StackPanel Visibility="{Binding UsableAsMaterial, Converter={StaticResource VisibleKeepSpace}}">
                                         <TextBlock Text="{l:T folder.materialField}" Style="{StaticResource FieldLabel}" />
                                         <c:SearchPicker ItemsSource="{Binding MaterialFolderEntries}" SelectedId="{Binding MaterialFolderId}" Placeholder="{l:T item.pickFolder}" />
                                     </StackPanel>
-                                    <CheckBox Content="{l:T item.usableAsMaterial}" IsChecked="{Binding UsableAsMaterial}" />
+                                    <CheckBox Content="{l:T item.usableAsMaterial}" IsChecked="{Binding UsableAsMaterial}" Margin="0,10,0,0" />
                                 </StackPanel>
 
-                                <!-- raw materials: waste -->
+                                <!-- raw materials: waste %, in the same places -->
                                 <StackPanel Grid.Row="2" Grid.Column="4" Visibility="{Binding IsRaw, Converter={StaticResource Visible}}">
-                                    <CheckBox Content="{l:T item.hasWaste}" IsChecked="{Binding HasWaste}" Margin="0,4,0,0" />
-                                    <StackPanel Visibility="{Binding HasWaste, Converter={StaticResource Visible}}" Margin="0,8,0,0">
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="{l:T item.wastePct}" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" Margin="0,0,10,0" />
-                                            <l:NumBox Field="{Binding WastePct}" Width="100" l:Hint.Text="0" />
-                                        </StackPanel>
-                                        <TextBlock Text="{l:T item.wasteHelp}" Style="{StaticResource Caption}" Margin="0,6,0,0" />
+                                    <StackPanel Visibility="{Binding HasWaste, Converter={StaticResource VisibleKeepSpace}}">
+                                        <TextBlock Text="{l:T item.wastePct}" Style="{StaticResource FieldLabel}" />
+                                        <l:NumBox Field="{Binding WastePct}" l:Hint.Text="0" />
                                     </StackPanel>
+                                    <CheckBox Content="{l:T item.hasWaste}" IsChecked="{Binding HasWaste}" Margin="0,10,0,0" />
                                 </StackPanel>
                             </Grid>
                         </StackPanel>
@@ -157,9 +154,17 @@
                                                             <c:SearchPicker ItemsSource="{Binding DataContext.SupplierEntries, ElementName=Root}" SelectedId="{Binding SupplierId}"
                                                                             Placeholder="{l:T item.pickSupplier}" Picked="SupplierPicker_Picked" />
                                                         </StackPanel>
-                                                        <StackPanel Width="190">
+                                                        <StackPanel Width="190" Margin="0,0,10,0">
                                                             <TextBlock Text="{l:T item.supplierCode}" Style="{StaticResource FieldLabel}" />
                                                             <TextBox Text="{Binding SupplierCode, UpdateSourceTrigger=PropertyChanged}" />
+                                                        </StackPanel>
+                                                        <StackPanel Width="142" Margin="0,0,10,0" ToolTip="{l:T item.moqHelp}">
+                                                            <TextBlock Text="{l:T item.moq}" Style="{StaticResource FieldLabel}" />
+                                                            <l:NumBox Field="{Binding Moq}" l:Hint.Text="—" />
+                                                        </StackPanel>
+                                                        <StackPanel Width="142" ToolTip="{l:T item.packHelp}">
+                                                            <TextBlock Text="{l:T item.pack}" Style="{StaticResource FieldLabel}" />
+                                                            <l:NumBox Field="{Binding Pack}" l:Hint.Text="—" />
                                                         </StackPanel>
                                                     </WrapPanel>
                                                 </DockPanel>
@@ -190,14 +195,6 @@
                                                     <StackPanel Margin="0,0,10,0">
                                                         <TextBlock Text="{l:T item.shipping}" Style="{StaticResource FieldLabel}" />
                                                         <l:NumBox Field="{Binding Shipping}" l:Hint.Text="{Binding ShippingHint}" />
-                                                    </StackPanel>
-                                                    <StackPanel Margin="0,0,10,0" ToolTip="{l:T item.moqHelp}">
-                                                        <TextBlock Text="{l:T item.moq}" Style="{StaticResource FieldLabel}" />
-                                                        <l:NumBox Field="{Binding Moq}" l:Hint.Text="—" />
-                                                    </StackPanel>
-                                                    <StackPanel Margin="0,0,10,0" ToolTip="{l:T item.packHelp}">
-                                                        <TextBlock Text="{l:T item.pack}" Style="{StaticResource FieldLabel}" />
-                                                        <l:NumBox Field="{Binding Pack}" l:Hint.Text="—" />
                                                     </StackPanel>
                                                     <StackPanel Visibility="{Binding DataContext.MultipleSources, ElementName=Root, Converter={StaticResource Visible}}">
                                                         <TextBlock Style="{StaticResource FieldLabel}">
@@ -241,18 +238,34 @@
                         <StackPanel>
                             <TextBlock Text="{l:T item.variants}" Style="{StaticResource H2}" />
                             <TextBlock Text="{l:T item.variantsHelp}" Style="{StaticResource Caption}" Margin="0,4,0,12" />
+                            <Grid Visibility="{Binding HasVariants, Converter={StaticResource Visible}}" Margin="0,0,40,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="{Binding DataContext.VariantSupplierWidth, ElementName=Root}" />
+                                    <ColumnDefinition Width="*" />
+                                    
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{l:T item.variant}" Style="{StaticResource ColHead}" />
+                                <TextBlock Grid.Column="1" Text="{l:T item.supplier}" Style="{StaticResource ColHead}" Margin="12,0,0,6"
+                                           Visibility="{Binding MultipleSources, Converter={StaticResource Visible}}" />
+                                <TextBlock Grid.Column="2" Text="{l:T item.supplierCode}" Style="{StaticResource ColHead}" Margin="12,0,0,6" />
+                            </Grid>
                             <ItemsControl ItemsSource="{Binding Variants}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Grid Margin="0,0,0,8">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="12" />
+                                                <ColumnDefinition Width="{Binding DataContext.VariantSupplierWidth, ElementName=Root}" />
                                                 <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="40" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" l:Hint.Text="{l:T item.variant}" />
-                                            <TextBox Grid.Column="2" Text="{Binding Code, UpdateSourceTrigger=PropertyChanged}" l:Hint.Text="{l:T item.supplierCode}" />
+                                            <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+                                            <ComboBox Grid.Column="1" Margin="12,0,0,0" HorizontalAlignment="Stretch" MinWidth="0"
+                                                      ItemsSource="{Binding DataContext.VariantSupplierChoices, ElementName=Root}"
+                                                      SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding SupplierKey}"
+                                                      Visibility="{Binding DataContext.MultipleSources, ElementName=Root, Converter={StaticResource Visible}}" />
+                                            <TextBox Grid.Column="2" Margin="12,0,0,0" Text="{Binding Code, UpdateSourceTrigger=PropertyChanged}" />
                                             <Button Grid.Column="3" Style="{StaticResource IconButton}" l:Btn.Icon="&#xE711;" Margin="6,0,0,0" ToolTip="{l:T common.remove}"
                                                     Command="{Binding DataContext.RemoveVariantCommand, ElementName=Root}" CommandParameter="{Binding}" />
                                         </Grid>
@@ -276,7 +289,7 @@
                                     <ColumnDefinition Width="2.2*" MinWidth="220" />
                                     <ColumnDefinition Width="96" />
                                     <ColumnDefinition Width="96" />
-                                    <ColumnDefinition Width="90" />
+                                    <ColumnDefinition Width="{Binding WasteWidth}" />
                                     <ColumnDefinition Width="1.4*" MinWidth="140" />
                                     <ColumnDefinition Width="120" />
                                 </Grid.ColumnDefinitions>
@@ -296,19 +309,28 @@
                                                     <ColumnDefinition Width="2.2*" MinWidth="220" />
                                                     <ColumnDefinition Width="96" />
                                                     <ColumnDefinition Width="96" />
-                                                    <ColumnDefinition Width="90" />
+                                                    <ColumnDefinition Width="{Binding WasteWidth}" />
                                                     <ColumnDefinition Width="1.4*" MinWidth="140" />
                                                     <ColumnDefinition Width="120" />
                                                     <ColumnDefinition Width="40" />
                                                 </Grid.ColumnDefinitions>
                                                 <c:SearchPicker ItemsSource="{Binding DataContext.MaterialEntries, ElementName=Root}" SelectedId="{Binding MaterialId}"
-                                                                Placeholder="{l:T item.pickComponent}" Picked="MaterialPicker_Picked" />
+                                                                Placeholder="{l:T item.pickMaterial}" Picked="MaterialPicker_Picked"
+                                                                Visibility="{Binding IsProductLine, Converter={StaticResource Hidden}}" />
+                                                <c:SearchPicker ItemsSource="{Binding DataContext.ProductEntries, ElementName=Root}" SelectedId="{Binding MaterialId}"
+                                                                Placeholder="{l:T item.pickProduct}" Picked="MaterialPicker_Picked"
+                                                                Visibility="{Binding IsProductLine, Converter={StaticResource Visible}}" />
                                                 <l:NumBox Grid.Column="1" Field="{Binding Quantity}" Margin="10,0,0,0" />
                                                 <ComboBox Grid.Column="2" Margin="10,0,0,0" ItemsSource="{Binding DataContext.Units, ElementName=Root}"
-                                                          SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding Unit}" MinWidth="0" />
+                                                          SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding Unit}" MinWidth="0"
+                                                          Visibility="{Binding IsProductLine, Converter={StaticResource Hidden}}" />
                                                 <l:NumBox Grid.Column="3" Field="{Binding Waste}" Margin="10,0,0,0" l:Hint.Text="0"
                                                           Visibility="{Binding IsWasteMaterial, Converter={StaticResource Visible}}" />
-                                                <TextBox Grid.Column="4" Margin="10,0,0,0" Text="{Binding Comment, UpdateSourceTrigger=PropertyChanged}" />
+                                                <!-- products have no unit or waste: their comment takes that room too -->
+                                                <TextBox Grid.Column="4" Margin="10,0,0,0" Text="{Binding Comment, UpdateSourceTrigger=PropertyChanged}"
+                                                         Visibility="{Binding IsProductLine, Converter={StaticResource Hidden}}" />
+                                                <TextBox Grid.Column="2" Grid.ColumnSpan="3" Margin="10,0,0,0" Text="{Binding Comment, UpdateSourceTrigger=PropertyChanged}"
+                                                         Visibility="{Binding IsProductLine, Converter={StaticResource Visible}}" />
                                                 <StackPanel Grid.Column="5" VerticalAlignment="Center" HorizontalAlignment="Right">
                                                     <TextBlock Text="{Binding CostText}" FontWeight="SemiBold" HorizontalAlignment="Right" />
                                                     <TextBlock Text="{Binding UnitCostText}" Style="{StaticResource Caption}" HorizontalAlignment="Right" />
@@ -324,8 +346,12 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <Button Style="{StaticResource GhostButton}" l:Btn.Icon="&#xE710;" Content="{l:T item.addLine}" HorizontalAlignment="Left"
-                                    Command="{Binding AddLineCommand}" Foreground="{StaticResource AccentTextBrush}" />
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource GhostButton}" l:Btn.Icon="&#xE710;" Content="{l:T item.addLine}"
+                                        Command="{Binding AddLineCommand}" Foreground="{StaticResource AccentTextBrush}" />
+                                <Button Style="{StaticResource GhostButton}" l:Btn.Icon="&#xE710;" Content="{l:T item.addProduct}" Margin="8,0,0,0"
+                                        Command="{Binding AddProductCommand}" Foreground="{StaticResource AccentTextBrush}" />
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 

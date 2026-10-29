@@ -276,6 +276,12 @@ internal static class Smoke
             Check("dirty after quantity edit", ed.IsDirty);
             ed.CancelCommand.Execute(null);
             Check("clean after cancel", !ed.IsDirty);
+            ed.AddProductCommand.Execute(null);
+            ed.AddLineCommand.Execute(null);
+            await Settle();
+            Check("add product makes a product line", ed.Lines[^2].IsProductLine && !ed.Lines[^1].IsProductLine);
+            Shot(root, "08c-recipe-new-lines");
+            ed.CancelCommand.Execute(null);
         });
         await Step("product editor at minimum size", async () =>
         {
@@ -304,6 +310,22 @@ internal static class Smoke
             Check("raw editor clean after load", !vm.Current!.IsDirty);
         });
         await Step("new product", async () => { vm.NewItem(ItemKind.Product, null); await Settle(); Shot(root, "12-new-product"); vm.Current!.Discard(); });
+        await Step("set price and saved order", async () =>
+        {
+            Check("set price reaches the rounded price", store.SetPrice(Id("M-100"), 9.99m) == 10.00m);
+            var usa = store.GetSuppliers().First(s => s.Name.StartsWith("Leather"));
+            var mug = Id("M-200");
+            store.SaveOrder(null, usa.Id, [new PurchaseOrderLine { ItemId = mug, Code = "M-200", Name = "Κούπα κεραμική 350 ml", Variant = "Λευκή", SupplierCode = "MUG-350-W", Quantity = 24 }]);
+            vm.OpenSupplier(usa.Id);
+            await Settle(500);
+            Check("saved order listed", ((SupplierEditorViewModel)vm.Current!).Orders.Count == 1);
+            Shot(root, "13b-supplier-orders");
+            var win = new OrderWindow(usa, store.GetOrders(usa.Id)[0].Id) { Owner = w };
+            win.Show();
+            await Settle(500);
+            Shot((FrameworkElement)win.Content, "19b-saved-order");
+            win.Close();
+        });
         await Step("supplier editor", async () =>
         {
             vm.OpenSupplier(store.GetSuppliers().First(s => s.Name.StartsWith("Metalli")).Id);

@@ -24,6 +24,7 @@ public static class Hint
             tb.TextChanged += (_, _) => Refresh(tb);
             tb.SizeChanged += (_, _) => Refresh(tb);
             tb.IsVisibleChanged += (_, _) => Refresh(tb);
+            tb.GotKeyboardFocus += (_, _) => Refresh(tb);
             if (tb.IsLoaded) Attach(tb);
         }
         Refresh(tb);
@@ -46,6 +47,7 @@ public static class Hint
     sealed class HintAdorner : Adorner
     {
         readonly TextBox _tb;
+        int _retries;
 
         public HintAdorner(TextBox tb) : base(tb)
         {
@@ -72,18 +74,23 @@ public static class Hint
             var caret = Rect.Empty;
             try { caret = _tb.GetRectFromCharacterIndex(0); } catch (ArgumentOutOfRangeException) { }
             double x, y;
+            // a small gap from the cursor, so the blinking cursor never covers the first letter
+            const double gap = 3;
             if (!caret.IsEmpty && caret.Height > 0 && !double.IsNaN(caret.X) && !double.IsInfinity(caret.X))
             {
-                x = right ? caret.X - ft.Width - 1 : caret.X + 1;
+                x = right ? caret.X - ft.Width - gap : caret.X + gap;
                 y = caret.Top + (caret.Height - ft.Height) / 2;
             }
             else
             {
+                // the text area isn't laid out yet (e.g. a dropdown opening for the first time): draw again once it is
+                if (_retries++ < 5)
+                    Dispatcher.BeginInvoke(InvalidateVisual, System.Windows.Threading.DispatcherPriority.Loaded);
                 var box = new Rect(_tb.Padding.Left + _tb.BorderThickness.Left, 0,
                     Math.Max(0, _tb.ActualWidth - _tb.Padding.Left - _tb.Padding.Right), _tb.ActualHeight);
                 if (_tb.Template?.FindName("PART_ContentHost", _tb) is FrameworkElement host && host.IsVisible && host.ActualHeight > 0)
                     box = host.TransformToAncestor(_tb).TransformBounds(new Rect(0, 0, host.ActualWidth, host.ActualHeight));
-                x = right ? box.Right - ft.Width - 4 : box.Left + 4;
+                x = right ? box.Right - ft.Width - 4 - gap : box.Left + 4 + gap;
                 y = box.Top + (box.Height - ft.Height) / 2;
             }
             dc.DrawText(ft, new Point(Math.Max(2, x), y));

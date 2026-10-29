@@ -6,7 +6,7 @@ namespace ProductCosting.Core.Data;
 /// <summary>Opens connections to the local SQLite database and keeps its schema up to date.</summary>
 public sealed class Db
 {
-    public const int SchemaVersion = 2;
+    public const int SchemaVersion = 3;
 
     static int _initialized;
 
@@ -58,6 +58,13 @@ public sealed class Db
             using var t = c.BeginTransaction();
             c.Execute(Schema.V2, transaction: t);
             c.Execute("PRAGMA user_version = 2", transaction: t);
+            t.Commit();
+        }
+        if (version < 3)
+        {
+            using var t = c.BeginTransaction();
+            c.Execute(Schema.V3, transaction: t);
+            c.Execute("PRAGMA user_version = 3", transaction: t);
             t.Commit();
         }
     }
@@ -238,5 +245,33 @@ static class Schema
         ALTER TABLE recipe_lines ADD COLUMN waste_pct REAL;
         ALTER TABLE item_sources ADD COLUMN moq REAL;
         ALTER TABLE item_sources ADD COLUMN pack_qty REAL;
+        """;
+
+    // variations that belong to one supplier, saved purchase orders
+    public const string V3 = """
+        ALTER TABLE item_variants ADD COLUMN supplier_id INTEGER REFERENCES suppliers(id) ON DELETE SET NULL;
+
+        CREATE TABLE purchase_orders(
+            id          INTEGER PRIMARY KEY,
+            supplier_id INTEGER NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
+            created_at  TEXT NOT NULL,
+            updated_at  TEXT NOT NULL
+        );
+        CREATE INDEX ix_orders_supplier ON purchase_orders(supplier_id, updated_at);
+
+        -- lines keep a copy of code / name, so an old order still prints the same after items change
+        CREATE TABLE purchase_order_lines(
+            id            INTEGER PRIMARY KEY,
+            order_id      INTEGER NOT NULL REFERENCES purchase_orders(id) ON DELETE CASCADE,
+            item_id       INTEGER REFERENCES items(id) ON DELETE SET NULL,
+            variant       TEXT,
+            code          TEXT NOT NULL,
+            supplier_code TEXT,
+            name          TEXT NOT NULL,
+            unit          INTEGER NOT NULL DEFAULT 0,
+            quantity      REAL NOT NULL,
+            position      INTEGER NOT NULL DEFAULT 0
+        );
+        CREATE INDEX ix_order_lines_order ON purchase_order_lines(order_id, position);
         """;
 }

@@ -109,7 +109,9 @@
                 </Border>
             </ScrollViewer>
 
-            <Border Grid.Column="2" Style="{StaticResource Card}" Padding="0" VerticalAlignment="Top" l:RoundClip.Enabled="True">
+            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+            <Border Style="{StaticResource Card}" Padding="0" VerticalAlignment="Top" l:RoundClip.Enabled="True">
                 <DockPanel>
                     <DockPanel DockPanel.Dock="Top" Margin="20,16,16,12">
                         <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" l:Btn.Icon="&#xE7BF;" Content="{l:T supplier.newOrder}"
@@ -124,14 +126,48 @@
                                 <DataGridTextColumn Header="{l:T list.code}" Binding="{Binding Code}" Width="110" ElementStyle="{StaticResource CellText}" />
                                 <DataGridTextColumn Header="{l:T list.name}" Binding="{Binding Name}" Width="*" ElementStyle="{StaticResource CellText}" />
                                 <DataGridTextColumn Header="{l:T list.supplierCode}" Binding="{Binding SupplierCode}" Width="120" ElementStyle="{StaticResource MutedCell}" />
-                                <DataGridTextColumn Header="{l:T item.purchasePrice}" Binding="{Binding PurchasePrice, Converter={StaticResource Num2}}" Width="100"
+                                <DataGridTextColumn Header="{l:T item.purchasePrice}" Binding="{Binding Converter={StaticResource SupplierPrice}}" Width="110"
                                                     ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
-                                <DataGridTextColumn Header="{l:T list.currency}" Binding="{Binding Currency, Converter={StaticResource CurrencyName}}" Width="80" ElementStyle="{StaticResource MutedCell}" />
+                                <DataGridTextColumn Header="{l:T item.moq}" Binding="{Binding Moq, Converter={StaticResource Num}}" Width="110"
+                                                    ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
+                                <DataGridTextColumn Header="{l:T item.pack}" Binding="{Binding PackQty, Converter={StaticResource Num}}" Width="120"
+                                                    ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
                             </DataGrid.Columns>
                         </DataGrid>
                     </Grid>
                 </DockPanel>
             </Border>
+
+            <!-- saved orders: double-click opens, right-click exports or deletes -->
+            <Border Style="{StaticResource Card}" Padding="0" Margin="0,16,0,0" l:RoundClip.Enabled="True"
+                    Visibility="{Binding IsNew, Converter={StaticResource Hidden}}">
+                <StackPanel>
+                    <TextBlock Text="{l:T order.savedOrders}" Style="{StaticResource H2}" Margin="20,16,16,12" />
+                    <TextBlock Text="{l:T order.noSaved}" Style="{StaticResource Muted}" Margin="20,0,20,16"
+                               Visibility="{Binding HasOrders, Converter={StaticResource Hidden}}" />
+                    <DataGrid x:Name="OrdersGrid" ItemsSource="{Binding Orders}" SelectionMode="Single"
+                              Visibility="{Binding HasOrders, Converter={StaticResource Visible}}"
+                              MouseDoubleClick="OrdersGrid_MouseDoubleClick" ContextMenuOpening="OrdersGrid_ContextMenuOpening">
+                        <DataGrid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="{l:T common.open}" Click="Order_Open" />
+                                <MenuItem Header="{l:T order.export}" Click="Order_Export" />
+                                <Separator />
+                                <MenuItem Header="{l:T common.delete}" Click="Order_Delete" Foreground="{StaticResource DangerTextBrush}" />
+                            </ContextMenu>
+                        </DataGrid.ContextMenu>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="{l:T order.updated}" Binding="{Binding DateText}" Width="*" ElementStyle="{StaticResource CellText}" />
+                            <DataGridTextColumn Header="{l:T order.linesCol}" Binding="{Binding LineCount}" Width="110"
+                                                ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
+                            <DataGridTextColumn Header="{l:T order.totalCol}" Binding="{Binding TotalText}" Width="130"
+                                                ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
+            </Border>
+            </StackPanel>
+            </ScrollViewer>
         </Grid>
     </Grid>
 </UserControl>

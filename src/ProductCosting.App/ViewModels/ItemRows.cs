@@ -86,8 +86,10 @@ public sealed partial class SourceRow : EditRow
 
 public sealed partial class LineRow : EditRow
 {
-    public LineRow(RecipeLine l)
+    /// <param name="isProduct">A finished product or merchandise: always counted in pieces, never with waste.</param>
+    public LineRow(RecipeLine l, bool isProduct = false)
     {
+        IsProductLine = isProduct;
         _materialId = l.MaterialId;
         _unit = l.Unit;
         _comment = l.Comment ?? "";
@@ -102,6 +104,17 @@ public sealed partial class LineRow : EditRow
     /// <summary>Extra waste on this line, only for materials that have waste.</summary>
     public NumField Waste { get; }
     [ObservableProperty] private bool _isWasteMaterial;
+    public bool IsProductLine { get; }
+    /// <summary>Width of the waste column: zero when no line of the recipe uses a material with waste.</summary>
+    [ObservableProperty] private System.Windows.GridLength _wasteWidth = new(0);
+
+    /// <summary>Layout only: not an edit.</summary>
+    public void SetWasteWidth(System.Windows.GridLength width)
+    {
+        Quiet = true;
+        WasteWidth = width;
+        Quiet = false;
+    }
 
     [ObservableProperty] private string _costText = "";
     [ObservableProperty] private string _unitCostText = "";
@@ -113,8 +126,8 @@ public sealed partial class LineRow : EditRow
     {
         MaterialId = MaterialId,
         Quantity = Quantity.Or0,
-        Unit = Unit,
-        WastePct = IsWasteMaterial && Waste.Value is > 0 ? Waste.Value : null,
+        Unit = IsProductLine ? QtyUnit.Pcs : Unit,
+        WastePct = !IsProductLine && IsWasteMaterial && Waste.Value is > 0 ? Waste.Value : null,
         Comment = string.IsNullOrWhiteSpace(Comment) ? null : Comment.Trim(),
     };
 }
@@ -142,6 +155,13 @@ public sealed partial class VariantRow(ItemVariant v) : EditRow
 {
     [ObservableProperty] private string _name = v.Name;
     [ObservableProperty] private string _code = v.Code ?? "";
+    /// <summary>Supplier of the variation; 0 = every supplier of the item.</summary>
+    [ObservableProperty] private long _supplierKey = v.SupplierId ?? 0;
 
-    public ItemVariant ToModel() => new() { Name = Name.Trim(), Code = string.IsNullOrWhiteSpace(Code) ? null : Code.Trim() };
+    public ItemVariant ToModel() => new()
+    {
+        Name = Name.Trim(),
+        Code = string.IsNullOrWhiteSpace(Code) ? null : Code.Trim(),
+        SupplierId = SupplierKey == 0 ? null : SupplierKey,
+    };
 }

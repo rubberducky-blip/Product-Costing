@@ -12,7 +12,10 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <StackPanel>
-            <TextBlock x:Name="TitleText" Style="{StaticResource H1}" />
+            <StackPanel Orientation="Horizontal">
+                <TextBlock x:Name="TitleText" Style="{StaticResource H1}" />
+                <TextBlock x:Name="SavedText" Foreground="{StaticResource SuccessTextBrush}" VerticalAlignment="Center" Margin="14,4,0,0" />
+            </StackPanel>
             <TextBlock Text="{l:T order.help}" Style="{StaticResource Muted}" Margin="0,6,0,0" />
         </StackPanel>
         <TextBox x:Name="FilterBox" Grid.Row="1" Width="320" Style="{StaticResource SearchBox}" Tag="&#xE71C;" HorizontalAlignment="Left" Margin="0,16,0,12"
@@ -49,7 +52,8 @@
         <DockPanel Grid.Row="3" Margin="0,16,0,0" LastChildFill="False">
             <TextBlock x:Name="CountText" VerticalAlignment="Center" Foreground="{StaticResource TextMutedBrush}" />
             <Button DockPanel.Dock="Right" Content="{l:T common.close}" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Click="Close_Click" />
-            <Button DockPanel.Dock="Right" Content="{l:T order.export}" l:Btn.Icon="&#xE896;" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0" Click="Export_Click" />
+            <Button DockPanel.Dock="Right" Content="{l:T order.export}" l:Btn.Icon="&#xE896;" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Click="Export_Click" />
+            <Button DockPanel.Dock="Right" Content="{l:T common.save}" l:Btn.Icon="&#xE74E;" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0" Click="Save_Click" />
             <Button DockPanel.Dock="Right" Content="{l:T order.clear}" l:Btn.Icon="&#xE894;" Style="{StaticResource GhostButton}" Click="Clear_Click" />
             <Button x:Name="FixButton" DockPanel.Dock="Right" Content="{l:T order.fix}" l:Btn.Icon="&#xE8C9;" Style="{StaticResource SecondaryButton}"
                     Margin="0,0,8,0" Click="Fix_Click" ToolTip="{l:T order.fixHelp}" />

@@ -53,6 +53,14 @@ public sealed class PurchasePriceConverter : IValueConverter
     public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => Binding.DoNothing;
 }
 
+/// <summary>A supplier item's purchase price with its currency symbol.</summary>
+public sealed class SupplierPriceConverter : IValueConverter
+{
+    public object Convert(object? value, Type t, object? p, CultureInfo c) =>
+        value is SupplierItemRow r ? Fmt.InCurrency(r.PurchasePrice, r.Currency) : "";
+    public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => Binding.DoNothing;
+}
+
 public sealed class UnitConverter : IValueConverter
 {
     public object Convert(object? value, Type t, object? p, CultureInfo c) => value is QtyUnit u ? Strings.Unit(u) : "";
@@ -80,6 +88,8 @@ public sealed class ReasonsConverter : IValueConverter
 public sealed class BoolToVisibilityConverter : IValueConverter
 {
     public bool Invert { get; set; }
+    /// <summary>Hide with Visibility.Hidden, so the element keeps its place in the layout.</summary>
+    public bool KeepSpace { get; set; }
     public object Convert(object? value, Type t, object? p, CultureInfo c)
     {
         var b = value switch
@@ -90,7 +100,7 @@ public sealed class BoolToVisibilityConverter : IValueConverter
             null => false,
             _ => true,
         };
-        return b ^ Invert ? Visibility.Visible : Visibility.Collapsed;
+        return b ^ Invert ? Visibility.Visible : KeepSpace ? Visibility.Hidden : Visibility.Collapsed;
     }
     public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => Binding.DoNothing;
 }

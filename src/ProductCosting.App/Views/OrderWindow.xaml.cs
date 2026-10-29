@@ -54,32 +54,82 @@ public partial class OrderWindow : Window
 
     readonly Supplier _supplier;
     readonly List<OrderRow> _rows = [];
+    long? _orderId;
 
-    public OrderWindow(Supplier supplier)
+    /// <param name="orderId">A saved order to continue editing; null starts a new order.</param>
+    public OrderWindow(Supplier supplier, long? orderId = null)
     {
         InitializeComponent();
         NativeWindow.UseDarkTitleBar(this);
         _supplier = supplier;
-        Title = TitleText.Text = Loc.F("order.title", supplier.Name);
+        _orderId = orderId;
 
         var items = AppState.Store.GetSupplierItems(supplier.Id);
         var variants = AppState.Store.GetVariants(items.Select(i => i.ItemId));
-        var draft = Drafts.TryGetValue(supplier.Id, out var d) ? d : Drafts[supplier.Id] = [];
         foreach (var i in items)
         {
-            if (variants.TryGetValue(i.ItemId, out var vs) && vs.Count > 0)
+            // variations of this supplier, or of every supplier of the item
+            var vs = variants.TryGetValue(i.ItemId, out var all) ? all.Where(v => v.SupplierId is null || v.SupplierId == supplier.Id).ToList() : [];
+            if (vs.Count > 0)
                 foreach (var v in vs)
                     _rows.Add(new OrderRow { ItemId = i.ItemId, Code = i.Code, SupplierCode = v.Code ?? i.SupplierCode, Name = i.Name, Variant = v.Name, Unit = i.Unit, Moq = i.Moq, Pack = i.PackQty });
             else
                 _rows.Add(new OrderRow { ItemId = i.ItemId, Code = i.Code, SupplierCode = i.SupplierCode, Name = i.Name, Unit = i.Unit, Moq = i.Moq, Pack = i.PackQty });
         }
-        foreach (var r in _rows)
+
+        if (orderId is long id)
         {
-            if (draft.TryGetValue(r.Key, out var q)) r.Qty.Text = q;
-            r.Qty.Changed += () => { draft[r.Key] = r.Qty.Text; UpdateCount(); };
+            // a saved order: its quantities, plus lines for items no longer bought from this supplier
+            foreach (var line in AppState.Store.GetOrderLines(id))
+            {
+                var row = _rows.FirstOrDefault(r => r.ItemId == (line.ItemId ?? -1) && r.Variant == line.Variant);
+                if (row is null)
+                {
+                    row = new OrderRow { ItemId = line.ItemId ?? 0, Code = line.Code, SupplierCode = line.SupplierCode, Name = line.Name, Variant = line.Variant, Unit = line.Unit };
+                    _rows.Add(row);
+                }
+                row.Qty.Set(line.Quantity);
+            }
+            foreach (var r in _rows) r.Qty.Changed += UpdateCount;
+        }
+        else
+        {
+            // a new order keeps its quantities while the app is open, so closing the form by mistake loses nothing
+            var draft = Drafts.TryGetValue(supplier.Id, out var d) ? d : Drafts[supplier.Id] = [];
+            foreach (var r in _rows)
+            {
+                if (draft.TryGetValue(r.Key, out var q)) r.Qty.Text = q;
+                r.Qty.Changed += () => { if (_orderId is null) draft[r.Key] = r.Qty.Text; UpdateCount(); };
+            }
         }
         Grid.ItemsSource = _rows;
+        UpdateTitle();
         UpdateCount();
+    }
+
+    void UpdateTitle()
+    {
+        Title = TitleText.Text = Loc.F("order.title", _supplier.Name);
+        SavedText.Text = _orderId is null ? "" : Loc.T("order.saved");
+    }
+
+    void Save_Click(object sender, RoutedEventArgs e)
+    {
+        var lines = Filled.Select(r => new PurchaseOrderLine
+        {
+            ItemId = r.ItemId == 0 ? null : r.ItemId, Variant = r.Variant, Code = r.Code, SupplierCode = r.SupplierCode,
+            Name = r.Name, Unit = r.Unit, Quantity = r.Qty.Value!.Value,
+        }).ToList();
+        if (lines.Count == 0)
+        {
+            Dialogs.Info(Loc.T("order.nothing"));
+            return;
+        }
+        var isNew = _orderId is null;
+        _orderId = AppState.Store.SaveOrder(_orderId, _supplier.Id, lines);
+        if (isNew) Drafts.Remove(_supplier.Id);
+        UpdateTitle();
+        MainViewModel.Instance.ShowToast(Loc.T("order.savedToast"));
     }
 
     List<OrderRow> Filled => _rows.Where(r => r.Qty.Value is > 0).ToList();
@@ -123,6 +173,23 @@ public partial class OrderWindow : Window
         if (dlg.ShowDialog(this) != true) return;
         var pdf = PdfReports.SupplierOrder(_supplier,
             lines.Select(r => new OrderLine(r.Code, r.SupplierCode, r.Name, r.Variant, r.Qty.Value!.Value, r.Unit)).ToList(), DateTime.Now);
+        File.WriteAllBytes(dlg.FileName, pdf);
+        NotificationsViewModel.OpenFile(dlg.FileName);
+    }
+
+    /// <summary>Exports a saved order without opening it (from the supplier page).</summary>
+    public static void ExportSaved(Supplier supplier, PurchaseOrder order, Window? owner)
+    {
+        var lines = AppState.Store.GetOrderLines(order.Id);
+        var date = DateTime.TryParse(order.UpdatedAt, out var d) ? d : DateTime.Now;
+        var dlg = new SaveFileDialog
+        {
+            Filter = "PDF (*.pdf)|*.pdf",
+            FileName = $"{Loc.T("order.pdfTitle")} {Sanitize(supplier.Name)} {date:yyyy-MM-dd}.pdf",
+        };
+        if (dlg.ShowDialog(owner) != true) return;
+        var pdf = PdfReports.SupplierOrder(supplier,
+            lines.Select(l => new OrderLine(l.Code, l.SupplierCode, l.Name, l.Variant, l.Quantity, l.Unit)).ToList(), date);
         File.WriteAllBytes(dlg.FileName, pdf);
         NotificationsViewModel.OpenFile(dlg.FileName);
     }

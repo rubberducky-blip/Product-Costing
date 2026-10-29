@@ -37,7 +37,6 @@ public partial class ListPage : UserControl
         if (_vm is null) return;
         _vm.RowsReplacing += SaveScroll;
         _vm.PropertyChanged += OnVmPropertyChanged;
-        TypeCol.Visibility = Vis(_vm.IsRaw);
         SupplierCol.Visibility = Vis(_vm.IsBought);
         SupplierCodeCol.Visibility = Vis(_vm.IsBought);
         UnitCol.Visibility = Vis(_vm.IsBought);
@@ -130,6 +129,48 @@ public partial class ListPage : UserControl
         if (row is null) { e.Handled = true; return; }
         var grid = (DataGrid)sender;
         if (!row.IsSelected) grid.SelectedItem = row.DataContext;
+        // show the actions that fit the list and the selection
+        var single = grid.SelectedItems.Count == 1;
+        foreach (var mi in grid.ContextMenu.Items.OfType<MenuItem>())
+        {
+            switch (mi.Tag as string)
+            {
+                case "item":
+                    mi.Visibility = Vis(_vm is { IsSuppliers: false });
+                    mi.IsEnabled = single;
+                    break;
+                case "bought":
+                    mi.Visibility = Vis(_vm is { IsBought: true });
+                    mi.IsEnabled = single && row.DataContext is ItemRow { SourceCount: 1 };
+                    break;
+                case "supplier":
+                    mi.Visibility = Vis(_vm is { IsSuppliers: true });
+                    mi.IsEnabled = single;
+                    break;
+            }
+        }
+    }
+
+    void Menu_History(object sender, RoutedEventArgs e)
+    {
+        if (ActiveGrid.SelectedItem is ItemRow r)
+            new PriceHistoryWindow(r.Id, $"{r.Code} · {r.Name}") { Owner = Window.GetWindow(this) }.ShowDialog();
+    }
+
+    void Menu_SetPrice(object sender, RoutedEventArgs e)
+    {
+        if (ActiveGrid.SelectedItem is ItemRow r) _vm?.SetPrice(r);
+    }
+
+    void Menu_SetPurchase(object sender, RoutedEventArgs e)
+    {
+        if (ActiveGrid.SelectedItem is ItemRow r) _vm?.SetPurchasePrice(r);
+    }
+
+    void Menu_NewOrder(object sender, RoutedEventArgs e)
+    {
+        if (ActiveGrid.SelectedItem is SupplierRow r && AppState.Store.GetSupplier(r.Id) is { } s)
+            new OrderWindow(s) { Owner = Window.GetWindow(this) }.ShowDialog();
     }
 
     void Menu_Open(object sender, RoutedEventArgs e)

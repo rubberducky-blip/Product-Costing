@@ -11,6 +11,14 @@ using ProductCosting.Core.Model;
 
 namespace ProductCosting.App.ViewModels;
 
+public sealed class SavedOrderRow(PurchaseOrder o)
+{
+    public PurchaseOrder Model { get; } = o;
+    public string DateText => DateTime.TryParse(Model.UpdatedAt, CultureInfo.InvariantCulture, DateTimeStyles.None, out var d) ? d.ToString("g", Loc.Culture) : Model.UpdatedAt;
+    public int LineCount => Model.LineCount;
+    public string TotalText => Fmt.Num(Model.TotalQuantity);
+}
+
 public sealed partial class SupplierEditorViewModel : PageViewModel
 {
     readonly MainViewModel _main;
@@ -49,6 +57,8 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
     string? _otherCountry;
     public List<Choice<Currency>> Currencies { get; } = Choices.Currencies();
     public ObservableCollection<SupplierItemRow> Items { get; } = [];
+    public ObservableCollection<SavedOrderRow> Orders { get; } = [];
+    public bool HasOrders => Orders.Count > 0;
 
     public bool IsNew => _model.Id == 0;
     public bool HasItems => Items.Count > 0;
@@ -78,6 +88,7 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
         Shipping.Set(s.ShippingPct == 0 ? null : s.ShippingPct);
         Items.Clear();
         if (!IsNew) foreach (var i in AppState.Store.GetSupplierItems(s.Id)) Items.Add(i);
+        LoadOrders();
         _loading = false;
         _original = Snapshot();
         Dirty = false;
@@ -162,11 +173,34 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
     [RelayCommand]
     void OpenItem(SupplierItemRow row) => _main.OpenItem(row.ItemId);
 
+    void LoadOrders()
+    {
+        Orders.Clear();
+        if (!IsNew) foreach (var o in AppState.Store.GetOrders(_model.Id)) Orders.Add(new SavedOrderRow(o));
+        OnPropertyChanged(nameof(HasOrders));
+    }
+
+    public void OpenOrder(SavedOrderRow row)
+    {
+        new OrderWindow(_model, row.Model.Id) { Owner = System.Windows.Application.Current.MainWindow }.ShowDialog();
+        LoadOrders();
+    }
+
+    public void ExportOrder(SavedOrderRow row) => OrderWindow.ExportSaved(_model, row.Model, System.Windows.Application.Current.MainWindow);
+
+    public void DeleteOrder(SavedOrderRow row)
+    {
+        if (!Dialogs.Confirm(Loc.F("order.confirmDelete", row.DateText), Loc.T("common.delete"), danger: true)) return;
+        AppState.Store.DeleteOrder(row.Model.Id);
+        LoadOrders();
+    }
+
     [RelayCommand]
     void NewOrder()
     {
         if (IsNew) return;
         new OrderWindow(_model) { Owner = System.Windows.Application.Current.MainWindow }.ShowDialog();
+        LoadOrders();
     }
 
     public override void OnDataChanged(DataChange change)
@@ -178,6 +212,7 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
             Items.Clear();
             foreach (var i in AppState.Store.GetSupplierItems(_model.Id)) Items.Add(i);
             OnPropertyChanged(nameof(HasItems));
+            LoadOrders();
         }
     }
 }
