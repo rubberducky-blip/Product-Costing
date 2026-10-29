@@ -100,7 +100,7 @@ public class FeatureTests
         using (var c = new SqliteConnection($"Data Source={path};Pooling=False"))
         {
             c.Open();
-            c.Execute(typeof(Db).Assembly.GetType("ProductCosting.Core.Data.Schema")!.GetField("V1")!.GetValue(null) as string);
+            c.Execute(typeof(Db).Assembly.GetType("ProductCosting.Core.Data.Schema")!.GetField("V1")!.GetValue(null) as string ?? "");
             c.Execute("PRAGMA user_version = 1");
             c.Execute("INSERT INTO items(kind, code, name, created_at, updated_at) VALUES(3, 'OLD', 'Old', '', '')");
         }
