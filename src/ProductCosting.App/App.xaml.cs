@@ -60,8 +60,10 @@ public partial class App : Application
         var main = new MainWindow();
         MainWindow = main;
         main.Closed += (_, _) => AppState.LogEvent("main window closed");
+        if (_smokeDir is null) Watchdog.Watch(main);
         main.Show();
-        AppState.LogEvent("main window shown");
+        AppState.LogEvent($"main window shown (graphics tier {System.Windows.Media.RenderCapability.Tier >> 16})");
+        if (_smokeDir is null) Watchdog.Start(Dispatcher);
 
         if (_smokeDir is not null)
         {
@@ -80,7 +82,8 @@ public partial class App : Application
     {
         try
         {
-            await Task.Run(() => AppState.Backups.RunAutoBackupIfDue());
+            var b = await Task.Run(() => AppState.Backups.RunAutoBackupIfDue());
+            if (b is not null) AppState.LogEvent($"daily backup: {b.FileName}");
         }
         catch (Exception ex)
         {
