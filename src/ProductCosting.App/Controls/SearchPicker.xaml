@@ -5,7 +5,8 @@
              xmlns:c="clr-namespace:ProductCosting.App.Controls"
              x:Name="Root" MinHeight="32" Focusable="False">
     <Grid>
-        <Button x:Name="Opener" Click="Opener_Click" Cursor="Hand" FocusVisualStyle="{x:Null}" MinHeight="32">
+        <Button x:Name="Opener" Click="Opener_Click" Cursor="Hand" FocusVisualStyle="{x:Null}" MinHeight="32"
+                HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
             <Button.Template>
                 <ControlTemplate TargetType="Button">
                     <Border x:Name="Bd" Background="{DynamicResource ControlFillColorDefaultBrush}"
