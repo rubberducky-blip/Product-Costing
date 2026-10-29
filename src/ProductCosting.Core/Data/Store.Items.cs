@@ -226,13 +226,7 @@ public sealed partial class Store
 
     const string RowSelect = """
         SELECT i.id, i.kind, i.code, i.name, {0} AS folder_id, {1} AS position, i.unit, i.cost, i.price, i.warnings,
-               i.has_unseen_change, i.usable_as_material, i.eff_markup,
-               (SELECT group_concat(name, ', ') FROM (SELECT DISTINCT s.name FROM item_sources src JOIN suppliers s ON s.id = src.supplier_id WHERE src.item_id = i.id)) AS suppliers,
-               (SELECT src.supplier_code FROM item_sources src WHERE src.item_id = i.id ORDER BY src.position LIMIT 1) AS supplier_code,
-               (SELECT src.purchase_price FROM item_sources src WHERE src.item_id = i.id ORDER BY src.position LIMIT 1) AS purchase_price,
-               (SELECT COALESCE(src.currency, s.currency, 0) FROM item_sources src LEFT JOIN suppliers s ON s.id = src.supplier_id
-                 WHERE src.item_id = i.id ORDER BY src.position LIMIT 1) AS purchase_currency,
-               (SELECT count(*) FROM item_sources src WHERE src.item_id = i.id) AS source_count
+               i.has_unseen_change, i.usable_as_material, i.eff_markup
         FROM items i
         """;
 
@@ -249,10 +243,37 @@ public sealed partial class Store
             """;
     }
 
+    /// <summary>Fills the supplier columns of list rows with one query for all of them.</summary>
+    static void AddSources(SqliteConnection c, List<ItemRow> rows)
+    {
+        if (rows.Count == 0 || rows.All(r => r.Kind == ItemKind.Product)) return;
+        using var t = c.BeginTransaction();
+        FillTemp(c, t, "list_rows", rows.Select(r => r.Id));
+        var byItem = c.Query<(long ItemId, string? SupplierCode, double Price, int Currency, string? Supplier)>("""
+            SELECT src.item_id, src.supplier_code, src.purchase_price, COALESCE(src.currency, s.currency, 0), s.name
+            FROM item_sources src LEFT JOIN suppliers s ON s.id = src.supplier_id
+            WHERE src.item_id IN (SELECT id FROM temp.list_rows)
+            ORDER BY src.item_id, src.position
+            """, transaction: t).GroupBy(x => x.ItemId).ToDictionary(g => g.Key, g => g.ToList());
+        t.Commit();
+        foreach (var r in rows)
+        {
+            if (!byItem.TryGetValue(r.Id, out var src)) continue;
+            var first = src[0];
+            r.SupplierCode = first.SupplierCode;
+            r.PurchasePrice = (decimal)first.Price;
+            r.PurchaseCurrency = (Currency)first.Currency;
+            r.SourceCount = src.Count;
+            var names = src.Select(x => x.Supplier).OfType<string>().Distinct().ToList();
+            r.Suppliers = names.Count == 0 ? null : string.Join(", ", names);
+        }
+    }
+
     /// <summary>Rows directly inside one folder (null = top level), in the folder's sort order.</summary>
     public List<ItemRow> GetItemRows(ListScope scope, long? folderId) => Read(c =>
     {
         var rows = c.Query<ItemRow>(RowsSql(scope, "{folder} IS @folderId"), new { folderId }).ToList();
+        AddSources(c, rows);
         return GetSortMode(c, scope, folderId) == Model.SortMode.Manual
             ? rows.OrderBy(r => r.Position).ThenBy(r => r.Code, NaturalComparer.Instance).ToList()
             : rows.OrderBy(r => r.Code, NaturalComparer.Instance).ToList();
@@ -260,8 +281,11 @@ public sealed partial class Store
 
     /// <summary>Rows anywhere in the list whose code, name, supplier or supplier code contains the text.</summary>
     public List<ItemRow> FilterItemRows(ListScope scope, string text) => Read(c =>
-        c.Query<ItemRow>(RowsSql(scope, "i.list_key LIKE @p"), new { p = TextNorm.LikePattern(text) })
-            .OrderBy(r => r.Code, NaturalComparer.Instance).ToList());
+    {
+        var rows = c.Query<ItemRow>(RowsSql(scope, "i.list_key LIKE @p"), new { p = TextNorm.LikePattern(text) }).ToList();
+        AddSources(c, rows);
+        return rows.OrderBy(r => r.Code, NaturalComparer.Instance).ToList();
+    });
 
     /// <summary>Moves rows into a folder (null = top level), appended at the end.</summary>
     public void MoveItems(ListScope scope, IReadOnlyList<long> ids, long? folderId) => Write(DataChange.Items, (c, t) =>

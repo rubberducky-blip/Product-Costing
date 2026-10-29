@@ -4,6 +4,7 @@
         xmlns:l="clr-namespace:ProductCosting.App.Infrastructure"
         xmlns:vm="clr-namespace:ProductCosting.App.ViewModels"
         xmlns:v="clr-namespace:ProductCosting.App.Views"
+        xmlns:c="clr-namespace:ProductCosting.App.Controls"
         Style="{StaticResource AppWindow}"
         Title="{l:T app.title}" Width="1440" Height="900" MinWidth="1100" MinHeight="660"
         WindowStartupLocation="CenterScreen" WindowState="Maximized" Icon="Assets/app.png">
@@ -148,7 +149,7 @@
                 </Grid>
             </Border>
 
-            <ContentControl Grid.Row="1" Content="{Binding Current}" Focusable="False" />
+            <c:PageHost Grid.Row="1" Page="{Binding Current}" />
 
             <ProgressBar Grid.Row="1" IsIndeterminate="True" Height="3" VerticalAlignment="Top" MinHeight="0"
                          Visibility="{Binding IsBusy, Converter={StaticResource Visible}}" />

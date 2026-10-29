@@ -552,14 +552,20 @@
                         <DropShadowEffect Color="{StaticResource DangerColor}" BlurRadius="10" ShadowDepth="0" Opacity="0.95" />
                     </Setter.Value>
                 </Setter>
+                <!-- pulse only while visible: hidden dots on every other row cost nothing -->
                 <Style.Triggers>
-                    <EventTrigger RoutedEvent="Loaded">
-                        <BeginStoryboard>
-                            <Storyboard RepeatBehavior="Forever" AutoReverse="True">
-                                <DoubleAnimation Storyboard.TargetProperty="Opacity" From="1" To="0.45" Duration="0:0:0.9" />
-                            </Storyboard>
-                        </BeginStoryboard>
-                    </EventTrigger>
+                    <Trigger Property="IsVisible" Value="True">
+                        <Trigger.EnterActions>
+                            <BeginStoryboard x:Name="Pulse">
+                                <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" From="1" To="0.45" Duration="0:0:0.9" />
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </Trigger.EnterActions>
+                        <Trigger.ExitActions>
+                            <StopStoryboard BeginStoryboardName="Pulse" />
+                        </Trigger.ExitActions>
+                    </Trigger>
                 </Style.Triggers>
             </Style>
 
