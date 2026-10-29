@@ -60,6 +60,10 @@ public sealed class Item
     public decimal? MarkupPct { get; set; }
     public decimal? RoundingStep { get; set; }
     public string? Notes { get; set; }
+    /// <summary>Raw materials: part of what is bought is thrown away (e.g. leather offcuts).</summary>
+    public bool HasWaste { get; set; }
+    /// <summary>Share of each purchase that is lost; the rest carries the whole price.</summary>
+    public decimal? WastePct { get; set; }
 
     // Cached results of the last calculation (kept up to date by the pricing engine).
     public decimal Cost { get; set; }
@@ -91,6 +95,10 @@ public sealed class ItemSource
     public decimal? DiscountPct { get; set; }
     public decimal? ShippingPct { get; set; }
     public decimal Weight { get; set; } = 1;
+    /// <summary>Minimum order quantity from this supplier (in the item's unit), for orders.</summary>
+    public decimal? Moq { get; set; }
+    /// <summary>The supplier sells in packs of this many; orders should be a multiple of it.</summary>
+    public decimal? PackQty { get; set; }
 }
 
 public sealed class RecipeLine
@@ -101,6 +109,8 @@ public sealed class RecipeLine
     public decimal Quantity { get; set; }
     public QtyUnit Unit { get; set; }
     public string? Comment { get; set; }
+    /// <summary>Extra waste on this line (materials with waste only): 10% means 10% more is used than the quantity.</summary>
+    public decimal? WastePct { get; set; }
 }
 
 public sealed class LaborEntry
@@ -179,6 +189,7 @@ public sealed class ItemRow : System.ComponentModel.INotifyPropertyChanged
     public QtyUnit Unit { get; set; }
     public decimal Cost { get; set; }
     public decimal Price { get; set; }
+    public decimal EffMarkup { get; set; }
     public CostWarning Warnings { get; set; }
     public bool UsableAsMaterial { get; set; }
     /// <summary>Purchase price from the (first) supplier, in its own currency, before discount and shipping.</summary>
@@ -268,6 +279,8 @@ public sealed class SupplierItemRow
     public QtyUnit Unit { get; set; }
     public Currency Currency { get; set; }
     public decimal Weight { get; set; }
+    public decimal? Moq { get; set; }
+    public decimal? PackQty { get; set; }
 }
 
 /// <summary>Cost data of a material, enough to price a recipe line.</summary>
@@ -283,6 +296,7 @@ public sealed class MaterialInfo
     public decimal? PieceWeightKg { get; set; }
     /// <summary>Cost of one <see cref="Unit"/>.</summary>
     public decimal Cost { get; set; }
+    public bool HasWaste { get; set; }
 }
 
 public sealed class BackupInfo

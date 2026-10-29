@@ -132,8 +132,15 @@ public sealed partial class MainViewModel : ObservableObject
             _ => List(ListScope.Products),
         };
         if (page is SettingsViewModel && Current is SettingsViewModel) return;
-        // the sidebar starts a fresh trail
-        if (Navigate(page, remember: false)) _history.Clear();
+        // the sidebar starts a fresh trail, and a list always opens at its top level
+        if (page is ListPageViewModel list && page == Current)
+        {
+            list.OpenFolder(null);
+            return;
+        }
+        if (!Navigate(page, remember: false)) return;
+        _history.Clear();
+        if (page is ListPageViewModel opened && (opened.FolderId is not null || opened.IsFiltering)) opened.OpenFolder(null);
     }
 
     public void GoToList(ListScope scope) => Navigate(List(scope), remember: false);

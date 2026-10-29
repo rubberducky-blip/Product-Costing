@@ -65,13 +65,26 @@ public static class Hint
                 MaxLineCount = 1,
                 Trimming = TextTrimming.CharacterEllipsis,
             };
-            // line the hint up with where the typed text goes: the template's content host
-            var box = new Rect(_tb.Padding.Left + _tb.BorderThickness.Left, 0,
-                Math.Max(0, _tb.ActualWidth - _tb.Padding.Left - _tb.Padding.Right), _tb.ActualHeight);
-            if (_tb.Template?.FindName("PART_ContentHost", _tb) is FrameworkElement host && host.IsVisible && host.ActualHeight > 0)
-                box = host.TransformToAncestor(_tb).TransformBounds(new Rect(0, 0, host.ActualWidth, host.ActualHeight));
-            var x = _tb.HorizontalContentAlignment == HorizontalAlignment.Right ? box.Right - ft.Width - 3 : box.Left + 3;
-            dc.DrawText(ft, new Point(x, box.Top + (box.Height - ft.Height) / 2));
+            // start (or, for right-aligned boxes, end) the hint exactly where the text cursor is
+            var right = _tb.TextAlignment == TextAlignment.Right;
+            var caret = Rect.Empty;
+            try { caret = _tb.GetRectFromCharacterIndex(0); } catch (ArgumentOutOfRangeException) { }
+            double x, y;
+            if (!caret.IsEmpty && caret.Height > 0 && !double.IsNaN(caret.X) && !double.IsInfinity(caret.X))
+            {
+                x = right ? caret.X - ft.Width - 1 : caret.X + 1;
+                y = caret.Top + (caret.Height - ft.Height) / 2;
+            }
+            else
+            {
+                var box = new Rect(_tb.Padding.Left + _tb.BorderThickness.Left, 0,
+                    Math.Max(0, _tb.ActualWidth - _tb.Padding.Left - _tb.Padding.Right), _tb.ActualHeight);
+                if (_tb.Template?.FindName("PART_ContentHost", _tb) is FrameworkElement host && host.IsVisible && host.ActualHeight > 0)
+                    box = host.TransformToAncestor(_tb).TransformBounds(new Rect(0, 0, host.ActualWidth, host.ActualHeight));
+                x = right ? box.Right - ft.Width - 4 : box.Left + 4;
+                y = box.Top + (box.Height - ft.Height) / 2;
+            }
+            dc.DrawText(ft, new Point(Math.Max(2, x), y));
         }
     }
 }

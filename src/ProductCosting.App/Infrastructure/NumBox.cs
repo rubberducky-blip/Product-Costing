@@ -30,7 +30,8 @@ public sealed class NumBox : TextBox
 
     public NumBox()
     {
-        HorizontalContentAlignment = HorizontalAlignment.Right;
+        // right-align the text itself (not the text area), so the cursor and the placeholder stay on the right even when empty
+        TextAlignment = TextAlignment.Right;
         GotKeyboardFocus += (_, _) => SelectAll();
         LostKeyboardFocus += (_, _) => Pretty();
     }

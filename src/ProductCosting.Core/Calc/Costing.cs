@@ -39,6 +39,10 @@ public sealed record PriceResult(decimal Cost, decimal MarkupPct, decimal Step, 
 /// <summary>All cost, price and rounding rules. Pure functions, no database access.</summary>
 public static class Costing
 {
+    /// <summary>Cost once the wasted share is paid for by what remains: 30% waste → cost ÷ 0,7.</summary>
+    public static decimal WithWaste(decimal cost, decimal? wastePct) =>
+        wastePct is > 0 and < 100 ? cost / (1 - wastePct.Value / 100m) : cost;
+
     public static decimal ToEur(decimal amount, Currency currency, decimal usdPerEur) =>
         currency == Currency.Usd && usdPerEur > 0 ? amount / usdPerEur : amount;
 
@@ -117,7 +121,8 @@ public static class Costing
             }
             var unit = CostPerUnit(m, line.Unit);
             if (unit is null) warn |= CostWarning.NoConversion;
-            var cost = unit * line.Quantity;
+            // line waste: 10% means 10% more material is used than the quantity
+            var cost = unit * line.Quantity * (1 + (line.WastePct ?? 0) / 100m);
             materials += cost ?? 0;
             list.Add(new LineCost(line, m, unit, cost));
         }

@@ -9,7 +9,7 @@ public sealed partial class Store
 {
     const string ItemColumns = """
         id, kind, code, name, usable_as_material, folder_id, material_folder_id, unit, piece_length_cm, piece_area_cm2,
-        piece_weight_kg, markup_pct, rounding_step, notes, cost, cost_materials, cost_labor, cost_overhead, labor_seconds,
+        piece_weight_kg, markup_pct, rounding_step, notes, has_waste, waste_pct, cost, cost_materials, cost_labor, cost_overhead, labor_seconds,
         eff_markup, eff_step, price, warnings, has_unseen_change
         """;
 
@@ -22,8 +22,8 @@ public sealed partial class Store
         return new ItemDocument
         {
             Item = item,
-            Sources = c.Query<ItemSource>("SELECT id, item_id, supplier_id, supplier_code, purchase_price, purchase_qty, currency, discount_pct, shipping_pct, weight FROM item_sources WHERE item_id=@id ORDER BY position", new { id }).ToList(),
-            Lines = c.Query<RecipeLine>("SELECT id, product_id, material_id, quantity, unit, comment FROM recipe_lines WHERE product_id=@id ORDER BY position", new { id }).ToList(),
+            Sources = c.Query<ItemSource>("SELECT id, item_id, supplier_id, supplier_code, purchase_price, purchase_qty, currency, discount_pct, shipping_pct, weight, moq, pack_qty FROM item_sources WHERE item_id=@id ORDER BY position", new { id }).ToList(),
+            Lines = c.Query<RecipeLine>("SELECT id, product_id, material_id, quantity, unit, comment, waste_pct FROM recipe_lines WHERE product_id=@id ORDER BY position", new { id }).ToList(),
             Labor = c.Query<LaborEntry>("SELECT id, product_id, seconds, comment FROM labor_entries WHERE product_id=@id ORDER BY position", new { id }).ToList(),
             Variants = c.Query<ItemVariant>("SELECT id, item_id, name, code FROM item_variants WHERE item_id=@id ORDER BY position", new { id }).ToList(),
         };
@@ -42,13 +42,16 @@ public sealed partial class Store
             throw new DuplicateCodeException(it.Code);
         if (it.Kind != ItemKind.Merchandise) it.UsableAsMaterial = false;
         if (!it.UsableAsMaterial) it.MaterialFolderId = null;
+        if (it.Kind != ItemKind.RawMaterial) it.HasWaste = false;
+        if (!it.HasWaste) it.WastePct = null;
+        if (it.Kind == ItemKind.Product && it.Id != 0) CheckNoCycle(c, t, it.Id, doc.Lines);
 
         var created = it.Id == 0;
         var now = Now;
         var args = new
         {
             it.Id, it.Kind, it.Code, it.Name, it.UsableAsMaterial, it.FolderId, it.MaterialFolderId, it.Unit,
-            it.PieceLengthCm, it.PieceAreaCm2, it.PieceWeightKg, it.MarkupPct, it.RoundingStep,
+            it.PieceLengthCm, it.PieceAreaCm2, it.PieceWeightKg, it.MarkupPct, it.RoundingStep, it.HasWaste, it.WastePct,
             Notes = string.IsNullOrWhiteSpace(it.Notes) ? null : it.Notes, Now = now,
         };
         if (created)
@@ -57,9 +60,9 @@ public sealed partial class Store
             var mpos = NextPosition(c, t, "SELECT max(material_position) FROM items WHERE material_folder_id IS @MaterialFolderId", it);
             it.Id = c.ExecuteScalar<long>("""
                 INSERT INTO items(kind, code, name, usable_as_material, folder_id, material_folder_id, unit, piece_length_cm,
-                    piece_area_cm2, piece_weight_kg, markup_pct, rounding_step, notes, position, material_position, created_at, updated_at)
+                    piece_area_cm2, piece_weight_kg, markup_pct, rounding_step, notes, has_waste, waste_pct, position, material_position, created_at, updated_at)
                 VALUES(@Kind, @Code, @Name, @UsableAsMaterial, @FolderId, @MaterialFolderId, @Unit, @PieceLengthCm,
-                    @PieceAreaCm2, @PieceWeightKg, @MarkupPct, @RoundingStep, @Notes, @pos, @mpos, @Now, @Now)
+                    @PieceAreaCm2, @PieceWeightKg, @MarkupPct, @RoundingStep, @Notes, @HasWaste, @WastePct, @pos, @mpos, @Now, @Now)
                 RETURNING id
                 """, new DynamicParameters(args).Also(p => { p.Add("pos", pos); p.Add("mpos", mpos); }), t);
         }
@@ -70,7 +73,8 @@ public sealed partial class Store
             c.Execute("""
                 UPDATE items SET code=@Code, name=@Name, usable_as_material=@UsableAsMaterial, folder_id=@FolderId,
                     material_folder_id=@MaterialFolderId, unit=@Unit, piece_length_cm=@PieceLengthCm, piece_area_cm2=@PieceAreaCm2,
-                    piece_weight_kg=@PieceWeightKg, markup_pct=@MarkupPct, rounding_step=@RoundingStep, notes=@Notes, updated_at=@Now
+                    piece_weight_kg=@PieceWeightKg, markup_pct=@MarkupPct, rounding_step=@RoundingStep, notes=@Notes,
+                    has_waste=@HasWaste, waste_pct=@WastePct, updated_at=@Now
                 WHERE id=@Id
                 """, args, t);
             if (oldFolder != it.FolderId)
@@ -88,8 +92,8 @@ public sealed partial class Store
             {
                 s.ItemId = id;
                 c.Execute("""
-                    INSERT INTO item_sources(item_id, supplier_id, supplier_code, purchase_price, purchase_qty, currency, discount_pct, shipping_pct, weight, position)
-                    VALUES(@ItemId, @SupplierId, @SupplierCode, @PurchasePrice, @PurchaseQty, @Currency, @DiscountPct, @ShippingPct, @Weight, @pos)
+                    INSERT INTO item_sources(item_id, supplier_id, supplier_code, purchase_price, purchase_qty, currency, discount_pct, shipping_pct, weight, moq, pack_qty, position)
+                    VALUES(@ItemId, @SupplierId, @SupplierCode, @PurchasePrice, @PurchaseQty, @Currency, @DiscountPct, @ShippingPct, @Weight, @Moq, @PackQty, @pos)
                     """, new DynamicParameters(s).Also(p => p.Add("pos", i++)), t);
             }
             i = 0;
@@ -101,8 +105,8 @@ public sealed partial class Store
         {
             var i = 0;
             foreach (var l in doc.Lines)
-                c.Execute("INSERT INTO recipe_lines(product_id, material_id, quantity, unit, comment, position) VALUES(@id, @MaterialId, @Quantity, @Unit, @Comment, @pos)",
-                    new { id, l.MaterialId, l.Quantity, l.Unit, l.Comment, pos = i++ }, t);
+                c.Execute("INSERT INTO recipe_lines(product_id, material_id, quantity, unit, comment, waste_pct, position) VALUES(@id, @MaterialId, @Quantity, @Unit, @Comment, @WastePct, @pos)",
+                    new { id, l.MaterialId, l.Quantity, l.Unit, l.Comment, l.WastePct, pos = i++ }, t);
             i = 0;
             foreach (var l in doc.Labor)
                 c.Execute("INSERT INTO labor_entries(product_id, seconds, comment, position) VALUES(@id, @Seconds, @Comment, @pos)",
@@ -141,15 +145,46 @@ public sealed partial class Store
         GROUP BY p.id, rl.unit
         """, new { materialId }).OrderBy(r => r.Code, NaturalComparer.Instance).ToList());
 
-    /// <summary>Every raw material plus merchandise used as raw material, with what is needed to cost a recipe line.</summary>
+    /// <summary>Everything that can go into a recipe (raw materials, merchandise, products), with its folder in its own list.</summary>
     public List<(MaterialInfo Info, long? FolderId)> GetMaterials() => Read(c => c.Query<MaterialInfo, long?, (MaterialInfo, long?)>("""
-        SELECT id, kind, code, name, unit, piece_length_cm, piece_area_cm2, piece_weight_kg, cost,
-               CASE WHEN kind = 3 THEN folder_id ELSE material_folder_id END AS folder
-        FROM items WHERE kind = 3 OR (kind = 2 AND usable_as_material = 1)
+        SELECT id, kind, code, name, unit, piece_length_cm, piece_area_cm2, piece_weight_kg, cost, has_waste, folder_id AS folder
+        FROM items
         """, (m, f) => (m, f), splitOn: "folder").OrderBy(x => x.Item1.Code, NaturalComparer.Instance).ToList());
 
     public MaterialInfo? GetMaterial(long id) => Read(c => c.QuerySingleOrDefault<MaterialInfo>(
-        "SELECT id, kind, code, name, unit, piece_length_cm, piece_area_cm2, piece_weight_kg, cost FROM items WHERE id=@id", new { id }));
+        "SELECT id, kind, code, name, unit, piece_length_cm, piece_area_cm2, piece_weight_kg, cost, has_waste FROM items WHERE id=@id", new { id }));
+
+    /// <summary>A product can't contain itself, directly or through another product.</summary>
+    static void CheckNoCycle(SqliteConnection c, SqliteTransaction t, long productId, IEnumerable<RecipeLine> lines)
+    {
+        var todo = new Stack<long>(lines.Where(l => l.MaterialId is not null).Select(l => l.MaterialId!.Value));
+        var seen = new HashSet<long>();
+        while (todo.Count > 0)
+        {
+            var id = todo.Pop();
+            if (id == productId) throw new RecipeCycleException();
+            if (!seen.Add(id)) continue;
+            foreach (var sub in c.Query<long>(
+                "SELECT rl.material_id FROM recipe_lines rl JOIN items m ON m.id = rl.material_id WHERE rl.product_id=@id AND m.kind = 1",
+                new { id }, t))
+                todo.Push(sub);
+        }
+    }
+
+    /// <summary>Copies an item (sources, recipe, labor, variations) under a free code like "P-100-2".</summary>
+    public long DuplicateItem(long id)
+    {
+        var doc = LoadItem(id) ?? throw new InvalidOperationException("Item not found.");
+        var code = doc.Item.Code;
+        for (var n = 2; CodeExists(code, 0); n++) code = $"{doc.Item.Code}-{n}";
+        doc.Item.Id = 0;
+        doc.Item.Code = code;
+        foreach (var x in doc.Sources) x.Id = 0;
+        foreach (var x in doc.Lines) x.Id = 0;
+        foreach (var x in doc.Labor) x.Id = 0;
+        foreach (var x in doc.Variants) x.Id = 0;
+        return SaveItem(doc);
+    }
 
     public List<PriceHistoryEntry> GetHistory(long itemId) => Read(c => c.Query<PriceHistoryEntry>(
         "SELECT item_id, day, old_price, price, reasons FROM price_history WHERE item_id=@itemId ORDER BY day", new { itemId }).ToList());
@@ -158,7 +193,7 @@ public sealed partial class Store
 
     const string RowSelect = """
         SELECT i.id, i.kind, i.code, i.name, {0} AS folder_id, {1} AS position, i.unit, i.cost, i.price, i.warnings,
-               i.has_unseen_change, i.usable_as_material,
+               i.has_unseen_change, i.usable_as_material, i.eff_markup,
                (SELECT group_concat(name, ', ') FROM (SELECT DISTINCT s.name FROM item_sources src JOIN suppliers s ON s.id = src.supplier_id WHERE src.item_id = i.id)) AS suppliers,
                (SELECT src.supplier_code FROM item_sources src WHERE src.item_id = i.id ORDER BY src.position LIMIT 1) AS supplier_code,
                (SELECT src.purchase_price FROM item_sources src WHERE src.item_id = i.id ORDER BY src.position LIMIT 1) AS purchase_price,

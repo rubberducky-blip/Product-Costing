@@ -137,6 +137,9 @@ public partial class ListPage : UserControl
         if (ActiveGrid.SelectedItem is { } row) _vm?.OpenRow(row);
     }
 
+    void Menu_Duplicate(object sender, RoutedEventArgs e) =>
+        _vm?.DuplicateRows(ActiveGrid.SelectedItems.Cast<object>().ToList());
+
     void Menu_Delete(object sender, RoutedEventArgs e) =>
         _vm?.DeleteRows(ActiveGrid.SelectedItems.Cast<object>().ToList());
 

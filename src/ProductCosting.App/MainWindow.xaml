@@ -6,7 +6,7 @@
         xmlns:v="clr-namespace:ProductCosting.App.Views"
         Style="{StaticResource AppWindow}"
         Title="{l:T app.title}" Width="1440" Height="900" MinWidth="1100" MinHeight="660"
-        WindowStartupLocation="CenterScreen" Icon="Assets/app.png">
+        WindowStartupLocation="CenterScreen" WindowState="Maximized" Icon="Assets/app.png">
     <Window.Resources>
         <DataTemplate DataType="{x:Type vm:ListPageViewModel}">
             <v:ListPage />
@@ -44,7 +44,6 @@
                     <TextBlock Text="{Binding Version}" Style="{StaticResource Caption}" Margin="12,12,0,0" />
                 </StackPanel>
                 <StackPanel>
-                    <TextBlock Text="{l:T list.items}" Style="{StaticResource Caption}" Margin="12,0,0,8" FontWeight="SemiBold" />
                     <RadioButton Style="{StaticResource NavButton}" l:Btn.Icon="&#xE7B8;" Content="{l:T nav.products}"
                                  Command="{Binding GoCommand}" CommandParameter="products"
                                  IsChecked="{Binding Section, Mode=OneWay, Converter={StaticResource Equals}, ConverterParameter=products}" />

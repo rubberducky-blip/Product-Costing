@@ -73,15 +73,17 @@ internal static class Smoke
         var usa = store.SaveSupplier(new Supplier { Name = "Leather Works Inc", Country = "US", Currency = Currency.Usd, ShippingPct = 14, FolderId = abroad, Email = "sales@leatherworks.com" });
         var italy = store.SaveSupplier(new Supplier { Name = "Metalli Srl", Country = "IT", DiscountPct = 5, ShippingPct = 10, FolderId = abroad });
 
-        long Raw(string code, string name, long? folder, long sup, string supCode, decimal price, decimal qty, QtyUnit unit, decimal? len = null, decimal? area = null) =>
+        long Raw(string code, string name, long? folder, long sup, string supCode, decimal price, decimal qty, QtyUnit unit, decimal? len = null, decimal? area = null,
+            decimal? waste = null, decimal? moq = null, decimal? pack = null) =>
             store.SaveItem(new ItemDocument
             {
-                Item = new Item { Kind = ItemKind.RawMaterial, Code = code, Name = name, FolderId = folder, Unit = unit, PieceLengthCm = len, PieceAreaCm2 = area },
-                Sources = [new ItemSource { SupplierId = sup, SupplierCode = supCode, PurchasePrice = price, PurchaseQty = qty }],
+                Item = new Item { Kind = ItemKind.RawMaterial, Code = code, Name = name, FolderId = folder, Unit = unit, PieceLengthCm = len, PieceAreaCm2 = area,
+                    HasWaste = waste is not null, WastePct = waste },
+                Sources = [new ItemSource { SupplierId = sup, SupplierCode = supCode, PurchasePrice = price, PurchaseQty = qty, Moq = moq, PackQty = pack }],
             });
 
-        var hide = Raw("R-001", "Δέρμα μοσχαρίσιο φυσικό", leathers, crete, "DK-NAT-150", 85, 15000, QtyUnit.Cm2);
-        var hideBlack = Raw("R-002", "Δέρμα μοσχαρίσιο μαύρο", leathers, usa, "LW-BLK", 96, 15000, QtyUnit.Cm2);
+        var hide = Raw("R-001", "Δέρμα μοσχαρίσιο φυσικό", leathers, crete, "DK-NAT-150", 85, 15000, QtyUnit.Cm2, waste: 20);
+        var hideBlack = Raw("R-002", "Δέρμα μοσχαρίσιο μαύρο", leathers, usa, "LW-BLK", 96, 15000, QtyUnit.Cm2, waste: 25, moq: 30000, pack: 15000);
         var thread = Raw("R-010", "Κλωστή κερωμένη 0,8 mm", hardware, italy, "TH-08", 12, 50000, QtyUnit.Cm);
         var zip = Raw("R-020", "Φερμουάρ μεταλλικό 20 εκ.", hardware, italy, "ZP-20", 35, 100, QtyUnit.Pcs, len: 20);
         var rings = Raw("R-021", "Κρίκοι ορειχάλκινοι", hardware, italy, "RG-BR", 18, 200, QtyUnit.Pcs);
@@ -96,7 +98,7 @@ internal static class Smoke
             Item = new Item { Kind = ItemKind.Merchandise, Code = "M-200", Name = "Κούπα κεραμική 350 ml", Unit = QtyUnit.Pcs, Notes = "Πλύσιμο στο χέρι" },
             Sources =
             [
-                new ItemSource { SupplierId = usa, SupplierCode = "MUG-350", PurchasePrice = 3.1m, PurchaseQty = 1, Weight = 2 },
+                new ItemSource { SupplierId = usa, SupplierCode = "MUG-350", PurchasePrice = 3.1m, PurchaseQty = 1, Weight = 2, Moq = 24, PackQty = 6 },
                 new ItemSource { SupplierId = italy, SupplierCode = "TZ-350", PurchasePrice = 2.6m, PurchaseQty = 1, Weight = 3 },
             ],
             Variants = [new ItemVariant { Name = "Λευκή", Code = "MUG-350-W" }, new ItemVariant { Name = "Μαύρη", Code = "MUG-350-B" }, new ItemVariant { Name = "Κόκκινη", Code = "MUG-350-R" }],
@@ -106,17 +108,20 @@ internal static class Smoke
             store.SaveItem(new ItemDocument
             {
                 Item = new Item { Kind = ItemKind.Product, Code = code, Name = name, FolderId = folder },
-                Lines = lines.Select(l => new RecipeLine { MaterialId = l.Item1, Quantity = l.Item2, Unit = l.Item3, Comment = l.Item4 }).ToList(),
+                Lines = lines.Select(l => new RecipeLine { MaterialId = l.Item1, Quantity = l.Item2, Unit = l.Item3, Comment = l.Item4,
+                    WastePct = l.Item1 == hide ? 10 : null }).ToList(),
                 Labor = labor.Select(l => new LaborEntry { Seconds = l.Item1, Comment = l.Item2 }).ToList(),
             });
 
-        Product("P-100", "Τσάντα ώμου «Αριάδνη»", bags,
+        var ariadne = Product("P-100", "Τσάντα ώμου «Αριάδνη»", bags,
             [(hide, 1800, QtyUnit.Cm2, "σώμα + καπάκι"), (thread, 600, QtyUnit.Cm, "διπλή ραφή"), (zip, 1, QtyUnit.Pcs, null), (rings, 4, QtyUnit.Pcs, null), (belt, 1, QtyUnit.Pcs, null)],
             [(1500, "κοπή"), (2400, "ραφή"), (600, "φινίρισμα")]);
         Product("P-101", "Τσάντα χειρός «Δήμητρα»", bags,
             [(hideBlack, 1400, QtyUnit.Cm2, null), (thread, 450, QtyUnit.Cm, null), (zip, 25, QtyUnit.Cm, "κομμένο στο μήκος")],
             [(1200, "κοπή"), (2100, "ραφή")]);
-        Product("P-200", "Πορτοφόλι ανδρικό", wallets, [(hide, 600, QtyUnit.Cm2, null), (thread, 250, QtyUnit.Cm, null)], [(900, null), (600, "βαφή άκρων")]);
+        // a gift set built from finished products
+        var wallet = Product("P-200", "Πορτοφόλι ανδρικό", wallets, [(hide, 600, QtyUnit.Cm2, null), (thread, 250, QtyUnit.Cm, null)], [(900, null), (600, "βαφή άκρων")]);
+        Product("P-500", "Σετ δώρου «Αριάδνη»", bags, [(ariadne, 1, QtyUnit.Pcs, null), (wallet, 1, QtyUnit.Pcs, "ίδιο δέρμα")], [(300, "συσκευασία")]);
         Product("P-201", "Καρτοθήκη", wallets, [(hideBlack, 220, QtyUnit.Cm2, null), (thread, 90, QtyUnit.Cm, null)], [(420, null)]);
         Product("P-300", "Μπρελόκ δερμάτινο", null, [(hide, 40, QtyUnit.Cm2, null), (rings, 1, QtyUnit.Pcs, null), (zip, 1, QtyUnit.Kg, "λάθος μονάδα για έλεγχο")], [(180, null)]);
         for (var i = 0; i < 400; i++)
@@ -283,6 +288,7 @@ internal static class Smoke
             w.Height = 900;
             await Settle();
         });
+        await Step("product with products in its recipe", async () => { vm.OpenItem(Id("P-500")); await Settle(500); Shot(root, "09b-product-set"); });
         await Step("product with warning", async () => { vm.OpenItem(Id("P-300")); await Settle(); Shot(root, "09-product-warning"); });
         await Step("merchandise editor", async () =>
         {
@@ -311,6 +317,19 @@ internal static class Smoke
             ((ItemEditorViewModel)vm.Current!).BackCommand.Execute(null);
             await Settle();
             Check("back returns to the supplier", vm.Current == sup);
+        });
+        await Step("duplicate and sidebar", async () =>
+        {
+            vm.GoCommand.Execute("products");
+            var list = (ListPageViewModel)vm.Current!;
+            list.OpenFolder(store.GetFolders(ListScope.Products).First(f => f.Name == "Τσάντες").Id);
+            var before = list.Rows.Count;
+            list.DuplicateRows([list.Rows[0]!]);
+            await Settle();
+            Check("duplicate adds a row", list.Rows.Count == before + 1);
+            vm.GoCommand.Execute("products");
+            await Settle();
+            Check("sidebar opens the list at its top level", list.FolderId is null);
         });
         await Step("settings", async () => { vm.GoCommand.Execute("settings"); await Settle(); Shot(root, "14-settings"); });
 

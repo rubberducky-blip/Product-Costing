@@ -17,6 +17,8 @@ public sealed partial class SourceRow : EditRow
         Discount = Num(s.DiscountPct, allowEmpty: true);
         Shipping = Num(s.ShippingPct, allowEmpty: true);
         Weight = Num(s.Weight);
+        Moq = Num(s.Moq, allowEmpty: true);
+        Pack = Num(s.PackQty, allowEmpty: true);
     }
 
     [ObservableProperty] private long? _supplierId;
@@ -29,13 +31,15 @@ public sealed partial class SourceRow : EditRow
     public NumField Discount { get; }
     public NumField Shipping { get; }
     public NumField Weight { get; }
+    public NumField Moq { get; }
+    public NumField Pack { get; }
 
     [ObservableProperty] private string _discountHint = "";
     [ObservableProperty] private string _shippingHint = "";
     [ObservableProperty] private List<Choice<int>> _currencyChoices = [];
     [ObservableProperty] private string _shareText = "";
 
-    public bool IsValid => Price.IsValid && Qty.IsValid && Discount.IsValid && Shipping.IsValid && Weight.IsValid;
+    public bool IsValid => Price.IsValid && Qty.IsValid && Discount.IsValid && Shipping.IsValid && Weight.IsValid && Moq.IsValid && Pack.IsValid;
 
     public void UpdateHints(Supplier? s)
     {
@@ -75,6 +79,8 @@ public sealed partial class SourceRow : EditRow
         DiscountPct = Discount.Value,
         ShippingPct = Shipping.Value,
         Weight = Weight.Value ?? 1,
+        Moq = Moq.Value is > 0 ? Moq.Value : null,
+        PackQty = Pack.Value is > 0 ? Pack.Value : null,
     };
 }
 
@@ -86,24 +92,29 @@ public sealed partial class LineRow : EditRow
         _unit = l.Unit;
         _comment = l.Comment ?? "";
         Quantity = Num(l.Quantity);
+        Waste = Num(l.WastePct, allowEmpty: true);
     }
 
     [ObservableProperty] private long? _materialId;
     [ObservableProperty] private QtyUnit _unit;
     [ObservableProperty] private string _comment;
     public NumField Quantity { get; }
+    /// <summary>Extra waste on this line, only for materials that have waste.</summary>
+    public NumField Waste { get; }
+    [ObservableProperty] private bool _isWasteMaterial;
 
     [ObservableProperty] private string _costText = "";
     [ObservableProperty] private string _unitCostText = "";
     [ObservableProperty] private string _warningText = "";
 
-    public bool IsValid => Quantity.IsValid;
+    public bool IsValid => Quantity.IsValid && Waste.IsValid;
 
     public RecipeLine ToModel() => new()
     {
         MaterialId = MaterialId,
         Quantity = Quantity.Or0,
         Unit = Unit,
+        WastePct = IsWasteMaterial && Waste.Value is > 0 ? Waste.Value : null,
         Comment = string.IsNullOrWhiteSpace(Comment) ? null : Comment.Trim(),
     };
 }

@@ -72,6 +72,27 @@
                 <Setter Property="VerticalAlignment" Value="Center" />
             </Style>
 
+            <!-- folder icon, drawn so it looks the same on every Windows version -->
+            <Style x:Key="FolderIcon" TargetType="ContentControl">
+                <Setter Property="Focusable" Value="False" />
+                <Setter Property="IsTabStop" Value="False" />
+                <Setter Property="Width" Value="20" />
+                <Setter Property="Height" Value="17" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ContentControl">
+                            <Viewbox Stretch="Uniform">
+                                <Canvas Width="24" Height="20">
+                                    <Path Fill="#D08F1E" Data="M1,3 C1,1.9 1.9,1 3,1 L8.6,1 C9.2,1 9.7,1.3 10.1,1.7 L11.6,3.4 L21,3.4 C22.1,3.4 23,4.3 23,5.4 L23,17 C23,18.1 22.1,19 21,19 L3,19 C1.9,19 1,18.1 1,17 Z" />
+                                    <Path Fill="#F6BC45" Data="M1,7.2 C1,6.1 1.9,5.4 3,5.4 L21,5.4 C22.1,5.4 23,6.1 23,7.2 L23,17 C23,18.1 22.1,19 21,19 L3,19 C1.9,19 1,18.1 1,17 Z" />
+                                    <Path Fill="#FFD77F" Opacity="0.55" Data="M3,5.4 L21,5.4 C22.1,5.4 23,6.1 23,7.2 L23,7.9 L1,7.9 L1,7.2 C1,6.1 1.9,5.4 3,5.4 Z" />
+                                </Canvas>
+                            </Viewbox>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <!-- surfaces -->
             <Style x:Key="Card" TargetType="Border">
                 <Setter Property="Background" Value="{StaticResource CardBrush}" />
@@ -370,10 +391,25 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="DataGridRow">
-                            <Border x:Name="DGR_Border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
-                                    BorderThickness="{TemplateBinding BorderThickness}" SnapsToDevicePixels="True">
-                                <DataGridCellsPresenter ItemsPanel="{TemplateBinding ItemsPanel}" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
-                            </Border>
+                            <Grid>
+                                <Border x:Name="DGR_Border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}" SnapsToDevicePixels="True">
+                                    <DataGridCellsPresenter ItemsPanel="{TemplateBinding ItemsPanel}" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                                </Border>
+                                <!-- drop position while dragging rows: drawn over the row, so it never changes the row's size -->
+                                <Border x:Name="DropBefore" Height="3" VerticalAlignment="Top" Background="{StaticResource AccentBrush}"
+                                        Visibility="Collapsed" IsHitTestVisible="False" />
+                                <Border x:Name="DropAfter" Height="3" VerticalAlignment="Bottom" Background="{StaticResource AccentBrush}"
+                                        Visibility="Collapsed" IsHitTestVisible="False" />
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="l:DropHint.Position" Value="1">
+                                    <Setter TargetName="DropBefore" Property="Visibility" Value="Visible" />
+                                </Trigger>
+                                <Trigger Property="l:DropHint.Position" Value="2">
+                                    <Setter TargetName="DropAfter" Property="Visibility" Value="Visible" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
                         </ControlTemplate>
                     </Setter.Value>
                 </Setter>

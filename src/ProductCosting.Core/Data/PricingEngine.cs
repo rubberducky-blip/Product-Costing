@@ -41,7 +41,8 @@ internal sealed class PricingEngine(Store store, SqliteConnection c, SqliteTrans
     {
         public long Id;
         public ItemKind Kind;
-        public bool UsableAsMaterial;
+        public bool UsableAsMaterial, HasWaste;
+        public decimal? WastePct;
         public decimal? MarkupPct, RoundingStep;
         public decimal Cost, CostMaterials, CostLabor, CostOverhead, EffMarkup, EffStep, Price;
         public int LaborSeconds;
@@ -88,42 +89,46 @@ internal sealed class PricingEngine(Store store, SqliteConnection c, SqliteTrans
             summary.Recomputed++;
             var srcs = sources.TryGetValue(r.Id, out var l) ? l : [];
             var bc = Costing.ComputeBought(srcs.Select(x => x.Source).ToList(), id => srcs.FirstOrDefault(x => x.Source.SupplierId == id).Supplier, s.UsdPerEur);
+            var cost = Costing.WithWaste(bc.UnitCost, r.HasWaste ? r.WastePct : null);
             var markup = r.MarkupPct ?? s.DefaultMarkupPct;
             var step = r.RoundingStep ?? s.RoundingStep;
-            var price = Costing.RoundPrice(bc.UnitCost * (1 + markup / 100m), step, s.RoundingMode);
+            var price = Costing.RoundPrice(cost * (1 + markup / 100m), step, s.RoundingMode);
 
             var reasons = PriceReason.None;
-            if (Diff(bc.UnitCost, r.Cost))
+            if (Diff(cost, r.Cost))
             {
                 reasons |= req.ExchangeRate ? PriceReason.ExchangeRate
-                    : bc.UnitCost > r.Cost ? PriceReason.SupplierCostUp : PriceReason.SupplierCostDown;
-                if (r.Kind == ItemKind.RawMaterial || r.UsableAsMaterial) changedMaterials.Add(r.Id);
+                    : cost > r.Cost ? PriceReason.SupplierCostUp : PriceReason.SupplierCostDown;
+                changedMaterials.Add(r.Id);
             }
-            Finish(r, bc.UnitCost, 0, 0, 0, 0, markup, step, price, bc.Warnings, reasons, req, changes);
+            Finish(r, cost, 0, 0, 0, 0, markup, step, price, bc.Warnings, reasons, req, changes);
         }
 
-        // ---- pass 2: products ----
-        string? productFilter = null;
+        // ---- pass 2: products, in waves ----
+        // A product can be part of another product's recipe, so when a product's cost changes,
+        // the products using it are repriced in the next wave (until nothing changes).
+        HashSet<long>? wave = null;
         if (!req.AllItems && !req.AllProducts)
         {
-            var ids = new HashSet<long>(req.Items);
-            if (changedMaterials.Count > 0)
-            {
-                Store.FillTemp(c, t, "calc_m", changedMaterials);
-                ids.UnionWith(c.Query<long>("SELECT DISTINCT product_id FROM recipe_lines WHERE material_id IN (SELECT id FROM temp.calc_m)", transaction: t));
-            }
-            Store.FillTemp(c, t, "calc_p", ids);
-            productFilter = "IN (SELECT id FROM temp.calc_p)";
+            wave = new HashSet<long>(req.Items);
+            wave.UnionWith(UsersOf(changedMaterials));
         }
-
-        var products = LoadRows($"kind = 1{(productFilter is null ? "" : " AND id " + productFilter)}");
-        if (products.Count > 0)
+        for (var depth = 0; depth < 30 && (wave is null || wave.Count > 0); depth++)
         {
+            string? productFilter = null;
+            if (wave is not null)
+            {
+                Store.FillTemp(c, t, "calc_p", wave);
+                productFilter = "IN (SELECT id FROM temp.calc_p)";
+            }
+            var products = LoadRows($"kind = 1{(productFilter is null ? "" : " AND id " + productFilter)}");
+            if (products.Count == 0) break;
             var labor = c.Query<(long ProductId, long Seconds)>(
                     $"SELECT product_id, SUM(seconds) FROM labor_entries {(productFilter is null ? "" : "WHERE product_id " + productFilter)} GROUP BY product_id",
                     transaction: t)
                 .ToDictionary(x => x.ProductId, x => (int)x.Seconds);
             var (lines, materials) = LoadLines(productFilter is null ? null : "rl.product_id " + productFilter);
+            var changedProducts = new List<long>();
 
             foreach (var r in products)
             {
@@ -142,13 +147,39 @@ internal sealed class PricingEngine(Store store, SqliteConnection c, SqliteTrans
                     reasons |= pc.Labor > r.CostLabor ? PriceReason.LaborUp : PriceReason.LaborDown;
                 if (Diff(pc.Overhead, r.CostOverhead))
                     reasons |= pc.Overhead > r.CostOverhead ? PriceReason.OverheadUp : PriceReason.OverheadDown;
+                if (Diff(pc.Total, r.Cost)) changedProducts.Add(r.Id);
                 Finish(r, pc.Total, pc.Materials, pc.Labor, pc.Overhead, pc.LaborSeconds, markup, step, price, pc.Warnings, reasons, req, changes);
             }
+            wave = UsersOf(changedProducts);
         }
 
+        changes = Merge(changes);
         summary.PriceChanges = changes.Count;
         summary.Notifications = RecordChanges(changes, req);
         return summary;
+    }
+
+    /// <summary>Products whose recipe uses any of these items.</summary>
+    HashSet<long> UsersOf(List<long> items)
+    {
+        if (items.Count == 0) return [];
+        Store.FillTemp(c, t, "calc_m", items);
+        return c.Query<long>("SELECT DISTINCT product_id FROM recipe_lines WHERE material_id IN (SELECT id FROM temp.calc_m)", transaction: t).ToHashSet();
+    }
+
+    /// <summary>An item repriced in several waves gets one change: first old price → last new price, all reasons.</summary>
+    static List<Change> Merge(List<Change> changes)
+    {
+        var merged = new List<Change>();
+        foreach (var g in changes.GroupBy(ch => ch.Id))
+        {
+            var first = g.First();
+            var last = g.Last();
+            var reasons = g.Aggregate(PriceReason.None, (r, ch) => r | ch.Reasons);
+            if (reasons.HasFlag(PriceReason.Created)) merged.Add(new Change(g.Key, 0, last.NewPrice, PriceReason.Created));
+            else if (Diff(first.OldPrice, last.NewPrice)) merged.Add(new Change(g.Key, first.OldPrice, last.NewPrice, reasons));
+        }
+        return merged;
     }
 
     SqliteCommand? _update;
@@ -265,7 +296,7 @@ internal sealed class PricingEngine(Store store, SqliteConnection c, SqliteTrans
         cmd.Transaction = t;
         cmd.CommandText = $"""
             SELECT id, kind, usable_as_material, markup_pct, rounding_step, cost, cost_materials, cost_labor, cost_overhead,
-                   labor_seconds, eff_markup, eff_step, price, warnings
+                   labor_seconds, eff_markup, eff_step, price, warnings, has_waste, waste_pct
             FROM items WHERE {where}
             """;
         using var rd = cmd.ExecuteReader();
@@ -288,6 +319,8 @@ internal sealed class PricingEngine(Store store, SqliteConnection c, SqliteTrans
                 EffStep = (decimal)rd.GetDouble(11),
                 Price = (decimal)rd.GetDouble(12),
                 Warnings = (CostWarning)rd.GetInt32(13),
+                HasWaste = rd.GetInt64(14) != 0,
+                WastePct = rd.IsDBNull(15) ? null : (decimal)rd.GetDouble(15),
             });
         }
         return list;
@@ -338,7 +371,7 @@ internal sealed class PricingEngine(Store store, SqliteConnection c, SqliteTrans
         cmd.Transaction = t;
         cmd.CommandText = $"""
             SELECT rl.product_id, rl.material_id, rl.quantity, rl.unit,
-                   m.kind, m.unit, m.piece_length_cm, m.piece_area_cm2, m.piece_weight_kg, m.cost
+                   m.kind, m.unit, m.piece_length_cm, m.piece_area_cm2, m.piece_weight_kg, m.cost, rl.waste_pct
             FROM recipe_lines rl LEFT JOIN items m ON m.id = rl.material_id
             {(where is null ? "" : "WHERE " + where)}
             ORDER BY rl.product_id, rl.position
@@ -354,6 +387,7 @@ internal sealed class PricingEngine(Store store, SqliteConnection c, SqliteTrans
                 MaterialId = rd.IsDBNull(1) ? null : rd.GetInt64(1),
                 Quantity = (decimal)rd.GetDouble(2),
                 Unit = (QtyUnit)rd.GetInt32(3),
+                WastePct = rd.IsDBNull(10) ? null : (decimal)rd.GetDouble(10),
             };
             if (line.MaterialId is long mid && !rd.IsDBNull(4) && !mats.ContainsKey(mid))
             {

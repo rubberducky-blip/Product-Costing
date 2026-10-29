@@ -13,6 +13,8 @@ public sealed class PickerEntry
     public int Depth { get; init; }
     public bool IsHeader { get; init; }
     public bool IsFolder { get; init; }
+    /// <summary>A group title such as "Raw materials" (not a folder).</summary>
+    public bool IsSection { get; init; }
     public string Path { get; init; } = "";
     internal string Key { get; init; } = "";
     public bool ShowPath { get; init; }
@@ -28,7 +30,7 @@ public sealed class PickerEntry
 
     public Thickness Indent => new(Depth * 18, 0, 0, 0);
     public string Glyph => IsHeader || IsFolder ? "\uE8B7" : "";
-    public bool HasGlyph => IsHeader || IsFolder;
+    public bool HasGlyph => (IsHeader && !IsSection) || IsFolder;
 
     public override string ToString() => Text;
 
@@ -48,10 +50,19 @@ public sealed class PickerEntry
     }
 
     /// <summary>Values grouped under their folder tree. Values at the top level come last.</summary>
-    public static List<PickerEntry> Tree(IReadOnlyList<Folder> folders, IEnumerable<(long Id, string Text, string? Detail, long? FolderId)> values, string? noneText = null)
+    public static List<PickerEntry> Tree(IReadOnlyList<Folder> folders, IEnumerable<(long Id, string Text, string? Detail, long? FolderId)> values,
+        string? noneText = null, string? section = null)
     {
         var list = new List<PickerEntry>();
         if (noneText is not null) list.Add(new PickerEntry { Id = null, Text = noneText, Key = "" });
+        var valueList = values.ToList();
+        if (section is not null)
+        {
+            if (valueList.Count == 0) return list;
+            list.Add(new PickerEntry { Text = section, IsHeader = true, IsSection = true });
+        }
+        var top = section is null ? 0 : 1;
+        values = valueList;
         var paths = Paths(folders);
         var byFolder = values.GroupBy(v => v.FolderId ?? 0).ToDictionary(g => g.Key, g => g.OrderBy(v => v.Text, NaturalComparer.Instance).ToList());
         var children = folders.GroupBy(f => f.ParentId ?? 0).ToDictionary(g => g.Key, g => g.OrderBy(f => f.Name, NaturalComparer.Instance).ToList());
@@ -71,8 +82,8 @@ public sealed class PickerEntry
             foreach (var v in byFolder.GetValueOrDefault(folderId) ?? [])
                 list.Add(Value(v, depth, paths.GetValueOrDefault(folderId, "")));
         }
-        Add(0, 0);
-        foreach (var v in byFolder.GetValueOrDefault(0) ?? []) list.Add(Value(v, 0, ""));
+        Add(0, top);
+        foreach (var v in byFolder.GetValueOrDefault(0) ?? []) list.Add(Value(v, top, ""));
         return list;
     }
 

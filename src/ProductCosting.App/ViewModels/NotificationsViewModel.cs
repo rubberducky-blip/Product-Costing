@@ -41,6 +41,9 @@ public sealed partial class NotificationsViewModel(MainViewModel main) : Observa
     [ObservableProperty] private bool _isOpen;
 
     public bool CanExpand => ExpansionCount > 0;
+    public bool HasItems => Count > 0;
+
+    partial void OnCountChanged(int value) => OnPropertyChanged(nameof(HasItems));
 
     partial void OnExpansionCountChanged(int value) => OnPropertyChanged(nameof(CanExpand));
 

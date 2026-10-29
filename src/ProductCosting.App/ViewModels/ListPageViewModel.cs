@@ -229,6 +229,20 @@ public sealed partial class ListPageViewModel : PageViewModel
         }
     }
 
+    public void DuplicateRows(IReadOnlyList<object> rows)
+    {
+        string? last = null;
+        foreach (var r in rows)
+        {
+            switch (r)
+            {
+                case ItemRow i: last = AppState.Store.GetItem(AppState.Store.DuplicateItem(i.Id))?.Code; break;
+                case SupplierRow s: last = AppState.Store.GetSupplier(AppState.Store.DuplicateSupplier(s.Id))?.Name; break;
+            }
+        }
+        if (last is not null) _main.ShowToast(Loc.F("common.duplicated", last));
+    }
+
     public static long IdOf(object row) => row switch
     {
         ItemRow r => r.Id,

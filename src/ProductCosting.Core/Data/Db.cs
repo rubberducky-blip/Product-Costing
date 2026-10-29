@@ -6,7 +6,7 @@ namespace ProductCosting.Core.Data;
 /// <summary>Opens connections to the local SQLite database and keeps its schema up to date.</summary>
 public sealed class Db
 {
-    public const int SchemaVersion = 1;
+    public const int SchemaVersion = 2;
 
     static int _initialized;
 
@@ -49,10 +49,17 @@ public sealed class Db
         {
             using var t = c.BeginTransaction();
             c.Execute(Schema.V1, transaction: t);
-            c.Execute($"PRAGMA user_version = {SchemaVersion}", transaction: t);
+            c.Execute("PRAGMA user_version = 1", transaction: t);
+            t.Commit();
+            version = 1;
+        }
+        if (version < 2)
+        {
+            using var t = c.BeginTransaction();
+            c.Execute(Schema.V2, transaction: t);
+            c.Execute("PRAGMA user_version = 2", transaction: t);
             t.Commit();
         }
-        // future: if (version < 2) { ... }
     }
 
     /// <summary>True when the file is a SQLite database with this app's tables.</summary>
@@ -222,5 +229,14 @@ static class Schema
 
         -- global search: trigram index over normalized text (rowid = id*2 for items, id*2+1 for suppliers)
         CREATE VIRTUAL TABLE search_index USING fts5(body, tokenize='trigram');
+        """;
+
+    // wastage on materials and recipe lines, MOQ and package size per supplier
+    public const string V2 = """
+        ALTER TABLE items ADD COLUMN has_waste INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE items ADD COLUMN waste_pct REAL;
+        ALTER TABLE recipe_lines ADD COLUMN waste_pct REAL;
+        ALTER TABLE item_sources ADD COLUMN moq REAL;
+        ALTER TABLE item_sources ADD COLUMN pack_qty REAL;
         """;
 }

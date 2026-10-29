@@ -8,7 +8,7 @@ namespace ProductCosting.App.Views;
 
 public sealed class HistoryRow(PriceHistoryEntry e)
 {
-    public string DateText => e.Date.ToString("D", Loc.Culture);
+    public string DateText => e.Date.ToString("d", Loc.Culture);
     public string PriceText => Fmt.Money(e.Price);
     public string ChangeText => e.OldPrice is decimal o && o != 0
         ? $"{(e.Price > o ? "+" : "−")}{Fmt.Money(Math.Abs(e.Price - o))}  ({Fmt.Signed((e.Price - o) / o * 100)})"

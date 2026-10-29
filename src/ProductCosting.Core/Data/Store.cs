@@ -22,6 +22,8 @@ public sealed class DataChangedEventArgs(DataChange change) : EventArgs
     public DataChange Change { get; } = change;
 }
 
+public sealed class RecipeCycleException() : Exception("A product can't be part of its own recipe.");
+
 public sealed class DuplicateCodeException(string code) : Exception($"Code '{code}' already exists.")
 {
     public string Code { get; } = code;

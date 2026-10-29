@@ -71,6 +71,18 @@ public sealed partial class Store
         return s.Id;
     });
 
+    /// <summary>Copies a supplier as "Name (2)". Its items stay with the original.</summary>
+    public long DuplicateSupplier(long id)
+    {
+        var s = GetSupplier(id) ?? throw new InvalidOperationException("Supplier not found.");
+        var names = GetSuppliers().Select(x => x.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var name = s.Name;
+        for (var n = 2; names.Contains(name); n++) name = $"{s.Name} ({n})";
+        s.Id = 0;
+        s.Name = name;
+        return SaveSupplier(s);
+    }
+
     public void DeleteSupplier(long id) => Write(DataChange.Suppliers | DataChange.Items | DataChange.Notifications, (c, t) =>
     {
         var items = c.Query<long>("SELECT DISTINCT item_id FROM item_sources WHERE supplier_id=@id", new { id }, t).ToList();
@@ -92,7 +104,7 @@ public sealed partial class Store
     /// <summary>Items bought from a supplier (one row per item), for the supplier page and the order form.</summary>
     public List<SupplierItemRow> GetSupplierItems(long supplierId) => Read(c => c.Query<SupplierItemRow>("""
         SELECT i.id AS item_id, i.kind, i.code, i.name, src.supplier_code, src.purchase_price, src.purchase_qty, i.unit,
-               COALESCE(src.currency, s.currency, 0) AS currency, src.weight
+               COALESCE(src.currency, s.currency, 0) AS currency, src.weight, src.moq, src.pack_qty
         FROM item_sources src JOIN items i ON i.id = src.item_id JOIN suppliers s ON s.id = src.supplier_id
         WHERE src.supplier_id = @supplierId
         GROUP BY i.id

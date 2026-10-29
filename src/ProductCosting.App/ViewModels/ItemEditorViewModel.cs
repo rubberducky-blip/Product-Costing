@@ -34,6 +34,7 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         PieceLength = TrackNum(null, allowEmpty: true);
         PieceArea = TrackNum(null, allowEmpty: true);
         PieceWeight = TrackNum(null, allowEmpty: true);
+        WastePct = TrackNum(null, allowEmpty: true);
         LoadLookups();
         Load(doc);
     }
@@ -51,6 +52,7 @@ public sealed partial class ItemEditorViewModel : PageViewModel
     public bool IsProduct => Kind == ItemKind.Product;
     public bool IsBought => Kind != ItemKind.Product;
     public bool IsMerchandise => Kind == ItemKind.Merchandise;
+    public bool IsRaw => Kind == ItemKind.RawMaterial;
     public bool IsMaterial => Kind == ItemKind.RawMaterial || (IsMerchandise && UsableAsMaterial);
     public bool IsNew => _doc.Item.Id == 0;
     public long Id => _doc.Item.Id;
@@ -63,6 +65,8 @@ public sealed partial class ItemEditorViewModel : PageViewModel
     [ObservableProperty] private long? _materialFolderId;
     [ObservableProperty] private QtyUnit _unit;
     [ObservableProperty] private string _notes = "";
+    [ObservableProperty] private bool _hasWaste;
+    public NumField WastePct { get; }
 
     public NumField Markup { get; }
     public NumField Step { get; }
@@ -97,6 +101,7 @@ public sealed partial class ItemEditorViewModel : PageViewModel
 
     public bool MultipleSources => Sources.Count > 1;
     public bool HasUsage => Usage.Count > 0;
+    public bool ShowUsage => IsMaterial || HasUsage;
     public override bool IsDirty => Dirty;
 
     NumField TrackNum(decimal? v, bool allowEmpty = false)
@@ -123,10 +128,17 @@ public sealed partial class ItemEditorViewModel : PageViewModel
 
         if (Kind == ItemKind.Product)
         {
-            var mats = store.GetMaterials();
+            // anything can go into a recipe: raw materials, merchandise and other products (never the product itself)
+            var mats = store.GetMaterials().Where(m => m.Info.Id != _doc.Item.Id).ToList();
             _materials = mats.ToDictionary(m => m.Info.Id, m => m.Info);
-            MaterialEntries = PickerEntry.Tree(rawFolders,
-                mats.Select(m => (m.Info.Id, $"{m.Info.Code} · {m.Info.Name}", (string?)$"{Fmt.Money4(m.Info.Cost)}/{Strings.Unit(m.Info.Unit)}", m.FolderId)));
+            IEnumerable<(long, string, string?, long?)> Of(ItemKind k) => mats.Where(m => m.Info.Kind == k)
+                .Select(m => (m.Info.Id, $"{m.Info.Code} · {m.Info.Name}", (string?)$"{Fmt.Money4(m.Info.Cost)}/{Strings.Unit(m.Info.Unit)}", m.FolderId));
+            MaterialEntries =
+            [
+                .. PickerEntry.Tree(rawFolders, Of(ItemKind.RawMaterial), section: Loc.T("nav.raw")),
+                .. PickerEntry.Tree(store.GetFolders(ListScope.Merchandise), Of(ItemKind.Merchandise), section: Loc.T("nav.merchandise")),
+                .. PickerEntry.Tree(scopeFolders, Of(ItemKind.Product), section: Loc.T("nav.products")),
+            ];
         }
         OnPropertyChanged(nameof(FolderEntries));
         OnPropertyChanged(nameof(MaterialFolderEntries));
@@ -151,6 +163,8 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         PieceLength.Set(it.PieceLengthCm);
         PieceArea.Set(it.PieceAreaCm2);
         PieceWeight.Set(it.PieceWeightKg);
+        HasWaste = it.HasWaste;
+        WastePct.Set(it.WastePct);
         HasUnseenChange = it.HasUnseenChange;
 
         Reset(Sources, doc.Sources.Select(s => new SourceRow(s)));
@@ -159,8 +173,9 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         Reset(Variants, doc.Variants.Select(v => new VariantRow(v)));
 
         Usage.Clear();
-        if (!IsNew && it.IsMaterial) foreach (var u in AppState.Store.GetUsage(it.Id)) Usage.Add(u);
+        if (!IsNew) foreach (var u in AppState.Store.GetUsage(it.Id)) Usage.Add(u);
         OnPropertyChanged(nameof(HasUsage));
+        OnPropertyChanged(nameof(ShowUsage));
         OnPropertyChanged(nameof(IsNew));
         OnPropertyChanged(nameof(Id));
 
@@ -185,9 +200,13 @@ public sealed partial class ItemEditorViewModel : PageViewModel
     {
         base.OnPropertyChanged(e);
         if (e.PropertyName is nameof(Code) or nameof(Name) or nameof(FolderId) or nameof(UsableAsMaterial)
-            or nameof(MaterialFolderId) or nameof(Unit) or nameof(Notes))
+            or nameof(MaterialFolderId) or nameof(Unit) or nameof(Notes) or nameof(HasWaste))
         {
-            if (e.PropertyName == nameof(UsableAsMaterial)) OnPropertyChanged(nameof(IsMaterial));
+            if (e.PropertyName == nameof(UsableAsMaterial))
+            {
+                OnPropertyChanged(nameof(IsMaterial));
+                OnPropertyChanged(nameof(ShowUsage));
+            }
             OnEdited();
         }
     }
@@ -221,6 +240,7 @@ public sealed partial class ItemEditorViewModel : PageViewModel
                     line.WarningText = Loc.T("cost.warnMissing");
                     continue;
                 }
+                line.IsWasteMaterial = m.HasWaste;
                 var unitCost = Costing.CostPerUnit(m, line.Unit);
                 if (unitCost is null)
                 {
@@ -230,7 +250,7 @@ public sealed partial class ItemEditorViewModel : PageViewModel
                     line.WarningText = Loc.T("cost.warnConversion");
                     continue;
                 }
-                var c = unitCost.Value * line.Quantity.Or0;
+                var c = unitCost.Value * line.Quantity.Or0 * (1 + (m.HasWaste ? line.Waste.Or0 : 0) / 100m);
                 materials += c;
                 line.CostText = Fmt.Money4(c);
                 line.UnitCostText = $"{Fmt.Money4(unitCost.Value)}/{Strings.Unit(line.Unit)}";
@@ -256,7 +276,8 @@ public sealed partial class ItemEditorViewModel : PageViewModel
             foreach (var r in Sources) r.UpdateHints(r.SupplierId is long sid ? _suppliers.GetValueOrDefault(sid) : null);
             var bc = Costing.ComputeBought(models, id => _suppliers.GetValueOrDefault(id), s.UsdPerEur);
             warn |= bc.Warnings;
-            cost = bc.UnitCost;
+            var waste = IsRaw && HasWaste ? WastePct.Value : null;
+            cost = Costing.WithWaste(bc.UnitCost, waste);
             var multi = bc.Sources.Count > 1;
             for (var i = 0; i < bc.Sources.Count; i++)
             {
@@ -279,7 +300,9 @@ public sealed partial class ItemEditorViewModel : PageViewModel
                 Breakdown.Add(new(Loc.F("cost.perUnit", Strings.Unit(Unit)), Fmt.Money4(sc.UnitCost)));
                 if (multi && i < bc.Sources.Count - 1) Breakdown.Add(new("", "", "sep"));
             }
-            if (multi) Breakdown.Add(new(Loc.T("cost.weighted"), Fmt.Money4(cost), "total"));
+            if (multi) Breakdown.Add(new(Loc.T("cost.weighted"), Fmt.Money4(bc.UnitCost), "total"));
+            if (waste is > 0 and < 100)
+                Breakdown.Add(new(Loc.F("cost.waste", Fmt.Pct(waste.Value)), "+" + Fmt.Money4(cost - bc.UnitCost)));
         }
 
         var markup = Markup.Value ?? s.DefaultMarkupPct;
@@ -315,9 +338,9 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         void N(NumField f) => sb.Append(f.IsValid ? f.Value?.ToString(CultureInfo.InvariantCulture) ?? "∅" : "!" + f.Text).Append('|');
         void S(object? o) => sb.Append(o is string str ? str.Trim() : o).Append('|');
         S(Code); S(Name); S(FolderId); S(UsableAsMaterial); S(UsableAsMaterial ? MaterialFolderId : null); S(Unit); S(Notes);
-        N(Markup); N(Step); N(PieceLength); N(PieceArea); N(PieceWeight);
-        foreach (var r in Sources) { sb.Append("S:"); S(r.SupplierId); S(r.SupplierCode); S(r.Currency); N(r.Price); N(r.Qty); N(r.Discount); N(r.Shipping); N(r.Weight); }
-        foreach (var r in Lines) { sb.Append("L:"); S(r.MaterialId); S(r.Unit); S(r.Comment); N(r.Quantity); }
+        N(Markup); N(Step); N(PieceLength); N(PieceArea); N(PieceWeight); S(HasWaste); N(WastePct);
+        foreach (var r in Sources) { sb.Append("S:"); S(r.SupplierId); S(r.SupplierCode); S(r.Currency); N(r.Price); N(r.Qty); N(r.Discount); N(r.Shipping); N(r.Weight); N(r.Moq); N(r.Pack); }
+        foreach (var r in Lines) { sb.Append("L:"); S(r.MaterialId); S(r.Unit); S(r.Comment); N(r.Quantity); N(r.Waste); }
         foreach (var r in Labor) { sb.Append("T:"); S(r.Comment); N(r.Seconds); }
         foreach (var r in Variants) { sb.Append("V:"); S(r.Name); S(r.Code); }
         return sb.ToString();
@@ -441,7 +464,7 @@ public sealed partial class ItemEditorViewModel : PageViewModel
             Dialogs.Error(Loc.T("common.required"));
             return false;
         }
-        var numbersOk = Markup.IsValid && Step.IsValid && PieceLength.IsValid && PieceArea.IsValid && PieceWeight.IsValid
+        var numbersOk = Markup.IsValid && Step.IsValid && PieceLength.IsValid && PieceArea.IsValid && PieceWeight.IsValid && WastePct.IsValid
             && Sources.All(s => s.IsValid) && Lines.All(l => l.IsValid) && Labor.All(l => l.IsValid);
         if (!numbersOk)
         {
@@ -465,6 +488,8 @@ public sealed partial class ItemEditorViewModel : PageViewModel
             MarkupPct = Markup.Value,
             RoundingStep = Step.Value,
             Notes = string.IsNullOrWhiteSpace(Notes) ? null : Notes.Trim(),
+            HasWaste = IsRaw && HasWaste,
+            WastePct = IsRaw && HasWaste ? WastePct.Value : null,
         };
         var doc = new ItemDocument
         {
@@ -484,6 +509,11 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         catch (DuplicateCodeException ex)
         {
             Dialogs.Error(Loc.F("item.duplicateCode", ex.Code));
+            return false;
+        }
+        catch (RecipeCycleException)
+        {
+            Dialogs.Error(Loc.T("item.recipeCycle"));
             return false;
         }
     }
