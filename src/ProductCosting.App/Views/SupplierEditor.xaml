@@ -128,9 +128,9 @@
                                 <DataGridTextColumn Header="{l:T list.supplierCode}" Binding="{Binding SupplierCode}" Width="120" ElementStyle="{StaticResource MutedCell}" />
                                 <DataGridTextColumn Header="{l:T item.purchasePrice}" Binding="{Binding Converter={StaticResource SupplierPrice}}" Width="110"
                                                     ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
-                                <DataGridTextColumn Header="{l:T item.moq}" Binding="{Binding Moq, Converter={StaticResource Num}}" Width="110"
+                                <DataGridTextColumn Header="{l:T item.moq}" Binding="{Binding Moq, Converter={StaticResource Num}}" Width="140"
                                                     ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
-                                <DataGridTextColumn Header="{l:T item.pack}" Binding="{Binding PackQty, Converter={StaticResource Num}}" Width="120"
+                                <DataGridTextColumn Header="{l:T item.pack}" Binding="{Binding PackQty, Converter={StaticResource Num}}" Width="140"
                                                     ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
                             </DataGrid.Columns>
                         </DataGrid>
