@@ -23,6 +23,7 @@ public static class Hint
             tb.Loaded += (_, _) => Attach(tb);
             tb.TextChanged += (_, _) => Refresh(tb);
             tb.SizeChanged += (_, _) => Refresh(tb);
+            tb.IsVisibleChanged += (_, _) => Refresh(tb);
             if (tb.IsLoaded) Attach(tb);
         }
         Refresh(tb);
@@ -55,7 +56,8 @@ public static class Hint
         protected override void OnRender(DrawingContext dc)
         {
             var text = GetText(_tb);
-            if (string.IsNullOrEmpty(text) || !string.IsNullOrEmpty(_tb.Text)) return;
+            // hidden boxes (e.g. a field shown only for some item types) draw nothing
+            if (string.IsNullOrEmpty(text) || !string.IsNullOrEmpty(_tb.Text) || !_tb.IsVisible) return;
             var brush = Application.Current.TryFindResource("TextFaintBrush") as Brush ?? Brushes.Gray;
             var ft = new FormattedText(text, CultureInfo.CurrentUICulture, _tb.FlowDirection,
                 new Typeface(_tb.FontFamily, _tb.FontStyle, _tb.FontWeight, _tb.FontStretch), _tb.FontSize, brush,

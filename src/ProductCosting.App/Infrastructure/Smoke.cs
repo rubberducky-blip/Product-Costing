@@ -230,9 +230,8 @@ internal static class Smoke
         var store = AppState.Store;
         // no dialog may appear on its own during the tour
         Dialogs.AutoAnswer = text => { Check("unexpected dialog: " + text, false); return null; };
-        // the size the app is designed for; one shot at the minimum size checks that nothing breaks
-        w.Width = 1440;
-        w.Height = 900;
+        // the app is used maximised; one shot at the minimum size checks that nothing breaks
+        w.WindowState = WindowState.Maximized;
         var root = (FrameworkElement)w.Content;
         long Id(string code) => store.Search(code).First(h => h.Code == code).Id;
 
@@ -280,12 +279,12 @@ internal static class Smoke
         });
         await Step("product editor at minimum size", async () =>
         {
+            w.WindowState = WindowState.Normal;
             w.Width = w.MinWidth;
             w.Height = w.MinHeight;
             await Settle(500);
             Shot(root, "08b-product-editor-min");
-            w.Width = 1440;
-            w.Height = 900;
+            w.WindowState = WindowState.Maximized;
             await Settle();
         });
         await Step("product with products in its recipe", async () => { vm.OpenItem(Id("P-500")); await Settle(500); Shot(root, "09b-product-set"); });

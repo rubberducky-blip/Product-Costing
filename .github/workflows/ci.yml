@@ -28,6 +28,11 @@ jobs:
           -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true
           -o publish
 
+      - name: Full-HD screen for the smoke test
+        shell: pwsh
+        continue-on-error: true
+        run: Set-DisplayResolution -Width 1920 -Height 1080 -Force
+
       - name: Smoke test (opens every screen on demo data)
         shell: pwsh
         run: |

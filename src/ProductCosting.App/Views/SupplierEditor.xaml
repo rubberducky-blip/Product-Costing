@@ -46,9 +46,9 @@
                         <TextBlock Text="{l:T supplier.general}" Style="{StaticResource H2}" Margin="0,0,0,14" />
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="2*" MinWidth="160" />
                                 <ColumnDefinition Width="14" />
-                                <ColumnDefinition Width="240" />
+                                <ColumnDefinition Width="*" MinWidth="150" MaxWidth="280" />
                             </Grid.ColumnDefinitions>
                             <StackPanel>
                                 <TextBlock Text="{l:T supplier.name}" Style="{StaticResource FieldLabel}" />
