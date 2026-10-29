@@ -30,6 +30,24 @@ public static class AppState
 
     public static void ReloadSettings() => Settings = Store.LoadSettings();
 
+    static string LogFolder => string.IsNullOrEmpty(DataFolder)
+        ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ProductCosting")
+        : DataFolder;
+
+    /// <summary>Start-up / shutdown diary (app.log), to find out why the app closed. Kept under ~200 KB.</summary>
+    public static void LogEvent(string text)
+    {
+        try
+        {
+            Directory.CreateDirectory(LogFolder);
+            var file = Path.Combine(LogFolder, "app.log");
+            if (File.Exists(file) && new FileInfo(file).Length > 200_000) File.Delete(file);
+            File.AppendAllText(file, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] pid {Environment.ProcessId}: {text}\n");
+        }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
+    }
+
     public static void LogError(Exception ex)
     {
         try

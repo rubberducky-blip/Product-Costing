@@ -17,6 +17,10 @@ public partial class App : Application
     {
         base.OnStartup(e);
         DispatcherUnhandledException += OnUnhandled;
+        AppState.LogEvent($"start v{typeof(App).Assembly.GetName().Version} {Environment.ProcessPath} {string.Join(' ', e.Args)}");
+        AppDomain.CurrentDomain.UnhandledException += (_, a) => AppState.LogEvent($"fatal: {a.ExceptionObject}");
+        TaskScheduler.UnobservedTaskException += (_, a) => { AppState.LogEvent($"task error: {a.Exception}"); a.SetObserved(); };
+        SessionEnding += (_, a) => AppState.LogEvent($"windows session ending ({a.ReasonSessionEnding})");
 
         // --smoke <folder>: start on demo data, visit every screen, save screenshots and exit (used by CI)
         var smokeAt = Array.IndexOf(e.Args, "--smoke");
@@ -25,6 +29,7 @@ public partial class App : Application
         _single = new Mutex(true, @"Local\ProductCosting.SingleInstance", out var first);
         if (!first && _smokeDir is null)
         {
+            AppState.LogEvent("already running: this second copy closes");
             MessageBox.Show("Η εφαρμογή είναι ήδη ανοιχτή.\nThe app is already running.", "Product Costing", MessageBoxButton.OK, MessageBoxImage.Information);
             Shutdown();
             return;
@@ -54,7 +59,9 @@ public partial class App : Application
 
         var main = new MainWindow();
         MainWindow = main;
+        main.Closed += (_, _) => AppState.LogEvent("main window closed");
         main.Show();
+        AppState.LogEvent("main window shown");
 
         if (_smokeDir is not null)
         {
@@ -84,6 +91,7 @@ public partial class App : Application
     void OnUnhandled(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         e.Handled = true;
+        AppState.LogEvent($"error: {e.Exception.GetType().Name}: {e.Exception.Message}");
         if (_smokeDir is not null)
         {
             Smoke.Fail("unhandled", e.Exception);
@@ -102,6 +110,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        AppState.LogEvent($"exit (code {e.ApplicationExitCode})");
         _backupTimer?.Stop();
         _single?.Dispose();
         base.OnExit(e);

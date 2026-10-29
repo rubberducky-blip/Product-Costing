@@ -145,12 +145,12 @@ public sealed partial class MainViewModel : ObservableObject
 
     public void GoToList(ListScope scope) => Navigate(List(scope), remember: false);
 
-    public void OpenItem(long id, ListScope? from = null)
+    public void OpenItem(long id, ListScope? from = null, IReadOnlyList<long>? trail = null)
     {
         var doc = AppState.Store.LoadItem(id);
         if (doc is null) return;
         var scope = from ?? doc.Item.Kind.ToScope();
-        Navigate(new ItemEditorViewModel(this, doc, scope));
+        Navigate(new ItemEditorViewModel(this, doc, scope, trail));
     }
 
     public void NewItem(ItemKind kind, long? folderId)
@@ -163,10 +163,78 @@ public sealed partial class MainViewModel : ObservableObject
         Navigate(new ItemEditorViewModel(this, doc, kind.ToScope()));
     }
 
-    public void OpenSupplier(long id)
+    public void OpenSupplier(long id, IReadOnlyList<long>? trail = null)
     {
         var s = AppState.Store.GetSupplier(id);
-        if (s is not null) Navigate(new SupplierEditorViewModel(this, s));
+        if (s is not null) Navigate(new SupplierEditorViewModel(this, s, trail));
+    }
+
+    // ---------- keyboard shortcuts ----------
+
+    static readonly string[] Sections = ["products", "merchandise", "raw", "suppliers"];
+
+    /// <summary>← / →: the previous or next record of the table the form was opened from.</summary>
+    public void Step(int dir)
+    {
+        switch (Current)
+        {
+            case ItemEditorViewModel { IsNew: false } ed:
+            {
+                var trail = ed.Trail ?? ListOrder(ed.From);
+                var i = trail?.ToList().IndexOf(ed.Id) ?? -1;
+                if (trail is null || i < 0 || i + dir < 0 || i + dir >= trail.Count) return;
+                if (AppState.Store.LoadItem(trail[i + dir]) is { } doc)
+                    Navigate(new ItemEditorViewModel(this, doc, ed.From, trail), remember: false);
+                break;
+            }
+            case SupplierEditorViewModel { IsNew: false } se:
+            {
+                var trail = se.Trail ?? ListOrder(ListScope.Suppliers);
+                var i = trail?.ToList().IndexOf(se.Id) ?? -1;
+                if (trail is null || i < 0 || i + dir < 0 || i + dir >= trail.Count) return;
+                if (AppState.Store.GetSupplier(trail[i + dir]) is { } s)
+                    Navigate(new SupplierEditorViewModel(this, s, trail), remember: false);
+                break;
+            }
+        }
+    }
+
+    IReadOnlyList<long>? ListOrder(ListScope scope) =>
+        _lists.TryGetValue(scope, out var l) ? l.Rows.Cast<object>().Select(ListPageViewModel.IdOf).ToList() : null;
+
+    /// <summary>↑ / ↓: the previous or next list in the sidebar.</summary>
+    public void StepSection(int dir)
+    {
+        var i = Array.IndexOf(Sections, Section);
+        var next = i < 0 ? (dir > 0 ? 0 : Sections.Length - 1) : i + dir;
+        if (next < 0 || next >= Sections.Length) return;
+        Go(Sections[next]);
+    }
+
+    /// <summary>Ctrl+1…4: a new product, merchandise, raw material or supplier (in the folder open in its list).</summary>
+    public void NewByShortcut(int n)
+    {
+        var scope = (ListScope)n;
+        var folder = Current is ListPageViewModel l && l.Scope == scope ? l.FolderId : null;
+        if (scope == ListScope.Suppliers) NewSupplier(folder);
+        else NewItem((ItemKind)n, folder);
+    }
+
+    public void OpenSettings() => Go("settings");
+
+    /// <summary>Ctrl+B: a backup now, in the folder chosen in Settings.</summary>
+    public async void BackupNow()
+    {
+        try
+        {
+            BackupInfo? b = null;
+            await RunBusy(async () => b = await Task.Run(() => AppState.Backups.BackupNow()));
+            ShowToast(Loc.F("settings.backupCreated", b!.FileName));
+        }
+        catch (Exception ex)
+        {
+            Dialogs.Error(Loc.F("settings.backupFailed", ex.Message));
+        }
     }
 
     public void NewSupplier(long? folderId) => Navigate(new SupplierEditorViewModel(this, new Supplier { FolderId = folderId }));

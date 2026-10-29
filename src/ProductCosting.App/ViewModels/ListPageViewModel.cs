@@ -198,13 +198,14 @@ public sealed partial class ListPageViewModel : PageViewModel
         AppState.Store.DeleteFolder(fid);
     }
 
-    [RelayCommand]
-    public void OpenRow(object? row)
+    /// <param name="order">Ids of the rows as shown (after any column sort), for the ← / → keys in the form.</param>
+    public void OpenRow(object? row, IReadOnlyList<long>? order = null)
     {
+        order ??= Rows.Cast<object>().Select(IdOf).ToList();
         switch (row)
         {
-            case ItemRow r: _main.OpenItem(r.Id, Scope); break;
-            case SupplierRow s: _main.OpenSupplier(s.Id); break;
+            case ItemRow r: _main.OpenItem(r.Id, Scope, order); break;
+            case SupplierRow s: _main.OpenSupplier(s.Id, order); break;
         }
     }
 

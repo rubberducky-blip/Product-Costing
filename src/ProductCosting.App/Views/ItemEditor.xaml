@@ -296,7 +296,9 @@
                                 <TextBlock Text="{l:T item.component}" Style="{StaticResource ColHead}" />
                                 <TextBlock Grid.Column="1" Text="{l:T item.quantity}" Style="{StaticResource ColHead}" Margin="10,0,0,6" />
                                 <TextBlock Grid.Column="2" Text="{l:T item.unit}" Style="{StaticResource ColHead}" Margin="10,0,0,6" />
-                                <TextBlock Grid.Column="3" Text="{l:T item.wastePct}" Style="{StaticResource ColHead}" Margin="10,0,0,6" />
+                                <!-- hidden (not just squeezed) without waste: a wrapping heading in a zero-width column grows very tall -->
+                                <TextBlock Grid.Column="3" Text="{l:T item.wastePct}" Style="{StaticResource ColHead}" Margin="10,0,0,6"
+                                           TextWrapping="NoWrap" Visibility="{Binding HasWasteColumn, Converter={StaticResource Visible}}" />
                                 <TextBlock Grid.Column="4" Text="{l:T common.comment}" Style="{StaticResource ColHead}" Margin="10,0,0,6" />
                                 <TextBlock Grid.Column="5" Text="{l:T list.cost}" Style="{StaticResource ColHead}" HorizontalAlignment="Right" />
                             </Grid>

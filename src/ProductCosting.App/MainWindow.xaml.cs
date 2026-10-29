@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Media;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 using ProductCosting.App.Infrastructure;
@@ -30,6 +32,7 @@ public partial class MainWindow : Window
         // Ctrl+F (also Ctrl+Φ: on the Greek layout it is the same key)
         InputBindings.Add(new KeyBinding(FocusSearchCommand, Key.F, ModifierKeys.Control));
         InputBindings.Add(new KeyBinding(SaveCommand, Key.S, ModifierKeys.Control));
+        PreviewKeyDown += OnShortcut;
         Closing += OnClosing;
     }
 
@@ -37,6 +40,62 @@ public partial class MainWindow : Window
     {
         if (!_vm.CanLeave()) e.Cancel = true;
     }
+
+    /// <summary>
+    /// App-wide keys (listed in Settings): Ctrl+Z undo, Ctrl+1…4 new records, Ctrl+B backup,
+    /// ← / → previous / next record in a form, ↑ / ↓ previous / next list, Esc settings.
+    /// Plain keys are left alone while typing, in tables, dropdowns and popups.
+    /// </summary>
+    void OnShortcut(object sender, KeyEventArgs e)
+    {
+        var key = e.Key == Key.System ? e.SystemKey : e.Key;
+        var focus = Keyboard.FocusedElement as DependencyObject;
+        if (Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            switch (key)
+            {
+                case Key.Z when focus != SearchBox && _vm.Current is { SupportsUndo: true } page:
+                    e.Handled = page.Undo();
+                    break;
+                case >= Key.D1 and <= Key.D4:
+                    _vm.NewByShortcut(key - Key.D0);
+                    e.Handled = true;
+                    break;
+                case >= Key.NumPad1 and <= Key.NumPad4:
+                    _vm.NewByShortcut(key - Key.NumPad0);
+                    e.Handled = true;
+                    break;
+                case Key.B:
+                    _vm.BackupNow();
+                    e.Handled = true;
+                    break;
+            }
+            return;
+        }
+        if (Keyboard.Modifiers != ModifierKeys.None) return;
+        var busy = InPopup(focus) || _vm.Search.IsOpen || _vm.Notifications.IsOpen;
+        var typing = focus is TextBoxBase or PasswordBox or ComboBox or ComboBoxItem;
+        var inList = focus is DataGrid or DataGridCell or DataGridRow or ListBox or ListBoxItem;
+        switch (key)
+        {
+            case Key.Left or Key.Right when !busy && !typing && !inList:
+                _vm.Step(key == Key.Left ? -1 : 1);
+                e.Handled = true;
+                break;
+            case Key.Up or Key.Down when !busy && !typing && !inList:
+                _vm.StepSection(key == Key.Up ? -1 : 1);
+                e.Handled = true;
+                break;
+            case Key.Escape when !busy && !(focus is TextBox { Style: var st } && st == FindResource("SearchBox")):
+                _vm.OpenSettings();
+                e.Handled = true;
+                break;
+        }
+    }
+
+    /// <summary>True for elements shown in a popup (a dropdown's list, the search results…).</summary>
+    bool InPopup(DependencyObject? d) =>
+        d is Visual v && PresentationSource.FromVisual(v) is { } src && src.RootVisual is not Window;
 
     void SearchBox_PreviewKeyDown(object sender, KeyEventArgs e)
     {

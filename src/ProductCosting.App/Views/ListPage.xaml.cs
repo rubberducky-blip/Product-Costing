@@ -56,6 +56,9 @@ public partial class ListPage : UserControl
         if (e.PropertyName == nameof(ListPageViewModel.Rows)) RestoreScroll();
     }
 
+    /// <summary>Ids in the order the table shows them (column sorting included).</summary>
+    List<long> ShownOrder() => ActiveGrid.Items.Cast<object>().Select(ListPageViewModel.IdOf).ToList();
+
     static Visibility Vis(bool b) => b ? Visibility.Visible : Visibility.Collapsed;
 
     DataGrid ActiveGrid => _vm?.IsSuppliers == true ? SuppliersGrid : ItemsGrid;
@@ -104,7 +107,7 @@ public partial class ListPage : UserControl
 
     void Row_DoubleClick(object sender, MouseButtonEventArgs e)
     {
-        if (sender is DataGridRow r) _vm?.OpenRow(r.DataContext);
+        if (sender is DataGridRow r) _vm?.OpenRow(r.DataContext, ShownOrder());
     }
 
     void Grid_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -112,7 +115,7 @@ public partial class ListPage : UserControl
         var grid = (DataGrid)sender;
         if (e.Key == Key.Enter && grid.SelectedItem is { } item)
         {
-            _vm?.OpenRow(item);
+            _vm?.OpenRow(item, ShownOrder());
             e.Handled = true;
         }
         else if (e.Key == Key.Delete && grid.SelectedItems.Count > 0)
@@ -175,7 +178,7 @@ public partial class ListPage : UserControl
 
     void Menu_Open(object sender, RoutedEventArgs e)
     {
-        if (ActiveGrid.SelectedItem is { } row) _vm?.OpenRow(row);
+        if (ActiveGrid.SelectedItem is { } row) _vm?.OpenRow(row, ShownOrder());
     }
 
     void Menu_Duplicate(object sender, RoutedEventArgs e) =>

@@ -21,7 +21,7 @@
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="{l:T history.date}" Binding="{Binding DateText}" Width="150" ElementStyle="{StaticResource CellText}" />
                     <DataGridTextColumn Header="{l:T history.price}" Binding="{Binding PriceText}" Width="120" ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
-                    <DataGridTemplateColumn Header="{l:T history.change}" Width="150">
+                    <DataGridTemplateColumn Header="{l:T history.change}" Width="190" HeaderStyle="{StaticResource NumHeader}">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding ChangeText}" Foreground="{Binding ChangeBrush}" Style="{StaticResource NumCell}" />

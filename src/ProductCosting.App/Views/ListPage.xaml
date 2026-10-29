@@ -153,7 +153,7 @@
                                 <MenuItem Header="{l:T common.open}" Click="TileMenu_Open" />
                                 <MenuItem Header="{l:T common.rename}" Click="TileMenu_Rename" />
                                 <Separator />
-                                <MenuItem Header="{l:T common.delete}" Click="TileMenu_Delete" />
+                                <MenuItem Header="{l:T common.delete}" Click="TileMenu_Delete" Foreground="{StaticResource DangerTextBrush}" />
                             </ContextMenu>
                         </Border.ContextMenu>
                         <Grid>

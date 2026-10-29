@@ -59,6 +59,23 @@ public sealed partial class SettingsViewModel : PageViewModel
     [ObservableProperty] private string _lastAutoText = "";
 
     public List<Choice<RoundingMode>> RoundingModes { get; } = Choices.RoundingModes();
+
+    public sealed record Shortcut(string Keys, string Description);
+
+    public List<Shortcut> Shortcuts { get; } =
+    [
+        new("Ctrl + F", Loc.T("keys.search")),
+        new("Ctrl + S", Loc.T("keys.save")),
+        new("Ctrl + Z", Loc.T("keys.undo")),
+        new("Ctrl + 1", Loc.T("list.newProduct")),
+        new("Ctrl + 2", Loc.T("list.newMerchandise")),
+        new("Ctrl + 3", Loc.T("list.newRaw")),
+        new("Ctrl + 4", Loc.T("list.newSupplier")),
+        new("← / →", Loc.T("keys.prevNext")),
+        new("↑ / ↓", Loc.T("keys.sections")),
+        new("Esc", Loc.T("keys.settings")),
+        new("Ctrl + B", Loc.T("keys.backup")),
+    ];
     public List<Choice<string>> Languages { get; } = [new("el", "Ελληνικά"), new("en", "English")];
     public ObservableCollection<BackupRow> Backups { get; } = [];
     public bool HasBackups => Backups.Count > 0;
@@ -93,6 +110,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         _loading = false;
         _original = Snapshot();
         Dirty = false;
+        ResetUndo();
     }
 
     protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
@@ -105,7 +123,25 @@ public sealed partial class SettingsViewModel : PageViewModel
     {
         if (_loading) return;
         Dirty = Snapshot() != _original;
+        NoteEdit();
     }
+
+    sealed record FormState(string Labor, string Overhead, string Markup, string Step, string Usd, RoundingMode Mode, string Symbol, string Language);
+
+    protected override object? CaptureState() => new FormState(LaborRate.Text, OverheadRate.Text, DefaultMarkup.Text, RoundingStep.Text,
+        UsdPerEur.Text, RoundingMode, CurrencySymbol, Language);
+
+    protected override void RestoreState(object state)
+    {
+        var f = (FormState)state;
+        _loading = true;
+        LaborRate.Text = f.Labor; OverheadRate.Text = f.Overhead; DefaultMarkup.Text = f.Markup; RoundingStep.Text = f.Step;
+        UsdPerEur.Text = f.Usd; RoundingMode = f.Mode; CurrencySymbol = f.Symbol; Language = f.Language;
+        _loading = false;
+        Edited();
+    }
+
+    protected override string StateKey() => Snapshot();
 
     string Snapshot()
     {

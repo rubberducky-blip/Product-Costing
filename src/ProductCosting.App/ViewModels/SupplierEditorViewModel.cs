@@ -26,8 +26,9 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
     string _original = "";
     bool _loading;
 
-    public SupplierEditorViewModel(MainViewModel main, Supplier s)
+    public SupplierEditorViewModel(MainViewModel main, Supplier s, IReadOnlyList<long>? trail = null)
     {
+        Trail = trail;
         _main = main;
         _model = s;
         // empty = 0, shown as a "0" placeholder
@@ -40,6 +41,8 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
     }
 
     public override string Section => "suppliers";
+    public IReadOnlyList<long>? Trail { get; }
+    public long Id => _model.Id;
 
     [ObservableProperty] private string _name = "";
     [ObservableProperty] private long? _folderId;
@@ -92,6 +95,7 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
         _loading = false;
         _original = Snapshot();
         Dirty = false;
+        ResetUndo();
         OnPropertyChanged(nameof(IsNew));
         OnPropertyChanged(nameof(HasItems));
         OnPropertyChanged(nameof(Title));
@@ -109,7 +113,26 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
         if (_loading) return;
         Dirty = Snapshot() != _original;
         OnPropertyChanged(nameof(Title));
+        NoteEdit();
     }
+
+    sealed record FormState(string Name, long? FolderId, long? CountryId, Currency Currency, string Email, string Phone, string Notes,
+        string Discount, string Shipping);
+
+    protected override object? CaptureState() =>
+        new FormState(Name, FolderId, CountryId, Currency, Email, Phone, Notes, Discount.Text, Shipping.Text);
+
+    protected override void RestoreState(object state)
+    {
+        var f = (FormState)state;
+        _loading = true;
+        Name = f.Name; FolderId = f.FolderId; CountryId = f.CountryId; Currency = f.Currency;
+        Email = f.Email; Phone = f.Phone; Notes = f.Notes; Discount.Text = f.Discount; Shipping.Text = f.Shipping;
+        _loading = false;
+        Edited();
+    }
+
+    protected override string StateKey() => Snapshot();
 
     string? CountryCode => CountryId is long i
         ? i < Countries.All.Count ? Countries.All[(int)i].Code : _otherCountry
@@ -171,7 +194,7 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
     }
 
     [RelayCommand]
-    void OpenItem(SupplierItemRow row) => _main.OpenItem(row.ItemId);
+    void OpenItem(SupplierItemRow row) => _main.OpenItem(row.ItemId, trail: Items.Select(i => i.ItemId).ToList());
 
     void LoadOrders()
     {

@@ -24,8 +24,10 @@ public sealed partial class ItemEditorViewModel : PageViewModel
     Dictionary<long, Supplier> _suppliers = [];
     Dictionary<long, MaterialInfo> _materials = [];
 
-    public ItemEditorViewModel(MainViewModel main, ItemDocument doc, ListScope from)
+    /// <param name="trail">Ids of the table the item was opened from, in its order (for the ← / → keys).</param>
+    public ItemEditorViewModel(MainViewModel main, ItemDocument doc, ListScope from, IReadOnlyList<long>? trail = null)
     {
+        Trail = trail;
         _main = main;
         _from = from;
         _doc = doc;
@@ -38,6 +40,9 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         LoadLookups();
         Load(doc);
     }
+
+    public IReadOnlyList<long>? Trail { get; }
+    public ListScope From => _from;
 
     public override string Section => _from switch
     {
@@ -90,6 +95,9 @@ public sealed partial class ItemEditorViewModel : PageViewModel
     [ObservableProperty] private List<Choice<long>> _variantSupplierChoices = [];
     /// <summary>Waste column of the recipe: only shown when some line uses a material with waste.</summary>
     [ObservableProperty] private System.Windows.GridLength _wasteWidth = new(0);
+    public bool HasWasteColumn => WasteWidth.Value > 0;
+
+    partial void OnWasteWidthChanged(System.Windows.GridLength value) => OnPropertyChanged(nameof(HasWasteColumn));
     public List<Choice<QtyUnit>> Units { get; } = Choices.Units();
 
     [ObservableProperty] private string _title = "";
@@ -163,8 +171,17 @@ public sealed partial class ItemEditorViewModel : PageViewModel
 
     void Load(ItemDocument doc)
     {
-        _loading = true;
         _doc = doc;
+        Fill(doc, fresh: true);
+        _original = Snapshot();
+        Recalc();
+        ResetUndo();
+    }
+
+    /// <summary>Puts a document's values in the form. <paramref name="fresh"/>: just loaded (sort variations, reload usage).</summary>
+    void Fill(ItemDocument doc, bool fresh)
+    {
+        _loading = true;
         var it = doc.Item;
         Code = it.Code;
         Name = it.Name;
@@ -183,26 +200,45 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         HasUnseenChange = it.HasUnseenChange;
 
         Reset(Sources, doc.Sources.Select(s => new SourceRow(s)));
-        Reset(Lines, doc.Lines.Select(l => new LineRow(l, IsProductComponent(l.MaterialId))));
+        Reset(Lines, doc.Lines.Select((l, i) => new LineRow(l,
+            _productLines is { } flags && i < flags.Length ? flags[i] : IsProductComponent(l.MaterialId))));
         Reset(Labor, doc.Labor.Select(l => new LaborRow(l)));
-        // variations sorted by supplier name, then supplier code
+        // variations sorted by supplier name, then supplier code (when loading; undo keeps the order as it was)
         string SupplierName(long? id) => id is long i && _suppliers.TryGetValue(i, out var sup) ? sup.Name : "";
-        Reset(Variants, doc.Variants
-            .OrderBy(v => SupplierName(v.SupplierId), NaturalComparer.Instance)
-            .ThenBy(v => v.Code ?? "", NaturalComparer.Instance)
-            .Select(v => new VariantRow(v)));
+        var variants = fresh
+            ? doc.Variants.OrderBy(v => SupplierName(v.SupplierId), NaturalComparer.Instance).ThenBy(v => v.Code ?? "", NaturalComparer.Instance)
+            : doc.Variants.AsEnumerable();
+        Reset(Variants, variants.Select(v => new VariantRow(v)));
 
-        Usage.Clear();
-        if (!IsNew) foreach (var u in AppState.Store.GetUsage(it.Id)) Usage.Add(u);
-        OnPropertyChanged(nameof(HasUsage));
-        OnPropertyChanged(nameof(ShowUsage));
-        OnPropertyChanged(nameof(IsNew));
-        OnPropertyChanged(nameof(Id));
-
+        if (fresh)
+        {
+            Usage.Clear();
+            if (!IsNew) foreach (var u in AppState.Store.GetUsage(it.Id)) Usage.Add(u);
+            OnPropertyChanged(nameof(HasUsage));
+            OnPropertyChanged(nameof(ShowUsage));
+            OnPropertyChanged(nameof(IsNew));
+            OnPropertyChanged(nameof(Id));
+        }
         _loading = false;
-        _original = Snapshot();
+    }
+
+    // undo keeps empty new rows and which recipe lines are product lines
+    sealed record FormState(ItemDocument Doc, bool[] ProductLines);
+
+    protected override object? CaptureState() => new FormState(BuildDocument(forSave: false), Lines.Select(l => l.IsProductLine).ToArray());
+
+    protected override void RestoreState(object state)
+    {
+        var f = (FormState)state;
+        _productLines = f.ProductLines;
+        Fill(f.Doc, fresh: false);
+        _productLines = null;
         Recalc();
     }
+
+    bool[]? _productLines;
+
+    protected override string StateKey() => Snapshot();
 
     void Reset<T>(ObservableCollection<T> list, IEnumerable<T> rows) where T : EditRow
     {
@@ -235,6 +271,7 @@ public sealed partial class ItemEditorViewModel : PageViewModel
     {
         if (_loading) return;
         Recalc();
+        NoteEdit();
     }
 
     // ---------- live calculation ----------
@@ -382,35 +419,35 @@ public sealed partial class ItemEditorViewModel : PageViewModel
     void AddSource()
     {
         Attach(Sources, new SourceRow(new ItemSource { PurchaseQty = Sources.FirstOrDefault()?.Qty.Value ?? 1, Weight = 1 }));
-        Recalc();
+        OnEdited();
     }
 
     [RelayCommand]
     void RemoveSource(SourceRow row)
     {
         Sources.Remove(row);
-        Recalc();
+        OnEdited();
     }
 
     [RelayCommand]
     void AddLine()
     {
         Attach(Lines, new LineRow(new RecipeLine { Quantity = 1 }));
-        Recalc();
+        OnEdited();
     }
 
     [RelayCommand]
     void AddProduct()
     {
         Attach(Lines, new LineRow(new RecipeLine { Quantity = 1, Unit = QtyUnit.Pcs }, isProduct: true));
-        Recalc();
+        OnEdited();
     }
 
     [RelayCommand]
     void RemoveLine(LineRow row)
     {
         Lines.Remove(row);
-        Recalc();
+        OnEdited();
     }
 
     /// <summary>A newly picked material starts in its own unit.</summary>
@@ -430,32 +467,32 @@ public sealed partial class ItemEditorViewModel : PageViewModel
     void AddLabor()
     {
         Attach(Labor, new LaborRow(new LaborEntry { Seconds = 0 }));
-        Recalc();
+        OnEdited();
     }
 
     [RelayCommand]
     void RemoveLabor(LaborRow row)
     {
         Labor.Remove(row);
-        Recalc();
+        OnEdited();
     }
 
     [RelayCommand]
     void AddVariant()
     {
         Attach(Variants, new VariantRow(new ItemVariant()));
-        Recalc();
+        OnEdited();
     }
 
     [RelayCommand]
     void RemoveVariant(VariantRow row)
     {
         Variants.Remove(row);
-        Recalc();
+        OnEdited();
     }
 
     [RelayCommand]
-    void OpenUsage(UsageRow row) => _main.OpenItem(row.ProductId);
+    void OpenUsage(UsageRow row) => _main.OpenItem(row.ProductId, trail: Usage.Select(u => u.ProductId).ToList());
 
     [RelayCommand]
     void Back() => _main.GoBack(_from);
@@ -509,33 +546,7 @@ public sealed partial class ItemEditorViewModel : PageViewModel
             return false;
         }
 
-        var item = new Item
-        {
-            Id = _doc.Item.Id,
-            Kind = Kind,
-            Code = Code.Trim(),
-            Name = Name.Trim(),
-            FolderId = FolderId,
-            UsableAsMaterial = IsMerchandise && UsableAsMaterial,
-            MaterialFolderId = IsMerchandise && UsableAsMaterial ? MaterialFolderId : null,
-            Unit = IsProduct ? QtyUnit.Pcs : Unit,
-            PieceLengthCm = PieceLength.Value,
-            PieceAreaCm2 = PieceArea.Value,
-            PieceWeightKg = PieceWeight.Value,
-            MarkupPct = Markup.Value,
-            RoundingStep = Step.Value,
-            Notes = string.IsNullOrWhiteSpace(Notes) ? null : Notes.Trim(),
-            HasWaste = IsRaw && HasWaste,
-            WastePct = IsRaw && HasWaste ? WastePct.Value : null,
-        };
-        var doc = new ItemDocument
-        {
-            Item = item,
-            Sources = IsBought ? Sources.Select(s => s.ToModel()).ToList() : [],
-            Lines = IsProduct ? Lines.Select(l => l.ToModel()).ToList() : [],
-            Labor = IsProduct ? Labor.Select(l => l.ToModel()).ToList() : [],
-            Variants = IsBought ? Variants.Select(v => v.ToModel()).Where(v => v.Name.Length > 0 || v.Code is not null).ToList() : [],
-        };
+        var doc = BuildDocument();
         try
         {
             var id = AppState.Store.SaveItem(doc);
@@ -553,6 +564,39 @@ public sealed partial class ItemEditorViewModel : PageViewModel
             Dialogs.Error(Loc.T("item.recipeCycle"));
             return false;
         }
+    }
+
+    /// <summary>The form's values as a document (what Save stores).</summary>
+    ItemDocument BuildDocument(bool forSave = true)
+    {
+        var item = new Item
+        {
+            Id = _doc.Item.Id,
+            Kind = Kind,
+            Code = Code.Trim(),
+            Name = Name.Trim(),
+            FolderId = FolderId,
+            UsableAsMaterial = IsMerchandise && UsableAsMaterial,
+            MaterialFolderId = IsMerchandise && UsableAsMaterial ? MaterialFolderId : null,
+            Unit = IsProduct ? QtyUnit.Pcs : Unit,
+            PieceLengthCm = PieceLength.Value,
+            PieceAreaCm2 = PieceArea.Value,
+            PieceWeightKg = PieceWeight.Value,
+            MarkupPct = Markup.Value,
+            RoundingStep = Step.Value,
+            Notes = string.IsNullOrWhiteSpace(Notes) ? null : Notes.Trim(),
+            HasUnseenChange = _doc.Item.HasUnseenChange,
+            HasWaste = IsRaw && HasWaste,
+            WastePct = IsRaw && HasWaste ? WastePct.Value : null,
+        };
+        return new ItemDocument
+        {
+            Item = item,
+            Sources = IsBought ? Sources.Select(s => s.ToModel()).ToList() : [],
+            Lines = IsProduct ? Lines.Select(l => l.ToModel()).ToList() : [],
+            Labor = IsProduct ? Labor.Select(l => l.ToModel()).ToList() : [],
+            Variants = IsBought ? Variants.Select(v => v.ToModel()).Where(v => !forSave || v.Name.Length > 0 || v.Code is not null).ToList() : [],
+        };
     }
 
     public override void OnDataChanged(DataChange change)

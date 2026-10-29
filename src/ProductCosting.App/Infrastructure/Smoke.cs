@@ -293,6 +293,36 @@ internal static class Smoke
             w.WindowState = WindowState.Maximized;
             await Settle();
         });
+        await Step("undo and next record", async () =>
+        {
+            vm.GoCommand.Execute("products");
+            var list = (ListPageViewModel)vm.Current!;
+            list.OpenFolder(store.GetFolders(ListScope.Products).First(f => f.Name == "Τσάντες").Id);
+            await Settle();
+            var rows = list.Rows.Cast<ItemRow>().ToList();
+            list.OpenRow(rows[0]);
+            await Settle();
+            var ed = (ItemEditorViewModel)vm.Current!;
+            var original = ed.Name;
+            ed.Name = "Α";
+            await Task.Delay(1000);
+            ed.Name = "Β";
+            Check("undo returns to the previous step", ed.Undo() && ed.Name == "Α");
+            Check("undo again returns to the start", ed.Undo() && ed.Name == original && !ed.IsDirty);
+            vm.Step(1);
+            await Settle();
+            Check("→ opens the next row of the list", vm.Current is ItemEditorViewModel next && next.Id == rows[1].Id);
+            vm.Step(-1);
+            await Settle();
+            Check("← goes back", vm.Current is ItemEditorViewModel prev && prev.Id == rows[0].Id);
+            ((ItemEditorViewModel)vm.Current!).BackCommand.Execute(null);
+            await Settle();
+            Check("back still returns to the list", vm.Current == list);
+            vm.StepSection(1);
+            await Settle();
+            Check("↓ opens the next category", vm.Current is ListPageViewModel { Scope: ListScope.Merchandise });
+            list.OpenFolder(null);
+        });
         await Step("product with products in its recipe", async () => { vm.OpenItem(Id("P-500")); await Settle(500); Shot(root, "09b-product-set"); });
         await Step("product with warning", async () => { vm.OpenItem(Id("P-300")); await Settle(); Shot(root, "09-product-warning"); });
         await Step("merchandise editor", async () =>
