@@ -204,6 +204,7 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
         if (!IsNew) new SupplierHistoryWindow(_model) { Owner = System.Windows.Application.Current.MainWindow }.ShowDialog();
     }
 
+    [RelayCommand]
     void NewOrder()
     {
         if (IsNew) return;
