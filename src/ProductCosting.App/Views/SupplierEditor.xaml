@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:l="clr-namespace:ProductCosting.App.Infrastructure"
              xmlns:c="clr-namespace:ProductCosting.App.Controls"
+             xmlns:v="clr-namespace:ProductCosting.App.Views"
              x:Name="Root">
     <Grid>
         <Grid.RowDefinitions>
@@ -10,9 +11,11 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Border BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1" Padding="20,14,28,14">
+        <Border BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1" Padding="20,14,28,14">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Style="{StaticResource GhostButton}" l:Btn.Icon="&#xE9D2;" Content="{l:T supplier.history}" Command="{Binding HistoryCommand}"
+                            Visibility="{Binding IsNew, Converter={StaticResource Hidden}}" Margin="0,0,8,0" />
                     <Button Style="{StaticResource DangerButton}" l:Btn.Icon="&#xE74D;" Content="{l:T common.delete}" Command="{Binding DeleteCommand}" />
                     <Button Style="{StaticResource SecondaryButton}" l:Btn.Icon="&#xE7A7;" Content="{l:T common.cancelChanges}" Command="{Binding CancelCommand}"
                             IsEnabled="{Binding Dirty}" Margin="8,0,0,0" />
@@ -25,9 +28,9 @@
                     <Border Style="{StaticResource Badge}" Margin="12,2,0,0">
                         <TextBlock Text="{l:T kind.supplier}" />
                     </Border>
-                    <Border Style="{StaticResource Badge}" Margin="8,2,0,0" Background="{StaticResource WarningSoftBrush}"
+                    <Border Style="{StaticResource Badge}" Margin="8,2,0,0" Background="{DynamicResource WarningSoftBrush}"
                             Visibility="{Binding Dirty, Converter={StaticResource Visible}}">
-                        <TextBlock Text="{l:T common.unsaved}" Foreground="{StaticResource WarningTextBrush}" />
+                        <TextBlock Text="{l:T common.unsaved}" Foreground="{DynamicResource WarningTextBrush}" />
                     </Border>
                 </StackPanel>
             </DockPanel>
@@ -65,6 +68,8 @@
                                 <ColumnDefinition Width="14" />
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="14" />
+                                <ColumnDefinition Width="0.8*" />
+                                <ColumnDefinition Width="14" />
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="14" />
                                 <ColumnDefinition Width="1.3*" />
@@ -78,11 +83,15 @@
                                 <l:NumBox Field="{Binding Shipping}" ToolTip="{l:T supplier.shippingHelp}" l:Hint.Text="0" />
                             </StackPanel>
                             <StackPanel Grid.Column="4">
+                                <TextBlock Text="{l:T supplier.vat}" Style="{StaticResource FieldLabel}" />
+                                <l:NumBox Field="{Binding Vat}" l:Hint.Text="0" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="6">
                                 <TextBlock Text="{l:T supplier.currency}" Style="{StaticResource FieldLabel}" />
                                 <ComboBox ItemsSource="{Binding Currencies}" SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding Currency}"
                                           HorizontalAlignment="Stretch" />
                             </StackPanel>
-                            <StackPanel Grid.Column="6">
+                            <StackPanel Grid.Column="8">
                                 <TextBlock Text="{l:T supplier.country}" Style="{StaticResource FieldLabel}" />
                                 <c:SearchPicker ItemsSource="{Binding CountryEntries}" SelectedId="{Binding CountryId}" Placeholder="{l:T supplier.pickCountry}" />
                             </StackPanel>
@@ -138,34 +147,9 @@
                 </DockPanel>
             </Border>
 
-            <!-- saved orders: double-click opens, right-click exports or deletes -->
-            <Border Style="{StaticResource Card}" Padding="0" Margin="0,16,0,0" l:RoundClip.Enabled="True"
-                    Visibility="{Binding IsNew, Converter={StaticResource Hidden}}">
-                <StackPanel>
-                    <TextBlock Text="{l:T order.savedOrders}" Style="{StaticResource H2}" Margin="20,16,16,12" />
-                    <TextBlock Text="{l:T order.noSaved}" Style="{StaticResource Muted}" Margin="20,0,20,16"
-                               Visibility="{Binding HasOrders, Converter={StaticResource Hidden}}" />
-                    <DataGrid x:Name="OrdersGrid" ItemsSource="{Binding Orders}" SelectionMode="Single"
-                              Visibility="{Binding HasOrders, Converter={StaticResource Visible}}"
-                              MouseDoubleClick="OrdersGrid_MouseDoubleClick" ContextMenuOpening="OrdersGrid_ContextMenuOpening">
-                        <DataGrid.ContextMenu>
-                            <ContextMenu>
-                                <MenuItem Header="{l:T common.open}" Click="Order_Open" />
-                                <MenuItem Header="{l:T order.export}" Click="Order_Export" />
-                                <Separator />
-                                <MenuItem Header="{l:T common.delete}" Click="Order_Delete" Foreground="{StaticResource DangerTextBrush}" />
-                            </ContextMenu>
-                        </DataGrid.ContextMenu>
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="{l:T order.updated}" Binding="{Binding DateText}" Width="*" ElementStyle="{StaticResource CellText}" />
-                            <DataGridTextColumn Header="{l:T order.linesCol}" Binding="{Binding LineCount}" Width="110"
-                                                ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
-                            <DataGridTextColumn Header="{l:T order.totalCol}" Binding="{Binding TotalText}" Width="130"
-                                                ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
-                        </DataGrid.Columns>
-                    </DataGrid>
-                </StackPanel>
-            </Border>
+            <!-- saved orders by state: double-click opens, right-click for more -->
+            <v:OrdersTable Margin="0,16,0,0" Drafts="{Binding Drafts}" Executed="{Binding ExecutedOrders}" Archived="{Binding ArchivedOrders}"
+                           Visibility="{Binding IsNew, Converter={StaticResource Hidden}}" />
             </StackPanel>
             </ScrollViewer>
         </Grid>

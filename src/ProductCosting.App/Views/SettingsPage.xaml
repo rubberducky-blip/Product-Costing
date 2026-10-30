@@ -14,7 +14,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <Border BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1" Padding="28,14">
+        <Border BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1" Padding="28,14">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button Style="{StaticResource SecondaryButton}" l:Btn.Icon="&#xE7A7;" Content="{l:T common.cancelChanges}" Command="{Binding CancelCommand}"
@@ -24,9 +24,9 @@
                 </StackPanel>
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="{l:T settings.title}" Style="{StaticResource H1}" FontSize="21" VerticalAlignment="Center" />
-                    <Border Style="{StaticResource Badge}" Margin="12,2,0,0" Background="{StaticResource WarningSoftBrush}"
+                    <Border Style="{StaticResource Badge}" Margin="12,2,0,0" Background="{DynamicResource WarningSoftBrush}"
                             Visibility="{Binding Dirty, Converter={StaticResource Visible}}">
-                        <TextBlock Text="{l:T common.unsaved}" Foreground="{StaticResource WarningTextBrush}" />
+                        <TextBlock Text="{l:T common.unsaved}" Foreground="{DynamicResource WarningTextBrush}" />
                     </Border>
                 </StackPanel>
             </DockPanel>
@@ -91,11 +91,23 @@
                 <Border Style="{StaticResource Card}" Margin="0,16,0,0">
                     <StackPanel>
                         <TextBlock Text="{l:T settings.appearance}" Style="{StaticResource H2}" Margin="0,0,0,14" />
-                        <StackPanel Style="{StaticResource Field}" HorizontalAlignment="Left">
-                            <TextBlock Text="{l:T settings.language}" Style="{StaticResource FieldLabel}" />
-                            <ComboBox ItemsSource="{Binding Languages}" SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding Language}"
-                                      HorizontalAlignment="Stretch" />
-                        </StackPanel>
+                        <WrapPanel>
+                            <StackPanel Style="{StaticResource Field}">
+                                <TextBlock Text="{l:T settings.theme}" Style="{StaticResource FieldLabel}" />
+                                <ComboBox ItemsSource="{Binding Themes}" SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding Theme}"
+                                          HorizontalAlignment="Stretch" />
+                            </StackPanel>
+                            <StackPanel Style="{StaticResource Field}">
+                                <TextBlock Text="{l:T settings.textSize}" Style="{StaticResource FieldLabel}" />
+                                <ComboBox ItemsSource="{Binding Sizes}" SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding UiScale}"
+                                          HorizontalAlignment="Stretch" />
+                            </StackPanel>
+                            <StackPanel Style="{StaticResource Field}">
+                                <TextBlock Text="{l:T settings.language}" Style="{StaticResource FieldLabel}" />
+                                <ComboBox ItemsSource="{Binding Languages}" SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding Language}"
+                                          HorizontalAlignment="Stretch" />
+                            </StackPanel>
+                        </WrapPanel>
                     </StackPanel>
                 </Border>
 
@@ -127,7 +139,7 @@
                             <TextBlock Text="{Binding LastAutoText}" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="20,0,0,0" />
                         </StackPanel>
 
-                        <Border BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="8" Margin="0,16,0,0" MaxHeight="340" l:RoundClip.Enabled="True">
+                        <Border BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="8" Margin="0,16,0,0" MaxHeight="340" l:RoundClip.Enabled="True">
                             <Grid>
                                 <TextBlock Text="{l:T settings.noBackups}" Style="{StaticResource Muted}" Margin="14,12"
                                            Visibility="{Binding HasBackups, Converter={StaticResource Hidden}}" />
@@ -142,7 +154,7 @@
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
                                                     <Button Style="{StaticResource GhostButton}" Content="{l:T settings.restore}" l:Btn.Icon="&#xE777;"
-                                                            Padding="10,3" MinHeight="0" HorizontalAlignment="Right" Foreground="{StaticResource AccentTextBrush}"
+                                                            Padding="10,3" MinHeight="0" HorizontalAlignment="Right" Foreground="{DynamicResource AccentTextBrush}"
                                                             Command="{Binding DataContext.RestoreCommand, ElementName=Root}" CommandParameter="{Binding}" />
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
@@ -165,11 +177,11 @@
                                             <ColumnDefinition Width="170" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
-                                        <Border Background="{StaticResource CardHoverBrush}" BorderBrush="{StaticResource LineStrongBrush}" BorderThickness="1"
+                                        <Border Background="{DynamicResource CardHoverBrush}" BorderBrush="{DynamicResource LineStrongBrush}" BorderThickness="1"
                                                 CornerRadius="5" Padding="8,2" HorizontalAlignment="Left">
                                             <TextBlock Text="{Binding Keys}" FontSize="12" FontWeight="SemiBold" />
                                         </Border>
-                                        <TextBlock Grid.Column="1" Text="{Binding Description}" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Description}" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" />
                                     </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>

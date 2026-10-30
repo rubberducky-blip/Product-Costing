@@ -31,8 +31,6 @@
     <SolidColorBrush x:Key="HoverBrush" Color="#14FFFFFF" />
     <SolidColorBrush x:Key="PressedBrush" Color="#0AFFFFFF" />
     <SolidColorBrush x:Key="SelectedBrush" Color="#223B82F6" />
-
-    <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
-    <FontFamily x:Key="UiFont">Segoe UI Variable Text, Segoe UI</FontFamily>
-    <FontFamily x:Key="DisplayFont">Segoe UI Variable Display, Segoe UI</FontFamily>
+    <SolidColorBrush x:Key="OnAccentBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="DangerLineBrush" Color="#5A2A2E" />
 </ResourceDictionary>

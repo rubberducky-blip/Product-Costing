@@ -13,6 +13,9 @@ public enum Currency { Eur = 0, Usd = 1 }
 
 public enum SortMode { Code = 0, Manual = 1 }
 
+/// <summary>Draft (saved, editable) → Executed (placed with the supplier, read-only) → Archived.</summary>
+public enum OrderStatus { Draft = 0, Executed = 1, Archived = 2 }
+
 /// <summary>Why a price changed. Stored as a bit mask, so one change can carry several reasons.</summary>
 [Flags]
 public enum PriceReason

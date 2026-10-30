@@ -57,11 +57,11 @@ public partial class MainWindow : Window
                 case Key.Z when focus != SearchBox && _vm.Current is { SupportsUndo: true } page:
                     e.Handled = page.Undo();
                     break;
-                case >= Key.D1 and <= Key.D4:
+                case >= Key.D1 and <= Key.D5:
                     _vm.NewByShortcut(key - Key.D0);
                     e.Handled = true;
                     break;
-                case >= Key.NumPad1 and <= Key.NumPad4:
+                case >= Key.NumPad1 and <= Key.NumPad5:
                     _vm.NewByShortcut(key - Key.NumPad0);
                     e.Handled = true;
                     break;

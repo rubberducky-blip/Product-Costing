@@ -98,6 +98,8 @@ public sealed partial class Store
         s.RoundingMode = (RoundingMode)(int)D("rounding_mode", (int)s.RoundingMode);
         s.CurrencySymbol = S("currency_symbol", s.CurrencySymbol);
         s.Language = S("language", s.Language);
+        s.Theme = S("theme", s.Theme);
+        s.UiScale = D("ui_scale", s.UiScale);
         s.UsdPerEur = D("usd_per_eur", s.UsdPerEur);
         s.BackupFolder = S("backup_folder", s.BackupFolder);
         s.AutoBackup = S("auto_backup", "1") == "1";
@@ -114,7 +116,7 @@ public sealed partial class Store
             ("labor_rate", N(s.LaborRatePerHour)), ("overhead_rate", N(s.OverheadRatePerHour)),
             ("default_markup", N(s.DefaultMarkupPct)), ("rounding_step", N(s.RoundingStep)),
             ("rounding_mode", ((int)s.RoundingMode).ToString(CultureInfo.InvariantCulture)),
-            ("currency_symbol", s.CurrencySymbol), ("language", s.Language), ("usd_per_eur", N(s.UsdPerEur)),
+            ("currency_symbol", s.CurrencySymbol), ("language", s.Language), ("theme", s.Theme), ("ui_scale", N(s.UiScale)), ("usd_per_eur", N(s.UsdPerEur)),
             ("backup_folder", s.BackupFolder), ("auto_backup", s.AutoBackup ? "1" : "0"),
             ("backup_keep", s.BackupKeepCount.ToString(CultureInfo.InvariantCulture)), ("last_auto_backup", s.LastAutoBackupDay),
         };
@@ -142,6 +144,8 @@ public sealed partial class Store
         var old = LoadSettings(c, t);
         old.CurrencySymbol = s.CurrencySymbol;
         old.Language = s.Language;
+        old.Theme = s.Theme;
+        old.UiScale = s.UiScale;
         old.BackupFolder = s.BackupFolder;
         old.AutoBackup = s.AutoBackup;
         old.BackupKeepCount = s.BackupKeepCount;

@@ -6,8 +6,8 @@
     <UserControl.Resources>
         <!-- folder tile -->
         <Style x:Key="Tile" TargetType="Border">
-            <Setter Property="Background" Value="{StaticResource CardBrush}" />
-            <Setter Property="BorderBrush" Value="{StaticResource LineBrush}" />
+            <Setter Property="Background" Value="{DynamicResource CardBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="10" />
             <Setter Property="Padding" Value="14,12" />
@@ -17,19 +17,19 @@
             <Setter Property="AllowDrop" Value="True" />
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource CardHoverBrush}" />
-                    <Setter Property="BorderBrush" Value="{StaticResource LineStrongBrush}" />
+                    <Setter Property="Background" Value="{DynamicResource CardHoverBrush}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource LineStrongBrush}" />
                 </Trigger>
                 <Trigger Property="l:DropHint.Position" Value="3">
-                    <Setter Property="Background" Value="{StaticResource AccentSoftBrush}" />
-                    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                 </Trigger>
                 <Trigger Property="l:DropHint.Position" Value="1">
-                    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                     <Setter Property="BorderThickness" Value="3,1,1,1" />
                 </Trigger>
                 <Trigger Property="l:DropHint.Position" Value="2">
-                    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                     <Setter Property="BorderThickness" Value="1,1,3,1" />
                 </Trigger>
             </Style.Triggers>
@@ -41,8 +41,8 @@
             <Setter Property="AllowDrop" Value="True" />
             <Style.Triggers>
                 <Trigger Property="l:DropHint.Position" Value="3">
-                    <Setter Property="Background" Value="{StaticResource AccentSoftBrush}" />
-                    <Setter Property="Foreground" Value="{StaticResource AccentTextBrush}" />
+                    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+                    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -92,7 +92,7 @@
                     <StackPanel Orientation="Horizontal">
                         <Button Style="{StaticResource CrumbButton}" Content="{Binding Name}" Tag="{Binding Id}"
                                 Click="Crumb_Click" DragOver="Crumb_DragOver" DragLeave="Target_DragLeave" Drop="Crumb_Drop" />
-                        <TextBlock Style="{StaticResource Icon}" Text="&#xE76C;" FontSize="10" Foreground="{StaticResource TextFaintBrush}" Margin="2,0"
+                        <TextBlock Style="{StaticResource Icon}" Text="&#xE76C;" FontSize="10" Foreground="{DynamicResource TextFaintBrush}" Margin="2,0"
                                    Visibility="{Binding IsLast, Converter={StaticResource Hidden}}" />
                     </StackPanel>
                 </DataTemplate>
@@ -118,7 +118,7 @@
 
         <!-- toolbar -->
         <DockPanel Grid.Row="2" Margin="0,0,0,16">
-            <Border DockPanel.Dock="Right" Background="{StaticResource InsetBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="7" Padding="3">
+            <Border DockPanel.Dock="Right" Background="{DynamicResource InsetBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="7" Padding="3">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="{l:T sort.title}" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="8,0,6,0" />
                     <RadioButton Style="{StaticResource SegmentButton}" Content="{Binding CodeSortText}"
@@ -153,7 +153,7 @@
                                 <MenuItem Header="{l:T common.open}" Click="TileMenu_Open" />
                                 <MenuItem Header="{l:T common.rename}" Click="TileMenu_Rename" />
                                 <Separator />
-                                <MenuItem Header="{l:T common.delete}" Click="TileMenu_Delete" Foreground="{StaticResource DangerTextBrush}" />
+                                <MenuItem Header="{l:T common.delete}" Click="TileMenu_Delete" Foreground="{DynamicResource DangerTextBrush}" />
                             </ContextMenu>
                         </Border.ContextMenu>
                         <Grid>
@@ -188,7 +188,7 @@
                             <MenuItem Header="{l:T menu.setPurchase}" Click="Menu_SetPurchase" Tag="bought" />
                             <MenuItem Header="{l:T supplier.newOrder}" Click="Menu_NewOrder" Tag="supplier" />
                             <Separator />
-                            <MenuItem Header="{l:T common.delete}" Click="Menu_Delete" Foreground="{StaticResource DangerTextBrush}" />
+                            <MenuItem Header="{l:T common.delete}" Click="Menu_Delete" Foreground="{DynamicResource DangerTextBrush}" />
                         </ContextMenu>
                     </DataGrid.ContextMenu>
                     <DataGrid.Columns>
@@ -199,7 +199,7 @@
                                         <TextBlock Text="{Binding Code}" FontWeight="SemiBold" />
                                         <Ellipse Style="{StaticResource GlowDot}" Visibility="{Binding HasUnseenChange, Converter={StaticResource Visible}}" />
                                         <TextBlock Style="{StaticResource Icon}" Text="&#xE7BA;" FontSize="12" Margin="8,0,0,0"
-                                                   Foreground="{StaticResource WarningTextBrush}" ToolTip="{l:T cost.warnConversion}"
+                                                   Foreground="{DynamicResource WarningTextBrush}" ToolTip="{l:T cost.warnConversion}"
                                                    Visibility="{Binding HasWarnings, Converter={StaticResource Visible}}" />
                                     </StackPanel>
                                 </DataTemplate>
@@ -228,7 +228,7 @@
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <TextBlock Text="{Binding MarginPct, Converter={StaticResource Pct}}" Style="{StaticResource NumCell}" FontWeight="SemiBold"
-                                               Foreground="{Binding MarginPct, Converter={StaticResource MarginBrush}}" />
+                                               Foreground="{Binding MarginPct, Converter={DynamicResource MarginBrush}}" />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
@@ -249,7 +249,7 @@
                             <MenuItem Header="{l:T menu.setPurchase}" Click="Menu_SetPurchase" Tag="bought" />
                             <MenuItem Header="{l:T supplier.newOrder}" Click="Menu_NewOrder" Tag="supplier" />
                             <Separator />
-                            <MenuItem Header="{l:T common.delete}" Click="Menu_Delete" Foreground="{StaticResource DangerTextBrush}" />
+                            <MenuItem Header="{l:T common.delete}" Click="Menu_Delete" Foreground="{DynamicResource DangerTextBrush}" />
                         </ContextMenu>
                     </DataGrid.ContextMenu>
                     <DataGrid.Columns>
@@ -279,7 +279,7 @@
         </Border>
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding IsEmpty, Converter={StaticResource Visible}}"
                     IsHitTestVisible="False">
-            <TextBlock Style="{StaticResource Icon}" Text="&#xE7B8;" FontSize="34" HorizontalAlignment="Center" Foreground="{StaticResource TextFaintBrush}" />
+            <TextBlock Style="{StaticResource Icon}" Text="&#xE7B8;" FontSize="34" HorizontalAlignment="Center" Foreground="{DynamicResource TextFaintBrush}" />
             <TextBlock Text="{l:T common.empty}" Style="{StaticResource Muted}" Margin="0,10,0,0" HorizontalAlignment="Center" />
             <TextBlock Text="{l:T list.dragHint}" Style="{StaticResource Caption}" Margin="0,4,0,0" HorizontalAlignment="Center" />
         </StackPanel>

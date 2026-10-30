@@ -47,6 +47,7 @@ public sealed partial class Store
         if (it.Kind == ItemKind.Product && it.Id != 0) CheckNoCycle(c, t, it.Id, doc.Lines);
 
         var created = it.Id == 0;
+        List<(long, decimal)> oldPrices = [];
         var now = Now;
         var args = new
         {
@@ -68,6 +69,8 @@ public sealed partial class Store
         }
         else
         {
+            oldPrices = c.Query<(long, double)>("SELECT supplier_id, purchase_price FROM item_sources WHERE item_id=@Id AND supplier_id IS NOT NULL", it, t)
+                .Select(x => (x.Item1, (decimal)x.Item2)).ToList();
             var oldMatFolder = c.ExecuteScalar<long?>("SELECT material_folder_id FROM items WHERE id=@Id", it, t);
             var oldFolder = c.ExecuteScalar<long?>("SELECT folder_id FROM items WHERE id=@Id", it, t);
             c.Execute("""
@@ -114,6 +117,9 @@ public sealed partial class Store
         }
 
         RefreshItemSearch(c, t, [id]);
+        if (!created)
+            RecordSupplierPrices(c, t, id, oldPrices,
+                doc.Sources.Where(s => s.SupplierId is not null).Select(s => (s.SupplierId!.Value, s.PurchasePrice)));
 
         var req = new RecalcRequest();
         req.Items.Add(id);
@@ -178,7 +184,10 @@ public sealed partial class Store
     public bool SetPurchasePrice(long id, decimal price) => Write(DataChange.Items | DataChange.Notifications, (c, t) =>
     {
         if (c.ExecuteScalar<int>("SELECT count(*) FROM item_sources WHERE item_id=@id", new { id }, t) != 1) return false;
+        var before = c.Query<(long, double)>("SELECT supplier_id, purchase_price FROM item_sources WHERE item_id=@id AND supplier_id IS NOT NULL", new { id }, t)
+            .Select(x => (x.Item1, (decimal)x.Item2)).ToList();
         c.Execute("UPDATE item_sources SET purchase_price=@p WHERE item_id=@id", new { p = (double)price, id }, t);
+        RecordSupplierPrices(c, t, id, before, before.Select(b => (b.Item1, price)));
         c.Execute("UPDATE items SET updated_at=@now WHERE id=@id", new { now = Now, id }, t);
         var req = new RecalcRequest();
         req.Items.Add(id);

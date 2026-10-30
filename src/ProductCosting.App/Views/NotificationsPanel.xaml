@@ -3,13 +3,13 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:l="clr-namespace:ProductCosting.App.Infrastructure"
              Width="540">
-    <Border Background="{StaticResource PopupBrush}" BorderBrush="{StaticResource LineStrongBrush}" BorderThickness="1" CornerRadius="12" Margin="0,0,12,12">
+    <Border Background="{DynamicResource PopupBrush}" BorderBrush="{DynamicResource LineStrongBrush}" BorderThickness="1" CornerRadius="12" Margin="0,0,12,12" LayoutTransform="{x:Static l:UiScale.Transform}">
         <Border.Effect>
             <DropShadowEffect BlurRadius="28" ShadowDepth="6" Opacity="0.6" Color="Black" />
         </Border.Effect>
         <DockPanel>
             <!-- header -->
-            <Border DockPanel.Dock="Top" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1" Padding="18,14,12,12">
+            <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1" Padding="18,14,12,12">
                 <StackPanel>
                     <DockPanel>
                         <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Content="{l:T notify.hideAll}" Padding="10,5" MinHeight="0"
@@ -47,9 +47,9 @@
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <Border x:Name="IconBg" Width="28" Height="28" CornerRadius="14" VerticalAlignment="Top" HorizontalAlignment="Left"
-                                            Background="{StaticResource SuccessSoftBrush}">
+                                            Background="{DynamicResource SuccessSoftBrush}">
                                         <TextBlock x:Name="Arrow" Style="{StaticResource Icon}" Text="{Binding Glyph}" FontSize="13" HorizontalAlignment="Center"
-                                                   Foreground="{StaticResource SuccessTextBrush}" />
+                                                   Foreground="{DynamicResource SuccessTextBrush}" />
                                     </Border>
                                     <StackPanel Grid.Column="1">
                                         <DockPanel>
@@ -58,16 +58,16 @@
                                                     CommandParameter="{Binding}" HorizontalAlignment="Left">
                                                 <TextBlock TextTrimming="CharacterEllipsis">
                                                     <Run Text="{Binding Code, Mode=OneWay}" FontWeight="SemiBold" />
-                                                    <Run Text="·" Foreground="{StaticResource TextFaintBrush}" />
-                                                    <Run Text="{Binding Name, Mode=OneWay}" Foreground="{StaticResource TextBrush}" />
+                                                    <Run Text="·" Foreground="{DynamicResource TextFaintBrush}" />
+                                                    <Run Text="{Binding Name, Mode=OneWay}" Foreground="{DynamicResource TextBrush}" />
                                                 </TextBlock>
                                             </Button>
                                         </DockPanel>
                                         <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                            <TextBlock Text="{Binding OldText}" Foreground="{StaticResource TextMutedBrush}" TextDecorations="Strikethrough" />
-                                            <TextBlock Text="  →  " Foreground="{StaticResource TextFaintBrush}" />
+                                            <TextBlock Text="{Binding OldText}" Foreground="{DynamicResource TextMutedBrush}" TextDecorations="Strikethrough" />
+                                            <TextBlock Text="  →  " Foreground="{DynamicResource TextFaintBrush}" />
                                             <TextBlock Text="{Binding NewText}" FontWeight="SemiBold" />
-                                            <TextBlock x:Name="Change" Text="{Binding ChangeText}" Margin="10,0,0,0" Foreground="{StaticResource SuccessTextBrush}" />
+                                            <TextBlock x:Name="Change" Text="{Binding ChangeText}" Margin="10,0,0,0" Foreground="{DynamicResource SuccessTextBrush}" />
                                         </StackPanel>
                                         <TextBlock Text="{Binding ReasonsText}" Style="{StaticResource Caption}" Margin="0,3,0,0" />
                                         <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
@@ -86,12 +86,12 @@
                             </Border>
                             <DataTemplate.Triggers>
                                 <DataTrigger Binding="{Binding IsIncrease}" Value="True">
-                                    <Setter TargetName="IconBg" Property="Background" Value="{StaticResource DangerSoftBrush}" />
-                                    <Setter TargetName="Arrow" Property="Foreground" Value="{StaticResource DangerTextBrush}" />
-                                    <Setter TargetName="Change" Property="Foreground" Value="{StaticResource DangerTextBrush}" />
+                                    <Setter TargetName="IconBg" Property="Background" Value="{DynamicResource DangerSoftBrush}" />
+                                    <Setter TargetName="Arrow" Property="Foreground" Value="{DynamicResource DangerTextBrush}" />
+                                    <Setter TargetName="Change" Property="Foreground" Value="{DynamicResource DangerTextBrush}" />
                                 </DataTrigger>
                                 <Trigger SourceName="Card" Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Card" Property="Background" Value="{StaticResource HoverBrush}" />
+                                    <Setter TargetName="Card" Property="Background" Value="{DynamicResource HoverBrush}" />
                                 </Trigger>
                             </DataTemplate.Triggers>
                         </DataTemplate>

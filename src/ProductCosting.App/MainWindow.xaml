@@ -18,19 +18,22 @@
         <DataTemplate DataType="{x:Type vm:SupplierEditorViewModel}">
             <v:SupplierEditor />
         </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:OrdersPageViewModel}">
+            <v:OrdersPage />
+        </DataTemplate>
         <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
             <v:SettingsPage />
         </DataTemplate>
     </Window.Resources>
 
-    <Grid>
+    <Grid LayoutTransform="{x:Static l:UiScale.Transform}">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="232" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
         <!-- sidebar -->
-        <Border Background="{StaticResource SidebarBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,1,0">
+        <Border Background="{DynamicResource SidebarBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,1,0">
             <DockPanel Margin="14,18,14,14">
                 <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="6,0,0,26">
                     <Image Source="Assets/app.png" Width="32" Height="32" RenderOptions.BitmapScalingMode="HighQuality" />
@@ -57,6 +60,9 @@
                     <RadioButton Style="{StaticResource NavButton}" l:Btn.Icon="&#xE716;" Content="{l:T nav.suppliers}"
                                  Command="{Binding GoCommand}" CommandParameter="suppliers"
                                  IsChecked="{Binding Section, Mode=OneWay, Converter={StaticResource Equals}, ConverterParameter=suppliers}" />
+                    <RadioButton Style="{StaticResource NavButton}" l:Btn.Icon="&#xE7BF;" Content="{l:T nav.orders}"
+                                 Command="{Binding GoCommand}" CommandParameter="orders"
+                                 IsChecked="{Binding Section, Mode=OneWay, Converter={StaticResource Equals}, ConverterParameter=orders}" />
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -69,7 +75,7 @@
             </Grid.RowDefinitions>
 
             <!-- top bar -->
-            <Border Background="{StaticResource SidebarBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1" Padding="28,10">
+            <Border Background="{DynamicResource SidebarBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1" Padding="28,10">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -81,8 +87,8 @@
                                  l:Hint.Text="{l:T search.placeholder}" PreviewKeyDown="SearchBox_PreviewKeyDown" />
                         <Popup IsOpen="{Binding IsOpen}" PlacementTarget="{Binding ElementName=SearchBox}" Placement="Bottom" VerticalOffset="6"
                                StaysOpen="False" AllowsTransparency="True" Width="620">
-                            <Border Background="{StaticResource PopupBrush}" BorderBrush="{StaticResource LineStrongBrush}" BorderThickness="1"
-                                    CornerRadius="10" Padding="6" Margin="0,0,12,12">
+                            <Border Background="{DynamicResource PopupBrush}" BorderBrush="{DynamicResource LineStrongBrush}" BorderThickness="1"
+                                    CornerRadius="10" Padding="6" Margin="0,0,12,12" LayoutTransform="{x:Static l:UiScale.Transform}">
                                 <Border.Effect>
                                     <DropShadowEffect BlurRadius="24" ShadowDepth="6" Opacity="0.55" Color="Black" />
                                 </Border.Effect>
@@ -102,9 +108,9 @@
                                                         <ColumnDefinition Width="*" />
                                                         <ColumnDefinition Width="Auto" />
                                                     </Grid.ColumnDefinitions>
-                                                    <Border Width="26" Height="26" CornerRadius="6" Background="{StaticResource AccentSoftBrush}" HorizontalAlignment="Left">
+                                                    <Border Width="26" Height="26" CornerRadius="6" Background="{DynamicResource AccentSoftBrush}" HorizontalAlignment="Left">
                                                         <TextBlock Style="{StaticResource Icon}" Text="{Binding Glyph}" FontSize="13" HorizontalAlignment="Center"
-                                                                   Foreground="{StaticResource AccentTextBrush}" />
+                                                                   Foreground="{DynamicResource AccentTextBrush}" />
                                                     </Border>
                                                     <TextBlock Grid.Column="1" Text="{Binding Code}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="4,0,10,0" />
                                                     <StackPanel Grid.Column="2" VerticalAlignment="Center">
@@ -113,12 +119,12 @@
                                                                    Visibility="{Binding HasSnippet, Converter={StaticResource Hidden}}" />
                                                         <StackPanel Orientation="Horizontal" Visibility="{Binding HasSnippet, Converter={StaticResource Visible}}">
                                                             <TextBlock Style="{StaticResource Icon}" Text="&#xE90A;" FontSize="11" Margin="0,1,6,0"
-                                                                       Foreground="{StaticResource AccentTextBrush}" />
-                                                            <TextBlock Text="{Binding Snippet}" FontSize="12" FontStyle="Italic" Foreground="{StaticResource TextMutedBrush}"
+                                                                       Foreground="{DynamicResource AccentTextBrush}" />
+                                                            <TextBlock Text="{Binding Snippet}" FontSize="12" FontStyle="Italic" Foreground="{DynamicResource TextMutedBrush}"
                                                                        TextTrimming="CharacterEllipsis" MaxWidth="420" />
                                                         </StackPanel>
                                                     </StackPanel>
-                                                    <TextBlock Grid.Column="3" Text="{Binding PriceText}" VerticalAlignment="Center" Foreground="{StaticResource TextMutedBrush}" Margin="12,0,4,0" />
+                                                    <TextBlock Grid.Column="3" Text="{Binding PriceText}" VerticalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}" Margin="12,0,4,0" />
                                                 </Grid>
                                             </DataTemplate>
                                         </ListBox.ItemTemplate>
@@ -137,7 +143,7 @@
                             </Grid>
                         </Button>
                         <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,2,0,0" MinWidth="18" Height="18" CornerRadius="9"
-                                Background="{StaticResource DangerBrush}" Padding="5,0" IsHitTestVisible="False"
+                                Background="{DynamicResource DangerBrush}" Padding="5,0" IsHitTestVisible="False"
                                 Visibility="{Binding Count, Converter={StaticResource Visible}}">
                             <TextBlock Text="{Binding Count}" FontSize="10.5" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
@@ -156,13 +162,13 @@
 
             <!-- toast -->
             <Border Grid.Row="1" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,28,24" Padding="16,11"
-                    Background="{StaticResource PopupBrush}" BorderBrush="{StaticResource LineStrongBrush}" BorderThickness="1" CornerRadius="8"
+                    Background="{DynamicResource PopupBrush}" BorderBrush="{DynamicResource LineStrongBrush}" BorderThickness="1" CornerRadius="8"
                     Visibility="{Binding Toast, Converter={StaticResource Visible}}" IsHitTestVisible="False">
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="20" ShadowDepth="4" Opacity="0.5" Color="Black" />
                 </Border.Effect>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Style="{StaticResource Icon}" Text="&#xE73E;" Foreground="{StaticResource SuccessTextBrush}" Margin="0,0,10,0" />
+                    <TextBlock Style="{StaticResource Icon}" Text="&#xE73E;" Foreground="{DynamicResource SuccessTextBrush}" Margin="0,0,10,0" />
                     <TextBlock Text="{Binding Toast}" MaxWidth="420" TextWrapping="Wrap" />
                 </StackPanel>
             </Border>

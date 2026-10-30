@@ -14,6 +14,7 @@ public static class NativeWindow
     const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
     const int DWMWA_CAPTION_COLOR = 35;
 
+    /// <summary>Title bar in the theme's colours: dark or light, and on Windows 11 the sidebar colour.</summary>
     public static void UseDarkTitleBar(Window w)
     {
         void Apply()
@@ -22,10 +23,12 @@ public static class NativeWindow
             {
                 var hwnd = new WindowInteropHelper(w).Handle;
                 if (hwnd == IntPtr.Zero) return;
-                var on = 1;
+                var p = ThemeManager.Current;
+                var on = p.Dark ? 1 : 0;
                 if (DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref on, sizeof(int)) != 0)
                     DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE_OLD, ref on, sizeof(int));
-                var color = 0x001C1714; // COLORREF 0x00BBGGRR → #14171C
+                var c = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(p.Sidebar);
+                var color = c.R | (c.G << 8) | (c.B << 16);   // COLORREF 0x00BBGGRR
                 DwmSetWindowAttribute(hwnd, DWMWA_CAPTION_COLOR, ref color, sizeof(int));
             }
             catch (DllNotFoundException) { }

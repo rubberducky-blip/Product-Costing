@@ -6,7 +6,7 @@ namespace ProductCosting.Core.Data;
 /// <summary>Opens connections to the local SQLite database and keeps its schema up to date.</summary>
 public sealed class Db
 {
-    public const int SchemaVersion = 3;
+    public const int SchemaVersion = 4;
 
     static int _initialized;
 
@@ -65,6 +65,13 @@ public sealed class Db
             using var t = c.BeginTransaction();
             c.Execute(Schema.V3, transaction: t);
             c.Execute("PRAGMA user_version = 3", transaction: t);
+            t.Commit();
+        }
+        if (version < 4)
+        {
+            using var t = c.BeginTransaction();
+            c.Execute(Schema.V4, transaction: t);
+            c.Execute("PRAGMA user_version = 4", transaction: t);
             t.Commit();
         }
     }
@@ -273,5 +280,32 @@ static class Schema
             position      INTEGER NOT NULL DEFAULT 0
         );
         CREATE INDEX ix_order_lines_order ON purchase_order_lines(order_id, position);
+        """;
+
+    // VAT per supplier; order states and the prices each order line was placed at; supplier purchase-price history
+    public const string V4 = """
+        ALTER TABLE suppliers ADD COLUMN vat_pct REAL NOT NULL DEFAULT 0;
+
+        ALTER TABLE purchase_orders ADD COLUMN status INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE purchase_orders ADD COLUMN executed_at TEXT;
+        ALTER TABLE purchase_orders ADD COLUMN archived_at TEXT;
+        ALTER TABLE purchase_orders ADD COLUMN vat_pct REAL NOT NULL DEFAULT 0;
+        CREATE INDEX ix_orders_status ON purchase_orders(status, updated_at);
+
+        ALTER TABLE purchase_order_lines ADD COLUMN unit_price REAL NOT NULL DEFAULT 0;
+        ALTER TABLE purchase_order_lines ADD COLUMN currency INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE purchase_order_lines ADD COLUMN discount_pct REAL NOT NULL DEFAULT 0;
+        ALTER TABLE purchase_order_lines ADD COLUMN shipping_pct REAL NOT NULL DEFAULT 0;
+
+        -- one row per item, supplier and day: the purchase price at the start and at the end of the day
+        CREATE TABLE supplier_price_history(
+            item_id     INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+            supplier_id INTEGER NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
+            day         TEXT NOT NULL,
+            old_price   REAL NOT NULL,
+            price       REAL NOT NULL,
+            PRIMARY KEY(item_id, supplier_id, day)
+        ) WITHOUT ROWID;
+        CREATE INDEX ix_supplier_price_history ON supplier_price_history(supplier_id, day);
         """;
 }

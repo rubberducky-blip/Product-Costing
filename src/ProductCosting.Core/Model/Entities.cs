@@ -9,6 +9,10 @@ public sealed class AppSettings
     public RoundingMode RoundingMode { get; set; } = RoundingMode.Nearest;
     public string CurrencySymbol { get; set; } = "€";
     public string Language { get; set; } = "el";
+    /// <summary>system, dark, light, contrast, slate, nord, dracula, solarized.</summary>
+    public string Theme { get; set; } = "system";
+    /// <summary>Interface size: 1 = normal, 1.1, 1.2.</summary>
+    public decimal UiScale { get; set; } = 1m;
     /// <summary>How many US dollars one euro buys (1 € = X $).</summary>
     public decimal UsdPerEur { get; set; } = 1.10m;
     public string BackupFolder { get; set; } = "";
@@ -37,6 +41,7 @@ public sealed class Supplier
     public string? Country { get; set; }
     public decimal DiscountPct { get; set; }
     public decimal ShippingPct { get; set; }
+    public decimal VatPct { get; set; }
     public Currency Currency { get; set; }
     public string? Email { get; set; }
     public string? Phone { get; set; }
@@ -137,10 +142,30 @@ public sealed class PurchaseOrder
 {
     public long Id { get; set; }
     public long SupplierId { get; set; }
+    public string SupplierName { get; set; } = "";
+    public Currency SupplierCurrency { get; set; }
+    public OrderStatus Status { get; set; }
     public string CreatedAt { get; set; } = "";
     public string UpdatedAt { get; set; } = "";
+    public string? ExecutedAt { get; set; }
+    public string? ArchivedAt { get; set; }
+    public decimal VatPct { get; set; }
     public int LineCount { get; set; }
     public decimal TotalQuantity { get; set; }
+    /// <summary>Quantities × purchase prices, in the supplier's currency (before discount, shipping, VAT).</summary>
+    public decimal TotalValue { get; set; }
+}
+
+/// <summary>Price-change summary of one supplier on one day.</summary>
+public sealed class SupplierChangeDay
+{
+    public string Day { get; set; } = "";
+    public int Changed { get; set; }
+    public int Total { get; set; }
+    public decimal AvgChangePct { get; set; }
+    public int Increased { get; set; }
+    public int Decreased { get; set; }
+    public DateTime Date => DateTime.ParseExact(Day, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
 }
 
 public sealed class PurchaseOrderLine
@@ -152,6 +177,11 @@ public sealed class PurchaseOrderLine
     public string Name { get; set; } = "";
     public QtyUnit Unit { get; set; }
     public decimal Quantity { get; set; }
+    /// <summary>Purchase price of one unit (purchase price ÷ quantity per purchase), in <see cref="Currency"/>.</summary>
+    public decimal UnitPrice { get; set; }
+    public Currency Currency { get; set; }
+    public decimal DiscountPct { get; set; }
+    public decimal ShippingPct { get; set; }
 }
 
 /// <summary>An item with everything that is edited on its form.</summary>
@@ -307,6 +337,9 @@ public sealed class SupplierItemRow
     public decimal Weight { get; set; }
     public decimal? Moq { get; set; }
     public decimal? PackQty { get; set; }
+    /// <summary>Discount and shipping that apply (the item's own, or the supplier's).</summary>
+    public decimal DiscountPct { get; set; }
+    public decimal ShippingPct { get; set; }
 }
 
 /// <summary>Cost data of a material, enough to price a recipe line.</summary>

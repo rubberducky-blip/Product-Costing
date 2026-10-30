@@ -54,6 +54,8 @@ public partial class App : Application
         }
 
         Loc.I.SetLanguage(AppState.Settings.Language);
+        ThemeManager.Apply(AppState.Settings.Theme);
+        UiScale.Apply(AppState.Settings.UiScale);
         FrameworkElement.LanguageProperty.OverrideMetadata(typeof(FrameworkElement),
             new FrameworkPropertyMetadata(XmlLanguage.GetLanguage(Loc.Culture.IetfLanguageTag)));
 

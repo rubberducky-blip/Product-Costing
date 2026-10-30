@@ -11,14 +11,6 @@ using ProductCosting.Core.Model;
 
 namespace ProductCosting.App.ViewModels;
 
-public sealed class SavedOrderRow(PurchaseOrder o)
-{
-    public PurchaseOrder Model { get; } = o;
-    public string DateText => DateTime.TryParse(Model.UpdatedAt, CultureInfo.InvariantCulture, DateTimeStyles.None, out var d) ? d.ToString("g", Loc.Culture) : Model.UpdatedAt;
-    public int LineCount => Model.LineCount;
-    public string TotalText => Fmt.Num(Model.TotalQuantity);
-}
-
 public sealed partial class SupplierEditorViewModel : PageViewModel
 {
     readonly MainViewModel _main;
@@ -34,6 +26,8 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
         // empty = 0, shown as a "0" placeholder
         Discount = new NumField(null, allowEmpty: true);
         Shipping = new NumField(null, allowEmpty: true);
+        Vat = new NumField(null, allowEmpty: true);
+        Vat.Changed += Edited;
         Discount.Changed += Edited;
         Shipping.Changed += Edited;
         FolderEntries = PickerEntry.Folders(AppState.Store.GetFolders(ListScope.Suppliers), Loc.T("folder.root"));
@@ -60,8 +54,10 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
     string? _otherCountry;
     public List<Choice<Currency>> Currencies { get; } = Choices.Currencies();
     public ObservableCollection<SupplierItemRow> Items { get; } = [];
-    public ObservableCollection<SavedOrderRow> Orders { get; } = [];
-    public bool HasOrders => Orders.Count > 0;
+    [ObservableProperty] private List<SavedOrderRow> _drafts = [];
+    [ObservableProperty] private List<SavedOrderRow> _executedOrders = [];
+    [ObservableProperty] private List<SavedOrderRow> _archivedOrders = [];
+    public NumField Vat { get; }
 
     public bool IsNew => _model.Id == 0;
     public bool HasItems => Items.Count > 0;
@@ -89,6 +85,7 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
         Notes = s.Notes ?? "";
         Discount.Set(s.DiscountPct == 0 ? null : s.DiscountPct);
         Shipping.Set(s.ShippingPct == 0 ? null : s.ShippingPct);
+        Vat.Set(s.VatPct == 0 ? null : s.VatPct);
         Items.Clear();
         if (!IsNew) foreach (var i in AppState.Store.GetSupplierItems(s.Id)) Items.Add(i);
         LoadOrders();
@@ -117,17 +114,17 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
     }
 
     sealed record FormState(string Name, long? FolderId, long? CountryId, Currency Currency, string Email, string Phone, string Notes,
-        string Discount, string Shipping);
+        string Discount, string Shipping, string Vat);
 
     protected override object? CaptureState() =>
-        new FormState(Name, FolderId, CountryId, Currency, Email, Phone, Notes, Discount.Text, Shipping.Text);
+        new FormState(Name, FolderId, CountryId, Currency, Email, Phone, Notes, Discount.Text, Shipping.Text, Vat.Text);
 
     protected override void RestoreState(object state)
     {
         var f = (FormState)state;
         _loading = true;
         Name = f.Name; FolderId = f.FolderId; CountryId = f.CountryId; Currency = f.Currency;
-        Email = f.Email; Phone = f.Phone; Notes = f.Notes; Discount.Text = f.Discount; Shipping.Text = f.Shipping;
+        Email = f.Email; Phone = f.Phone; Notes = f.Notes; Discount.Text = f.Discount; Shipping.Text = f.Shipping; Vat.Text = f.Vat;
         _loading = false;
         Edited();
     }
@@ -141,7 +138,7 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
     string Snapshot()
     {
         string N(NumField f) => f.IsValid ? (f.Value ?? 0).ToString(CultureInfo.InvariantCulture) : "!" + f.Text;
-        return string.Join("|", Name.Trim(), FolderId, CountryCode, Currency, Email.Trim(), Phone.Trim(), Notes.Trim(), N(Discount), N(Shipping));
+        return string.Join("|", Name.Trim(), FolderId, CountryCode, Currency, Email.Trim(), Phone.Trim(), Notes.Trim(), N(Discount), N(Shipping), N(Vat));
     }
 
     [RelayCommand]
@@ -166,7 +163,7 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
             Dialogs.Error(Loc.T("common.required"));
             return false;
         }
-        if (!Discount.IsValid || !Shipping.IsValid)
+        if (!Discount.IsValid || !Shipping.IsValid || !Vat.IsValid)
         {
             Dialogs.Error(Loc.T("common.invalidNumber"));
             return false;
@@ -175,7 +172,7 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
         var s = new Supplier
         {
             Id = _model.Id, Name = Name.Trim(), FolderId = FolderId, Country = CountryCode, Currency = Currency,
-            Email = Opt(Email), Phone = Opt(Phone), Notes = Opt(Notes), DiscountPct = Discount.Or0, ShippingPct = Shipping.Or0,
+            Email = Opt(Email), Phone = Opt(Phone), Notes = Opt(Notes), DiscountPct = Discount.Or0, ShippingPct = Shipping.Or0, VatPct = Vat.Or0,
         };
         var id = AppState.Store.SaveSupplier(s);
         Load(AppState.Store.GetSupplier(id)!);
@@ -198,27 +195,15 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
 
     void LoadOrders()
     {
-        Orders.Clear();
-        if (!IsNew) foreach (var o in AppState.Store.GetOrders(_model.Id)) Orders.Add(new SavedOrderRow(o));
-        OnPropertyChanged(nameof(HasOrders));
-    }
-
-    public void OpenOrder(SavedOrderRow row)
-    {
-        new OrderWindow(_model, row.Model.Id) { Owner = System.Windows.Application.Current.MainWindow }.ShowDialog();
-        LoadOrders();
-    }
-
-    public void ExportOrder(SavedOrderRow row) => OrderWindow.ExportSaved(_model, row.Model, System.Windows.Application.Current.MainWindow);
-
-    public void DeleteOrder(SavedOrderRow row)
-    {
-        if (!Dialogs.Confirm(Loc.F("order.confirmDelete", row.DateText), Loc.T("common.delete"), danger: true)) return;
-        AppState.Store.DeleteOrder(row.Model.Id);
-        LoadOrders();
+        (Drafts, ExecutedOrders, ArchivedOrders) = IsNew ? ([], [], []) : SavedOrderRow.Split(AppState.Store.GetOrders(_model.Id));
     }
 
     [RelayCommand]
+    void History()
+    {
+        if (!IsNew) new SupplierHistoryWindow(_model) { Owner = System.Windows.Application.Current.MainWindow }.ShowDialog();
+    }
+
     void NewOrder()
     {
         if (IsNew) return;

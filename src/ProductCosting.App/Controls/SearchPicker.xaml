@@ -18,7 +18,7 @@
                             <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
-                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -30,13 +30,13 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock x:Name="DisplayText" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                 <TextBlock Grid.Column="1" Style="{StaticResource Icon}" FontSize="11" Text="&#xE70D;" Margin="8,0,0,0"
-                           Foreground="{StaticResource TextMutedBrush}" />
+                           Foreground="{DynamicResource TextMutedBrush}" />
             </Grid>
         </Button>
         <Popup x:Name="Pop" PlacementTarget="{Binding ElementName=Opener}" Placement="Bottom" VerticalOffset="4"
                StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" Closed="Pop_Closed" Opened="Pop_Opened">
-            <Border x:Name="PopBorder" Background="{StaticResource PopupBrush}" BorderBrush="{StaticResource LineStrongBrush}" BorderThickness="1"
-                    CornerRadius="8" Padding="6" Margin="0,0,10,10">
+            <Border x:Name="PopBorder" Background="{DynamicResource PopupBrush}" BorderBrush="{DynamicResource LineStrongBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="6" Margin="0,0,10,10" LayoutTransform="{x:Static l:UiScale.Transform}">
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="18" ShadowDepth="4" Opacity="0.5" Color="Black" />
                 </Border.Effect>
@@ -74,16 +74,16 @@
                                         <TextBlock Text="{Binding Path}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis"
                                                    Visibility="{Binding ShowPath, Converter={StaticResource Visible}}" />
                                     </StackPanel>
-                                    <TextBlock Grid.Column="2" Text="{Binding Detail}" Foreground="{StaticResource TextMutedBrush}" FontSize="12"
+                                    <TextBlock Grid.Column="2" Text="{Binding Detail}" Foreground="{DynamicResource TextMutedBrush}" FontSize="12"
                                                Margin="12,0,0,0" VerticalAlignment="Center" />
                                 </Grid>
                                 <DataTemplate.Triggers>
                                     <DataTrigger Binding="{Binding IsHeader}" Value="True">
-                                        <Setter TargetName="T" Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+                                        <Setter TargetName="T" Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
                                         <Setter TargetName="T" Property="FontWeight" Value="SemiBold" />
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding IsSection}" Value="True">
-                                        <Setter TargetName="T" Property="Foreground" Value="{StaticResource AccentTextBrush}" />
+                                        <Setter TargetName="T" Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
                                         <Setter TargetName="T" Property="FontSize" Value="11.5" />
                                     </DataTrigger>
                                 </DataTemplate.Triggers>

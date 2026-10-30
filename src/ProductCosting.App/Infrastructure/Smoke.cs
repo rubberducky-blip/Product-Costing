@@ -69,7 +69,7 @@ internal static class Smoke
         var abroad = store.CreateFolder(ListScope.Suppliers, null, "Εξωτερικού");
         store.CreateFolder(ListScope.Merchandise, null, "Κεραμικά");
 
-        var crete = store.SaveSupplier(new Supplier { Name = "Δερμάτινα Κρήτης ΑΕ", Country = "GR", DiscountPct = 8, ShippingPct = 5, Email = "orders@dermata.gr", Phone = "2810 123456" });
+        var crete = store.SaveSupplier(new Supplier { Name = "Δερμάτινα Κρήτης ΑΕ", Country = "GR", VatPct = 24, DiscountPct = 8, ShippingPct = 5, Email = "orders@dermata.gr", Phone = "2810 123456" });
         var usa = store.SaveSupplier(new Supplier { Name = "Leather Works Inc", Country = "US", Currency = Currency.Usd, ShippingPct = 14, FolderId = abroad, Email = "sales@leatherworks.com" });
         var italy = store.SaveSupplier(new Supplier { Name = "Metalli Srl", Country = "IT", DiscountPct = 5, ShippingPct = 10, FolderId = abroad });
 
@@ -132,7 +132,10 @@ internal static class Smoke
         var sup = store.GetSupplier(crete)!;
         sup.DiscountPct = 15;
         store.SaveSupplier(sup);
-        day = day.AddDays(12);
+        store.SetPurchasePrice(hide, 92);
+        day = day.AddDays(5);
+        store.SetPurchasePrice(hide, 88);
+        day = day.AddDays(7);
         s = store.LoadSettings();
         s.LaborRatePerHour = 13.5m;
         store.SaveSettings(s);
@@ -348,13 +351,31 @@ internal static class Smoke
             store.SaveOrder(null, usa.Id, [new PurchaseOrderLine { ItemId = mug, Code = "M-200", Name = "Κούπα κεραμική 350 ml", Variant = "Λευκή", SupplierCode = "MUG-350-W", Quantity = 24 }]);
             vm.OpenSupplier(usa.Id);
             await Settle(500);
-            Check("saved order listed", ((SupplierEditorViewModel)vm.Current!).Orders.Count == 1);
+            Check("saved order listed", ((SupplierEditorViewModel)vm.Current!).Drafts.Count == 1);
             Shot(root, "13b-supplier-orders");
             var win = new OrderWindow(usa, store.GetOrders(usa.Id)[0].Id) { Owner = w };
             win.Show();
             await Settle(500);
             Shot((FrameworkElement)win.Content, "19b-saved-order");
             win.Close();
+            // executed orders open read-only, and the Orders page lists every order by state
+            var oid = store.GetOrders(usa.Id)[0].Id;
+            store.SaveOrder(null, usa.Id, [new PurchaseOrderLine { ItemId = mug, Code = "M-200", Name = "Κούπα", Quantity = 6, UnitPrice = 3.1m, Currency = Currency.Usd }]);
+            store.SetOrderStatus(oid, OrderStatus.Executed);
+            var done = new OrderWindow(usa, oid) { Owner = w };
+            done.Show();
+            await Settle(500);
+            Shot((FrameworkElement)done.Content, "19c-executed-order");
+            done.Close();
+            vm.GoCommand.Execute("orders");
+            await Settle(500);
+            Check("orders page", vm.Current is OrdersPageViewModel { Drafts.Count: 1, Executed.Count: 1 });
+            Shot(root, "23-orders-page");
+            var hist = new SupplierHistoryWindow(store.GetSuppliers().First(x => x.Name.StartsWith("Δερμάτινα"))) { Owner = w };
+            hist.Show();
+            await Settle(500);
+            Shot((FrameworkElement)hist.Content, "24-supplier-history");
+            hist.Close();
         });
         await Step("supplier editor", async () =>
         {
@@ -464,6 +485,28 @@ internal static class Smoke
             Loc.I.SetLanguage("el");
         });
 
+        await Step("themes", async () =>
+        {
+            vm.GoCommand.Execute("products");
+            foreach (var theme in new[] { "light", "slate", "contrast", "nord", "dracula", "solarized" })
+            {
+                ThemeManager.Apply(theme);
+                vm.ResetPages();
+                await Settle(400);
+                Shot(root, "30-theme-" + theme);
+            }
+            vm.OpenItem(Id("M-200"));
+            await Settle(400);
+            Shot(root, "31-theme-solarized-editor");
+            ThemeManager.Apply("light");
+            await Settle(300);
+            Shot(root, "31-theme-light-editor");
+            UiScale.Apply(1.2m);
+            await Settle(400);
+            Shot(root, "32-text-120");
+            UiScale.Apply(1m);
+            ThemeManager.Apply("dark");
+        });
         Log($"done, {_errors} error(s)");
         return _errors;
     }

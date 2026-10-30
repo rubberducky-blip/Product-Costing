@@ -129,6 +129,7 @@ public sealed partial class MainViewModel : ObservableObject
             "raw" => List(ListScope.RawMaterials),
             "suppliers" => List(ListScope.Suppliers),
             "settings" => new SettingsViewModel(this),
+            "orders" => Current as OrdersPageViewModel ?? new OrdersPageViewModel(),
             _ => List(ListScope.Products),
         };
         if (page is SettingsViewModel && Current is SettingsViewModel) return;
@@ -171,7 +172,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     // ---------- keyboard shortcuts ----------
 
-    static readonly string[] Sections = ["products", "merchandise", "raw", "suppliers"];
+    static readonly string[] Sections = ["products", "merchandise", "raw", "suppliers", "orders"];
 
     /// <summary>← / →: the previous or next record of the table the form was opened from.</summary>
     public void Step(int dir)
@@ -214,6 +215,11 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Ctrl+1…4: a new product, merchandise, raw material or supplier (in the folder open in its list).</summary>
     public void NewByShortcut(int n)
     {
+        if (n == 5)
+        {
+            OrderActions.New();
+            return;
+        }
         var scope = (ListScope)n;
         var folder = Current is ListPageViewModel l && l.Scope == scope ? l.FolderId : null;
         if (scope == ListScope.Suppliers) NewSupplier(folder);

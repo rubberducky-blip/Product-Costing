@@ -52,6 +52,8 @@ public sealed partial class SettingsViewModel : PageViewModel
     [ObservableProperty] private RoundingMode _roundingMode;
     [ObservableProperty] private string _currencySymbol = "€";
     [ObservableProperty] private string _language = "el";
+    [ObservableProperty] private string _theme = "system";
+    [ObservableProperty] private decimal _uiScale = 1m;
     [ObservableProperty] private bool _dirty;
 
     [ObservableProperty] private string _backupFolder = "";
@@ -71,12 +73,15 @@ public sealed partial class SettingsViewModel : PageViewModel
         new("Ctrl + 2", Loc.T("list.newMerchandise")),
         new("Ctrl + 3", Loc.T("list.newRaw")),
         new("Ctrl + 4", Loc.T("list.newSupplier")),
+        new("Ctrl + 5", Loc.T("supplier.newOrder")),
         new("← / →", Loc.T("keys.prevNext")),
         new("↑ / ↓", Loc.T("keys.sections")),
         new("Esc", Loc.T("keys.settings")),
         new("Ctrl + B", Loc.T("keys.backup")),
     ];
     public List<Choice<string>> Languages { get; } = [new("el", "Ελληνικά"), new("en", "English")];
+    public List<Choice<string>> Themes { get; } = ThemeManager.Themes.Select(t => new Choice<string>(t.Id, Loc.T(t.LabelKey))).ToList();
+    public List<Choice<decimal>> Sizes { get; } = Infrastructure.UiScale.Sizes.Select(s => new Choice<decimal>(s.Scale, Loc.T(s.LabelKey))).ToList();
     public ObservableCollection<BackupRow> Backups { get; } = [];
     public bool HasBackups => Backups.Count > 0;
     public string DatabasePath => AppState.DatabasePath;
@@ -101,6 +106,8 @@ public sealed partial class SettingsViewModel : PageViewModel
         RoundingMode = s.RoundingMode;
         CurrencySymbol = s.CurrencySymbol;
         Language = s.Language;
+        Theme = s.Theme;
+        UiScale = s.UiScale;
         BackupFolder = AppState.Backups.Folder(s);
         _autoBackup = s.AutoBackup;
         OnPropertyChanged(nameof(AutoBackup));
@@ -116,7 +123,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
     {
         base.OnPropertyChanged(e);
-        if (e.PropertyName is nameof(RoundingMode) or nameof(CurrencySymbol) or nameof(Language)) Edited();
+        if (e.PropertyName is nameof(RoundingMode) or nameof(CurrencySymbol) or nameof(Language) or nameof(Theme) or nameof(UiScale)) Edited();
     }
 
     void Edited()
@@ -126,17 +133,18 @@ public sealed partial class SettingsViewModel : PageViewModel
         NoteEdit();
     }
 
-    sealed record FormState(string Labor, string Overhead, string Markup, string Step, string Usd, RoundingMode Mode, string Symbol, string Language);
+    sealed record FormState(string Labor, string Overhead, string Markup, string Step, string Usd, RoundingMode Mode, string Symbol, string Language,
+        string Theme, decimal Scale);
 
     protected override object? CaptureState() => new FormState(LaborRate.Text, OverheadRate.Text, DefaultMarkup.Text, RoundingStep.Text,
-        UsdPerEur.Text, RoundingMode, CurrencySymbol, Language);
+        UsdPerEur.Text, RoundingMode, CurrencySymbol, Language, Theme, UiScale);
 
     protected override void RestoreState(object state)
     {
         var f = (FormState)state;
         _loading = true;
         LaborRate.Text = f.Labor; OverheadRate.Text = f.Overhead; DefaultMarkup.Text = f.Markup; RoundingStep.Text = f.Step;
-        UsdPerEur.Text = f.Usd; RoundingMode = f.Mode; CurrencySymbol = f.Symbol; Language = f.Language;
+        UsdPerEur.Text = f.Usd; RoundingMode = f.Mode; CurrencySymbol = f.Symbol; Language = f.Language; Theme = f.Theme; UiScale = f.Scale;
         _loading = false;
         Edited();
     }
@@ -146,7 +154,8 @@ public sealed partial class SettingsViewModel : PageViewModel
     string Snapshot()
     {
         string N(NumField f) => f.IsValid ? f.Value?.ToString(CultureInfo.InvariantCulture) ?? "" : "!" + f.Text;
-        return string.Join("|", N(LaborRate), N(OverheadRate), N(DefaultMarkup), N(RoundingStep), N(UsdPerEur), RoundingMode, CurrencySymbol.Trim(), Language);
+        return string.Join("|", N(LaborRate), N(OverheadRate), N(DefaultMarkup), N(RoundingStep), N(UsdPerEur), RoundingMode, CurrencySymbol.Trim(), Language,
+            Theme, UiScale.ToString(CultureInfo.InvariantCulture));
     }
 
     [RelayCommand]
@@ -166,6 +175,9 @@ public sealed partial class SettingsViewModel : PageViewModel
         }
         var s = AppState.Store.LoadSettings();
         var langChanged = s.Language != Language;
+        var looksChanged = s.Theme != Theme || s.UiScale != UiScale;
+        s.Theme = Theme;
+        s.UiScale = UiScale;
         s.LaborRatePerHour = LaborRate.Or0;
         s.OverheadRatePerHour = OverheadRate.Or0;
         s.DefaultMarkupPct = DefaultMarkup.Or0;
@@ -177,11 +189,14 @@ public sealed partial class SettingsViewModel : PageViewModel
         var sum = AppState.Store.SaveSettings(s);
         AppState.ReloadSettings();
         Load();
-        if (langChanged)
+        if (looksChanged)
         {
-            Loc.I.SetLanguage(Language);
-            _main.ResetPages(this);
+            ThemeManager.Apply(Theme);
+            Infrastructure.UiScale.Apply(UiScale);
         }
+        if (langChanged) Loc.I.SetLanguage(Language);
+        // rebuild pages so colours worked out in code (margins, charts) and texts follow
+        if (langChanged || looksChanged) _main.ResetPages(this);
         _main.ShowToast(Loc.F("settings.saved", sum.PriceChanges));
         return true;
     }

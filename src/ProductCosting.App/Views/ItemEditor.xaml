@@ -13,8 +13,8 @@
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
         <Style x:Key="Inset" TargetType="Border">
-            <Setter Property="Background" Value="{StaticResource InsetBrush}" />
-            <Setter Property="BorderBrush" Value="{StaticResource LineBrush}" />
+            <Setter Property="Background" Value="{DynamicResource InsetBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Padding" Value="14,12" />
@@ -29,7 +29,7 @@
         </Grid.RowDefinitions>
 
         <!-- header -->
-        <Border BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1" Padding="20,14,28,14">
+        <Border BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1" Padding="20,14,28,14">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button Style="{StaticResource GhostButton}" l:Btn.Icon="&#xE9D2;" Content="{l:T item.history}" Command="{Binding HistoryCommand}"
@@ -49,9 +49,9 @@
                             <Border Style="{StaticResource Badge}" Margin="12,2,0,0">
                                 <TextBlock Text="{Binding KindText}" />
                             </Border>
-                            <Border Style="{StaticResource Badge}" Margin="8,2,0,0" Background="{StaticResource WarningSoftBrush}"
+                            <Border Style="{StaticResource Badge}" Margin="8,2,0,0" Background="{DynamicResource WarningSoftBrush}"
                                     Visibility="{Binding Dirty, Converter={StaticResource Visible}}">
-                                <TextBlock Text="{l:T common.unsaved}" Foreground="{StaticResource WarningTextBrush}" />
+                                <TextBlock Text="{l:T common.unsaved}" Foreground="{DynamicResource WarningTextBrush}" />
                             </Border>
                         </StackPanel>
                         <TextBlock Text="{Binding Name}" Style="{StaticResource Muted}" TextTrimming="CharacterEllipsis" MaxWidth="560" />
@@ -198,7 +198,7 @@
                                                     </StackPanel>
                                                     <StackPanel Visibility="{Binding DataContext.MultipleSources, ElementName=Root, Converter={StaticResource Visible}}">
                                                         <TextBlock Style="{StaticResource FieldLabel}">
-                                                            <Run Text="{l:T item.weight}" /><Run Text=" · " /><Run Text="{Binding ShareText, Mode=OneWay}" Foreground="{StaticResource AccentTextBrush}" />
+                                                            <Run Text="{l:T item.weight}" /><Run Text=" · " /><Run Text="{Binding ShareText, Mode=OneWay}" Foreground="{DynamicResource AccentTextBrush}" />
                                                         </TextBlock>
                                                         <l:NumBox Field="{Binding Weight}" />
                                                     </StackPanel>
@@ -209,7 +209,7 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                             <Button Style="{StaticResource GhostButton}" l:Btn.Icon="&#xE710;" Content="{l:T item.addSource}" HorizontalAlignment="Left"
-                                    Command="{Binding AddSourceCommand}" Foreground="{StaticResource AccentTextBrush}" />
+                                    Command="{Binding AddSourceCommand}" Foreground="{DynamicResource AccentTextBrush}" />
 
                             <!-- piece size, for unit conversion in recipes -->
                             <StackPanel Margin="0,16,0,0" Visibility="{Binding IsMaterial, Converter={StaticResource Visible}}">
@@ -273,7 +273,7 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                             <Button Style="{StaticResource GhostButton}" l:Btn.Icon="&#xE710;" Content="{l:T item.addVariant}" HorizontalAlignment="Left"
-                                    Command="{Binding AddVariantCommand}" Foreground="{StaticResource AccentTextBrush}" />
+                                    Command="{Binding AddVariantCommand}" Foreground="{DynamicResource AccentTextBrush}" />
                         </StackPanel>
                     </Border>
 
@@ -341,8 +341,8 @@
                                                         ToolTip="{l:T common.remove}" Command="{Binding DataContext.RemoveLineCommand, ElementName=Root}" CommandParameter="{Binding}" />
                                             </Grid>
                                             <StackPanel Orientation="Horizontal" Margin="2,6,0,0" Visibility="{Binding WarningText, Converter={StaticResource Visible}}">
-                                                <TextBlock Style="{StaticResource Icon}" Text="&#xE7BA;" FontSize="12" Foreground="{StaticResource WarningTextBrush}" Margin="0,0,6,0" />
-                                                <TextBlock Text="{Binding WarningText}" Foreground="{StaticResource WarningTextBrush}" FontSize="12" TextWrapping="Wrap" />
+                                                <TextBlock Style="{StaticResource Icon}" Text="&#xE7BA;" FontSize="12" Foreground="{DynamicResource WarningTextBrush}" Margin="0,0,6,0" />
+                                                <TextBlock Text="{Binding WarningText}" Foreground="{DynamicResource WarningTextBrush}" FontSize="12" TextWrapping="Wrap" />
                                             </StackPanel>
                                         </StackPanel>
                                     </DataTemplate>
@@ -350,9 +350,9 @@
                             </ItemsControl>
                             <StackPanel Orientation="Horizontal">
                                 <Button Style="{StaticResource GhostButton}" l:Btn.Icon="&#xE710;" Content="{l:T item.addLine}"
-                                        Command="{Binding AddLineCommand}" Foreground="{StaticResource AccentTextBrush}" />
+                                        Command="{Binding AddLineCommand}" Foreground="{DynamicResource AccentTextBrush}" />
                                 <Button Style="{StaticResource GhostButton}" l:Btn.Icon="&#xE710;" Content="{l:T item.addProduct}" Margin="8,0,0,0"
-                                        Command="{Binding AddProductCommand}" Foreground="{StaticResource AccentTextBrush}" />
+                                        Command="{Binding AddProductCommand}" Foreground="{DynamicResource AccentTextBrush}" />
                             </StackPanel>
                         </StackPanel>
                     </Border>
@@ -375,7 +375,7 @@
                                                 <ColumnDefinition Width="40" />
                                             </Grid.ColumnDefinitions>
                                             <l:NumBox Field="{Binding Seconds}" l:Hint.Text="{l:T item.seconds}" />
-                                            <TextBlock Grid.Column="1" Text="{Binding DurationText}" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="{StaticResource TextMutedBrush}" />
+                                            <TextBlock Grid.Column="1" Text="{Binding DurationText}" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="{DynamicResource TextMutedBrush}" />
                                             <TextBox Grid.Column="2" Text="{Binding Comment, UpdateSourceTrigger=PropertyChanged}" l:Hint.Text="{l:T common.comment}" />
                                             <Button Grid.Column="3" Style="{StaticResource IconButton}" l:Btn.Icon="&#xE711;" HorizontalAlignment="Right"
                                                     ToolTip="{l:T common.remove}" Command="{Binding DataContext.RemoveLaborCommand, ElementName=Root}" CommandParameter="{Binding}" />
@@ -384,7 +384,7 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                             <Button Style="{StaticResource GhostButton}" l:Btn.Icon="&#xE710;" Content="{l:T item.addLabor}" HorizontalAlignment="Left"
-                                    Command="{Binding AddLaborCommand}" Foreground="{StaticResource AccentTextBrush}" />
+                                    Command="{Binding AddLaborCommand}" Foreground="{DynamicResource AccentTextBrush}" />
                         </StackPanel>
                     </Border>
 
@@ -413,9 +413,9 @@
                             <ItemsControl ItemsSource="{Binding Usage}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1" Padding="0,8">
+                                        <Border BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1" Padding="0,8">
                                             <DockPanel>
-                                                <TextBlock DockPanel.Dock="Right" Foreground="{StaticResource TextMutedBrush}">
+                                                <TextBlock DockPanel.Dock="Right" Foreground="{DynamicResource TextMutedBrush}">
                                                     <Run Text="{Binding Quantity, Mode=OneWay, Converter={StaticResource Num}}" />
                                                     <Run Text="{Binding Unit, Mode=OneWay, Converter={StaticResource UnitName}}" />
                                                 </TextBlock>
@@ -423,8 +423,8 @@
                                                         Command="{Binding DataContext.OpenUsageCommand, ElementName=Root}" CommandParameter="{Binding}">
                                                     <TextBlock>
                                                         <Run Text="{Binding Code, Mode=OneWay}" FontWeight="SemiBold" />
-                                                        <Run Text="·" Foreground="{StaticResource TextFaintBrush}" />
-                                                        <Run Text="{Binding Name, Mode=OneWay}" Foreground="{StaticResource TextBrush}" />
+                                                        <Run Text="·" Foreground="{DynamicResource TextFaintBrush}" />
+                                                        <Run Text="{Binding Name, Mode=OneWay}" Foreground="{DynamicResource TextBrush}" />
                                                     </TextBlock>
                                                 </Button>
                                             </DockPanel>
@@ -438,20 +438,20 @@
             </ScrollViewer>
 
             <!-- live cost breakdown -->
-            <Border Grid.Column="1" Background="{StaticResource SidebarBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="1,0,0,0">
+            <Border Grid.Column="1" Background="{DynamicResource SidebarBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1,0,0,0">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="22,22,22,28">
                     <StackPanel>
                         <TextBlock Text="{l:T cost.title}" Style="{StaticResource Caption}" FontWeight="SemiBold" />
                         <TextBlock Text="{Binding PriceText}" FontFamily="{StaticResource DisplayFont}" FontSize="34" FontWeight="SemiBold" Margin="0,6,0,0" />
                         <StackPanel Orientation="Horizontal" Margin="0,6,0,20">
-                            <Border Style="{StaticResource Badge}" Background="{StaticResource CardHoverBrush}">
-                                <TextBlock Foreground="{StaticResource TextMutedBrush}">
-                                    <Run Text="{l:T list.cost}" /><Run Text=" " /><Run Text="{Binding CostText, Mode=OneWay}" Foreground="{StaticResource TextBrush}" />
+                            <Border Style="{StaticResource Badge}" Background="{DynamicResource CardHoverBrush}">
+                                <TextBlock Foreground="{DynamicResource TextMutedBrush}">
+                                    <Run Text="{l:T list.cost}" /><Run Text=" " /><Run Text="{Binding CostText, Mode=OneWay}" Foreground="{DynamicResource TextBrush}" />
                                 </TextBlock>
                             </Border>
                             <Border Style="{StaticResource Badge}" Margin="8,0,0,0"
-                                    Background="{Binding MarginPct, Converter={StaticResource MarginBrush}, ConverterParameter=soft}">
-                                <TextBlock Foreground="{Binding MarginPct, Converter={StaticResource MarginBrush}}">
+                                    Background="{Binding MarginPct, Converter={DynamicResource MarginBrush}, ConverterParameter=soft}">
+                                <TextBlock Foreground="{Binding MarginPct, Converter={DynamicResource MarginBrush}}">
                                     <Run Text="{l:T list.margin}" /><Run Text=" " /><Run Text="{Binding MarginText, Mode=OneWay}" />
                                 </TextBlock>
                             </Border>
@@ -465,34 +465,34 @@
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock x:Name="Label" Text="{Binding Label}" TextWrapping="Wrap" Foreground="{StaticResource TextMutedBrush}" />
+                                            <TextBlock x:Name="Label" Text="{Binding Label}" TextWrapping="Wrap" Foreground="{DynamicResource TextMutedBrush}" />
                                             <TextBlock x:Name="Value" Grid.Column="1" Text="{Binding Value}" Margin="12,0,0,0" HorizontalAlignment="Right" />
-                                            <Border x:Name="Sep" Grid.ColumnSpan="2" Height="1" Background="{StaticResource LineBrush}" Visibility="Collapsed" Margin="0,4" />
+                                            <Border x:Name="Sep" Grid.ColumnSpan="2" Height="1" Background="{DynamicResource LineBrush}" Visibility="Collapsed" Margin="0,4" />
                                         </Grid>
                                         <DataTemplate.Triggers>
                                             <DataTrigger Binding="{Binding IsSub}" Value="True">
                                                 <Setter TargetName="Label" Property="Margin" Value="14,0,0,0" />
                                                 <Setter TargetName="Label" Property="FontSize" Value="12" />
-                                                <Setter TargetName="Label" Property="Foreground" Value="{StaticResource TextFaintBrush}" />
+                                                <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource TextFaintBrush}" />
                                                 <Setter TargetName="Value" Property="FontSize" Value="12" />
-                                                <Setter TargetName="Value" Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+                                                <Setter TargetName="Value" Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding IsHeader}" Value="True">
-                                                <Setter TargetName="Label" Property="Foreground" Value="{StaticResource AccentTextBrush}" />
+                                                <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
                                                 <Setter TargetName="Label" Property="FontWeight" Value="SemiBold" />
                                                 <Setter TargetName="Row" Property="Margin" Value="0,8,0,2" />
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding IsTotal}" Value="True">
-                                                <Setter TargetName="Label" Property="Foreground" Value="{StaticResource TextBrush}" />
+                                                <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource TextBrush}" />
                                                 <Setter TargetName="Label" Property="FontWeight" Value="SemiBold" />
                                                 <Setter TargetName="Value" Property="FontWeight" Value="SemiBold" />
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding IsBig}" Value="True">
-                                                <Setter TargetName="Label" Property="Foreground" Value="{StaticResource TextBrush}" />
+                                                <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource TextBrush}" />
                                                 <Setter TargetName="Label" Property="FontWeight" Value="SemiBold" />
                                                 <Setter TargetName="Value" Property="FontWeight" Value="Bold" />
                                                 <Setter TargetName="Value" Property="FontSize" Value="17" />
-                                                <Setter TargetName="Value" Property="Foreground" Value="{StaticResource AccentTextBrush}" />
+                                                <Setter TargetName="Value" Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
                                                 <Setter TargetName="Row" Property="Margin" Value="0,8" />
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding IsSep}" Value="True">
@@ -501,19 +501,19 @@
                                                 <Setter TargetName="Value" Property="Visibility" Value="Collapsed" />
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding Tone}" Value="good">
-                                                <Setter TargetName="Value" Property="Foreground" Value="{StaticResource SuccessTextBrush}" />
+                                                <Setter TargetName="Value" Property="Foreground" Value="{DynamicResource SuccessTextBrush}" />
                                                 <Setter TargetName="Value" Property="FontWeight" Value="SemiBold" />
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding Tone}" Value="ok">
-                                                <Setter TargetName="Value" Property="Foreground" Value="{StaticResource WarningTextBrush}" />
+                                                <Setter TargetName="Value" Property="Foreground" Value="{DynamicResource WarningTextBrush}" />
                                                 <Setter TargetName="Value" Property="FontWeight" Value="SemiBold" />
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding Tone}" Value="bad">
-                                                <Setter TargetName="Value" Property="Foreground" Value="{StaticResource DangerTextBrush}" />
+                                                <Setter TargetName="Value" Property="Foreground" Value="{DynamicResource DangerTextBrush}" />
                                                 <Setter TargetName="Value" Property="FontWeight" Value="SemiBold" />
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding IsWarn}" Value="True">
-                                                <Setter TargetName="Label" Property="Foreground" Value="{StaticResource WarningTextBrush}" />
+                                                <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource WarningTextBrush}" />
                                                 <Setter TargetName="Label" Property="FontSize" Value="12" />
                                                 <Setter TargetName="Row" Property="Margin" Value="0,8,0,0" />
                                             </DataTrigger>

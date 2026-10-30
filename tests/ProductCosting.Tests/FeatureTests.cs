@@ -142,6 +142,59 @@ public class FeatureTests
     }
 
     [Fact]
+    public void OrderTotals_StatusesAndValues()
+    {
+        // 10 × 2 € with 10% discount and 5% shipping, VAT 24% on goods − discount + shipping
+        var t = ProductCosting.Core.Calc.Costing.Order(
+            [new PurchaseOrderLine { Quantity = 10, UnitPrice = 2, DiscountPct = 10, ShippingPct = 5 }], 24, Currency.Eur, 1.1m);
+        Assert.Equal(20m, t.Goods);
+        Assert.Equal(2m, t.Discount);
+        Assert.Equal(0.9m, t.Shipping);
+        Assert.Equal(4.536m, t.Vat);
+        Assert.Equal(23.436m, t.Total);
+        // dollars into a euro total
+        Assert.Equal(10m, ProductCosting.Core.Calc.Costing.Order([new PurchaseOrderLine { Quantity = 1, UnitPrice = 11, Currency = Currency.Usd }], 0, Currency.Eur, 1.1m).Total);
+
+        using var f = new StoreFixture();
+        var sup = f.Store.SaveSupplier(new Supplier { Name = "A", VatPct = 24 });
+        Assert.Equal(24m, f.Store.GetSupplier(sup)!.VatPct);
+        var id = f.Store.SaveOrder(null, sup, [new PurchaseOrderLine { Code = "X", Name = "X", Quantity = 3, UnitPrice = 2.5m }]);
+        var o = f.Store.GetOrders(sup).Single();
+        Assert.Equal(OrderStatus.Draft, o.Status);
+        Assert.Equal(7.5m, o.TotalValue);
+        Assert.Equal(24m, o.VatPct);
+        f.Store.SetOrderStatus(id, OrderStatus.Archived);                 // not before it is executed
+        Assert.Equal(OrderStatus.Draft, f.Store.GetOrder(id)!.Status);
+        f.Store.SetOrderStatus(id, OrderStatus.Executed);
+        Assert.NotNull(f.Store.GetOrder(id)!.ExecutedAt);
+        Assert.Throws<InvalidOperationException>(() => f.Store.SaveOrder(id, sup, []));
+        f.Store.SetOrderStatus(id, OrderStatus.Archived);
+        Assert.Equal(OrderStatus.Archived, f.Store.GetOrders().Single().Status);
+        Assert.Equal("A", f.Store.GetOrders().Single().SupplierName);
+    }
+
+    [Fact]
+    public void SupplierHistory_AverageChangePerDay()
+    {
+        using var f = new StoreFixture();
+        var sup = f.Supplier("Acme");
+        var a = f.Bought(ItemKind.Merchandise, "A", 10, sup);
+        var b = f.Bought(ItemKind.Merchandise, "B", 20, sup);
+        f.Bought(ItemKind.Merchandise, "C", 30, sup);
+        f.Now = f.Now.AddDays(1);
+        f.Store.SetPurchasePrice(a, 11);       // +10%
+        var doc = f.Store.LoadItem(b)!;
+        doc.Sources[0].PurchasePrice = 24;     // +20%
+        f.Store.SaveItem(doc);
+        var day = Assert.Single(f.Store.GetSupplierHistory(sup));
+        Assert.Equal(2, day.Changed);
+        Assert.Equal(3, day.Total);
+        Assert.Equal(15m, Math.Round(day.AvgChangePct, 6));
+        f.Store.SetPurchasePrice(a, 10);       // back to the day's start: no longer a change
+        Assert.Equal(1, f.Store.GetSupplierHistory(sup).Single().Changed);
+    }
+
+    [Fact]
     public void Upgrade_FromSchemaVersion1()
     {
         var dir = Path.Combine(Path.GetTempPath(), "pc-up-" + Guid.NewGuid().ToString("N"));

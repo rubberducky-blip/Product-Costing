@@ -65,6 +65,9 @@ public partial class SearchPicker : UserControl
         }
     }
 
+    /// <summary>Opens the list, e.g. right away in a dialog whose only job is this choice.</summary>
+    public void OpenDropDown() => Opener_Click(this, new RoutedEventArgs());
+
     void Opener_Click(object sender, RoutedEventArgs e)
     {
         // the click that closed the popup must not reopen it

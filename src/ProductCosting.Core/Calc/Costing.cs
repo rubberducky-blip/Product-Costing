@@ -30,6 +30,8 @@ public sealed record ProductCost(
     public decimal Total => Materials + Labor + Overhead;
 }
 
+public sealed record OrderTotals(decimal Goods, decimal Discount, decimal Shipping, decimal VatPct, decimal Vat, decimal Total);
+
 public sealed record PriceResult(decimal Cost, decimal MarkupPct, decimal Step, decimal RawPrice, decimal Price)
 {
     public decimal Profit => Price - Cost;
@@ -168,6 +170,28 @@ public static class Costing
         }
         return basis;
     }
+
+    /// <summary>
+    /// Totals of an order in <paramref name="currency"/>: goods at purchase prices, discount, an estimate of shipping
+    /// (the supplier's real charge may differ) and VAT on goods after discount plus shipping.
+    /// </summary>
+    public static OrderTotals Order(IEnumerable<PurchaseOrderLine> lines, decimal vatPct, Currency currency, decimal usdPerEur)
+    {
+        decimal goods = 0, discount = 0, shipping = 0;
+        foreach (var l in lines)
+        {
+            var value = Convert(l.UnitPrice * l.Quantity, l.Currency, currency, usdPerEur);
+            var d = value * l.DiscountPct / 100m;
+            goods += value;
+            discount += d;
+            shipping += (value - d) * l.ShippingPct / 100m;
+        }
+        var vat = (goods - discount + shipping) * vatPct / 100m;
+        return new OrderTotals(goods, discount, shipping, vatPct, vat, goods - discount + shipping + vat);
+    }
+
+    public static decimal Convert(decimal amount, Currency from, Currency to, decimal usdPerEur) =>
+        from == to ? amount : to == Currency.Eur ? ToEur(amount, from, usdPerEur) : amount * usdPerEur;
 
     public static string FormatDuration(int seconds)
     {
