@@ -228,7 +228,7 @@
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <TextBlock Text="{Binding MarginPct, Converter={StaticResource Pct}}" Style="{StaticResource NumCell}" FontWeight="SemiBold"
-                                               Foreground="{Binding MarginPct, Converter={DynamicResource MarginBrush}}" />
+                                               Foreground="{Binding MarginPct, Converter={StaticResource MarginBrush}}" />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
