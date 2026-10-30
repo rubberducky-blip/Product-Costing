@@ -94,6 +94,7 @@ public static class ThemeManager
     public static Palette Current { get; private set; } = Dark;
     static string _theme = "system";
     static bool _listening;
+    static ResourceDictionary? _lightControls;
 
     /// <summary>Applies a theme to the whole app (all open windows update at once).</summary>
     public static void Apply(string theme)
@@ -102,13 +103,23 @@ public static class ThemeManager
         var p = Resolve(theme);
         var app = Application.Current;
         var merged = app.Resources.MergedDictionaries;
-        // [0] Fluent controls (light or dark), [1] our palette
-        var fluent = new ResourceDictionary
+        // The dark Fluent controls loaded by App.xaml always stay: the app's own styles are built on them and their
+        // templates look up resources there. Light themes add the light Fluent controls on top (the last dictionary wins).
+        if (!p.Dark && _lightControls is null)
         {
-            Source = new Uri($"pack://application:,,,/PresentationFramework.Fluent;component/Themes/Fluent.{(p.Dark ? "Dark" : "Light")}.xaml"),
-        };
-        if (merged[0].Source != fluent.Source) merged[0] = fluent;
-        merged[1] = Build(p);
+            _lightControls = new ResourceDictionary
+            {
+                Source = new Uri("pack://application:,,,/PresentationFramework.Fluent;component/Themes/Fluent.Light.xaml"),
+            };
+            merged.Insert(1, _lightControls);
+        }
+        else if (p.Dark && _lightControls is not null)
+        {
+            merged.Remove(_lightControls);
+            _lightControls = null;
+        }
+        // our palette is always the last dictionary
+        merged[^1] = Build(p);
         Current = p;
         foreach (Window w in app.Windows) NativeWindow.UseDarkTitleBar(w);
 
