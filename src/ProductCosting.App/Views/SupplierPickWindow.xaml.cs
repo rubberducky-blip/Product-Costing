@@ -18,7 +18,6 @@ public partial class SupplierPickWindow : Window
         var sups = AppState.Store.GetSuppliers();
         Picker.ItemsSource = PickerEntry.Tree(AppState.Store.GetFolders(ListScope.Suppliers),
             sups.Select(s => (s.Id, s.Name, s.Currency == Currency.Usd ? "$" : null, s.FolderId)));
-        Loaded += (_, _) => Picker.OpenDropDown();
     }
 
     void Picker_Picked(object? sender, EventArgs e) => OkButton.IsEnabled = Picker.SelectedId is not null;

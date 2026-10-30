@@ -488,7 +488,7 @@ internal static class Smoke
         await Step("themes", async () =>
         {
             vm.GoCommand.Execute("products");
-            foreach (var theme in new[] { "light", "slate", "contrast", "nord", "dracula", "solarized" })
+            foreach (var theme in new[] { "light", "slate", "contrast", "nord", "dracula", "gruvbox", "everforest", "sepia", "solarized" })
             {
                 ThemeManager.Apply(theme);
                 vm.ResetPages();
@@ -505,6 +505,18 @@ internal static class Smoke
             await Settle(400);
             Shot(root, "32-text-120");
             UiScale.Apply(1m);
+            // after a light theme, a dark one must bring back dark input fields
+            foreach (var theme in new[] { "solarized", "slate", "light", "dark" })
+            {
+                ThemeManager.Apply(theme);
+                await Settle(300);
+                var fill = Application.Current.TryFindResource("ControlFillColorDefaultBrush") as SolidColorBrush;
+                var light = fill is not null && (fill.Color.R + fill.Color.G + fill.Color.B) / 3 > 128 && fill.Color.A > 128;
+                Check($"field colour follows {theme}", fill is not null && light == (theme is "solarized" or "light"));
+            }
+            ThemeManager.Apply("slate");
+            await Settle(400);
+            Shot(root, "33-slate-after-light-editor");
             ThemeManager.Apply("dark");
         });
         Log($"done, {_errors} error(s)");

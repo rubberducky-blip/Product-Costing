@@ -8,13 +8,10 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <DockPanel Margin="0,24,0,18">
-            <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" l:Btn.Icon="&#xE7BF;" Content="{l:T supplier.newOrder}"
-                    Command="{Binding NewCommand}" VerticalAlignment="Center" />
-            <TextBlock Text="{l:T nav.orders}" Style="{StaticResource H1}" />
-        </DockPanel>
+        <TextBlock Text="{l:T nav.orders}" Style="{StaticResource H1}" Margin="0,24,0,18" />
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-            <v:OrdersTable Drafts="{Binding Drafts}" Executed="{Binding Executed}" Archived="{Binding Archived}" ShowSupplier="True" />
+            <v:OrdersTable Drafts="{Binding Drafts}" Executed="{Binding Executed}" NewOrderCommand="{Binding NewCommand}"
+                          ShowSupplier="True" SideBySide="True" />
         </ScrollViewer>
     </Grid>
 </UserControl>

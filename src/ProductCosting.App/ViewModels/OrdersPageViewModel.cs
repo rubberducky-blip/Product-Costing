@@ -5,14 +5,13 @@ using ProductCosting.Core.Data;
 
 namespace ProductCosting.App.ViewModels;
 
-/// <summary>Every saved order of every supplier, by state.</summary>
+/// <summary>Every open order of every supplier (drafts and executed); archived ones are listed on each supplier only.</summary>
 public sealed partial class OrdersPageViewModel : PageViewModel
 {
     public override string Section => "orders";
 
     [ObservableProperty] private List<SavedOrderRow> _drafts = [];
     [ObservableProperty] private List<SavedOrderRow> _executed = [];
-    [ObservableProperty] private List<SavedOrderRow> _archived = [];
 
     public override void OnShown() => Refresh();
 
@@ -20,7 +19,7 @@ public sealed partial class OrdersPageViewModel : PageViewModel
 
     void Refresh()
     {
-        (Drafts, Executed, Archived) = SavedOrderRow.Split(AppState.Store.GetOrders());
+        (Drafts, Executed, _) = SavedOrderRow.Split(AppState.Store.GetOrders());
     }
 
     [RelayCommand]

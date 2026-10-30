@@ -4,11 +4,24 @@
              xmlns:l="clr-namespace:ProductCosting.App.Infrastructure"
              x:Name="Root">
     <UserControl.Resources>
+        <!-- side by side on the Orders page: equal columns with a 16px gap -->
+        <ItemsPanelTemplate x:Key="Columns">
+            <UniformGrid Rows="1" />
+        </ItemsPanelTemplate>
+        <Style x:Key="ColumnItem" TargetType="ContentPresenter">
+            <Setter Property="Margin" Value="8,0" />
+        </Style>
+
         <!-- one table per order state; empty tables are replaced by a short note -->
         <DataTemplate x:Key="Section">
-            <Border Style="{StaticResource Card}" Padding="0" Margin="0,0,0,16" l:RoundClip.Enabled="True">
+            <Border Style="{StaticResource Card}" Padding="0" Margin="0,0,0,16" VerticalAlignment="Top" l:RoundClip.Enabled="True">
                 <StackPanel>
-                    <TextBlock Text="{Binding Title}" Style="{StaticResource H2}" Margin="20,16,16,12" />
+                    <DockPanel Margin="20,16,16,12">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" l:Btn.Icon="&#xE7BF;" Content="{l:T supplier.newOrder}"
+                                Command="{Binding NewCommand}" Padding="12,5" MinHeight="0"
+                                Visibility="{Binding HasNew, Converter={StaticResource Visible}}" />
+                        <TextBlock Text="{Binding Title}" Style="{StaticResource H2}" VerticalAlignment="Center" />
+                    </DockPanel>
                     <TextBlock Text="{l:T order.none}" Style="{StaticResource Muted}" Margin="20,0,20,16"
                                Visibility="{Binding HasRows, Converter={StaticResource Hidden}}" />
                     <DataGrid ItemsSource="{Binding Rows}" SelectionMode="Single" Visibility="{Binding HasRows, Converter={StaticResource Visible}}"

@@ -38,12 +38,14 @@
 
         <Grid Grid.Row="1" Margin="28,22,28,24">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="6*" />
+                <ColumnDefinition Width="7*" />
                 <ColumnDefinition Width="20" />
-                <ColumnDefinition Width="5*" />
+                <ColumnDefinition Width="4*" />
             </Grid.ColumnDefinitions>
 
+            <!-- supplier details, then the items bought from this supplier -->
             <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel>
                 <Border Style="{StaticResource Card}" VerticalAlignment="Top">
                     <StackPanel>
                         <TextBlock Text="{l:T supplier.general}" Style="{StaticResource H2}" Margin="0,0,0,14" />
@@ -116,17 +118,9 @@
                         <TextBox Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource MultiLine}" MinHeight="96" />
                     </StackPanel>
                 </Border>
-            </ScrollViewer>
-
-            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
-            <StackPanel>
-            <Border Style="{StaticResource Card}" Padding="0" VerticalAlignment="Top" l:RoundClip.Enabled="True">
+            <Border Style="{StaticResource Card}" Padding="0" Margin="0,16,0,0" VerticalAlignment="Top" l:RoundClip.Enabled="True">
                 <DockPanel>
-                    <DockPanel DockPanel.Dock="Top" Margin="20,16,16,12">
-                        <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" l:Btn.Icon="&#xE7BF;" Content="{l:T supplier.newOrder}"
-                                Command="{Binding NewOrderCommand}" Visibility="{Binding IsNew, Converter={StaticResource Hidden}}" Padding="12,5" MinHeight="0" />
-                        <TextBlock Text="{l:T supplier.items}" Style="{StaticResource H2}" VerticalAlignment="Center" />
-                    </DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="{l:T supplier.items}" Style="{StaticResource H2}" Margin="20,16,16,12" />
                     <Grid>
                         <TextBlock Text="{l:T supplier.noItems}" Style="{StaticResource Muted}" Margin="20,0,20,16" Visibility="{Binding HasItems, Converter={StaticResource Hidden}}" />
                         <DataGrid x:Name="ItemsGrid" ItemsSource="{Binding Items}" Visibility="{Binding HasItems, Converter={StaticResource Visible}}"
@@ -146,9 +140,14 @@
                     </Grid>
                 </DockPanel>
             </Border>
+            </StackPanel>
+            </ScrollViewer>
 
+            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
             <!-- saved orders by state: double-click opens, right-click for more -->
-            <v:OrdersTable Margin="0,16,0,0" Drafts="{Binding Drafts}" Executed="{Binding ExecutedOrders}" Archived="{Binding ArchivedOrders}"
+            <v:OrdersTable Drafts="{Binding Drafts}" Executed="{Binding ExecutedOrders}" Archived="{Binding ArchivedOrders}"
+                           NewOrderCommand="{Binding NewOrderCommand}"
                            Visibility="{Binding IsNew, Converter={StaticResource Hidden}}" />
             </StackPanel>
             </ScrollViewer>

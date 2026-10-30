@@ -47,15 +47,15 @@ public static class ThemeManager
         "#FFB000", "#FFC640", "#3A2800",
         "#33FFFFFF", "#22FFFFFF", "#66FFD400");
 
-    // the colours of the sample image: slate panels with a teal accent
+    // the colours of the sample image: slate panels with a bright teal accent (dark text on accent fills)
     static readonly Palette SlateTeal = new(true,
         "#111418", "#1A1F26", "#222833", "#2A313D", "#161A20", "#232A35", "#2E3642", "#3B4452",
-        "#E6EAF0", "#9AA4B2", "#6B7584", "#FFFFFF",
-        "#30726E", "#3C8A85", "#285F5C", "#18302F", "#6CC3BC",
+        "#E6EAF0", "#9AA4B2", "#6B7584", "#111418",
+        "#4FD1C5", "#6EDBD1", "#3BB8AD", "#173634", "#7FE3D9",
         "#EF4444", "#F87171", "#3A1A1D", "#5A2A2E",
         "#22C55E", "#4ADE80", "#15301F",
         "#F59E0B", "#FBBF24", "#36290F",
-        "#14FFFFFF", "#0AFFFFFF", "#3330726E");
+        "#14FFFFFF", "#0AFFFFFF", "#334FD1C5");
 
     static readonly Palette Nord = new(true,
         "#2E3440", "#2A2F3A", "#3B4252", "#434C5E", "#313744", "#3B4252", "#434C5E", "#4C566A",
@@ -84,17 +84,57 @@ public static class ThemeManager
         "#B58900", "#9A7400", "#F3E7C4",
         "#0F073642", "#08073642", "#22268BD2");
 
+    // eye-friendly themes: low contrast, warm or muted colours, no pure black or white
+    static readonly Palette Gruvbox = new(true,
+        "#1D2021", "#232526", "#282828", "#32302F", "#202222", "#2C2A29", "#3C3836", "#504945",
+        "#EBDBB2", "#BDAE93", "#928374", "#1D2021",
+        "#D79921", "#E5AC3A", "#B57F17", "#3A3020", "#FABD2F",
+        "#CC241D", "#FB4934", "#3C2220", "#5A2C28",
+        "#98971A", "#B8BB26", "#2F3220",
+        "#D65D0E", "#FE8019", "#3D2A1C",
+        "#14EBDBB2", "#0AEBDBB2", "#33D79921");
+
+    static readonly Palette Everforest = new(true,
+        "#232A2E", "#272F33", "#2D353B", "#343F44", "#283035", "#313A3F", "#3D484D", "#4F585E",
+        "#D3C6AA", "#A6A08C", "#7A8478", "#232A2E",
+        "#A7C080", "#B6CC93", "#93AC6C", "#34402F", "#B9CF95",
+        "#E67E80", "#EC9496", "#45303A", "#5C3B42",
+        "#83C092", "#9BD0A8", "#2F3F36",
+        "#DBBC7F", "#E4CB97", "#45403A",
+        "#14D3C6AA", "#0AD3C6AA", "#33A7C080");
+
+    static readonly Palette Sepia = new(false,
+        "#EFE6D3", "#F7F0E1", "#FAF5EA", "#F2EADA", "#F5EEDF", "#FAF5EA", "#E2D7C0", "#CDBEA2",
+        "#3B3226", "#6B5F4F", "#998B76", "#FFFFFF",
+        "#8B5E34", "#9E6E40", "#744C28", "#EBDDC8", "#744C28",
+        "#B23A2E", "#9A3026", "#F3DCD3", "#E0B3A8",
+        "#5E7D2E", "#4D6824", "#E3E8CF",
+        "#B07A12", "#93650E", "#F2E3C2",
+        "#0F3B3226", "#083B3226", "#228B5E34");
+
     /// <summary>Theme ids (stored in settings) with their label keys, in menu order.</summary>
     public static IReadOnlyList<(string Id, string LabelKey)> Themes { get; } =
     [
         ("system", "theme.system"), ("dark", "theme.dark"), ("light", "theme.light"), ("contrast", "theme.contrast"),
         ("slate", "theme.slate"), ("nord", "theme.nord"), ("dracula", "theme.dracula"), ("solarized", "theme.solarized"),
+        ("gruvbox", "theme.gruvbox"), ("everforest", "theme.everforest"), ("sepia", "theme.sepia"),
     ];
 
     public static Palette Current { get; private set; } = Dark;
     static string _theme = "system";
     static bool _listening;
-    static ResourceDictionary? _lightControls;
+    static ResourceDictionary? _palette;
+    static ResourceDictionary? _fluentDark, _fluentLight;
+    static ResourceDictionary FluentDark => _fluentDark ??= FindFluent("Dark") ?? Fluent("Dark");
+    static ResourceDictionary FluentLight => _fluentLight ??= Fluent("Light");
+
+    static ResourceDictionary Fluent(string mode) =>
+        new() { Source = new Uri($"pack://application:,,,/PresentationFramework.Fluent;component/Themes/Fluent.{mode}.xaml") };
+
+    // the dark dictionary App.xaml loaded at start-up, reused rather than parsed again
+    static ResourceDictionary? FindFluent(string mode) =>
+        Application.Current.Resources.MergedDictionaries.FirstOrDefault(d =>
+            d.Source?.OriginalString.EndsWith($"Fluent.{mode}.xaml", StringComparison.OrdinalIgnoreCase) == true);
 
     /// <summary>Applies a theme to the whole app (all open windows update at once).</summary>
     public static void Apply(string theme)
@@ -103,23 +143,19 @@ public static class ThemeManager
         var p = Resolve(theme);
         var app = Application.Current;
         var merged = app.Resources.MergedDictionaries;
-        // The dark Fluent controls loaded by App.xaml always stay: the app's own styles are built on them and their
-        // templates look up resources there. Light themes add the light Fluent controls on top (the last dictionary wins).
-        if (!p.Dark && _lightControls is null)
-        {
-            _lightControls = new ResourceDictionary
-            {
-                Source = new Uri("pack://application:,,,/PresentationFramework.Fluent;component/Themes/Fluent.Light.xaml"),
-            };
-            merged.Insert(1, _lightControls);
-        }
-        else if (p.Dark && _lightControls is not null)
-        {
-            merged.Remove(_lightControls);
-            _lightControls = null;
-        }
+        // Fluent controls: exactly one Fluent dictionary, first in the list, matching the palette. WPF also swaps the
+        // Fluent dictionary itself when it sees one change, so stale light copies are removed explicitly every time.
+        var fluent = p.Dark ? FluentDark : FluentLight;
+        for (var i = merged.Count - 1; i >= 0; i--)
+            if (merged[i].Source?.OriginalString.Contains("PresentationFramework.Fluent", StringComparison.OrdinalIgnoreCase) == true
+                && !ReferenceEquals(merged[i], fluent))
+                merged.RemoveAt(i);
+        if (!merged.Contains(fluent)) merged.Insert(0, fluent);
         // our palette is always the last dictionary
-        merged[^1] = Build(p);
+        if (_palette is not null) merged.Remove(_palette);
+        else merged.RemoveAt(merged.Count - 1); // the default palette from App.xaml
+        _palette = Build(p);
+        merged.Add(_palette);
         Current = p;
         foreach (Window w in app.Windows) NativeWindow.UseDarkTitleBar(w);
 
@@ -144,6 +180,9 @@ public static class ThemeManager
         "nord" => Nord,
         "dracula" => Dracula,
         "solarized" => SolarizedLight,
+        "gruvbox" => Gruvbox,
+        "everforest" => Everforest,
+        "sepia" => Sepia,
         _ => SystemParameters.HighContrast ? Contrast : SystemUsesLight() ? Light : Dark,
     };
 

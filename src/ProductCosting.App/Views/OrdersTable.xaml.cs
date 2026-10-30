@@ -8,12 +8,16 @@ using ProductCosting.App.ViewModels;
 
 namespace ProductCosting.App.Views;
 
-/// <summary>Saved orders in three tables (draft, executed, archived) with double-click and right-click actions.</summary>
+/// <summary>
+/// Saved orders in one table per state (draft, executed and, when bound, archived) with double-click and right-click
+/// actions. The drafts table carries the "new order" button.
+/// </summary>
 public partial class OrdersTable : UserControl
 {
-    public sealed record SectionData(string Title, IList Rows)
+    public sealed record SectionData(string Title, IList Rows, ICommand? NewCommand = null)
     {
         public bool HasRows => Rows.Count > 0;
+        public bool HasNew => NewCommand is not null;
     }
 
     public static readonly DependencyProperty DraftsProperty = Register(nameof(Drafts));
@@ -21,6 +25,10 @@ public partial class OrdersTable : UserControl
     public static readonly DependencyProperty ArchivedProperty = Register(nameof(Archived));
     public static readonly DependencyProperty ShowSupplierProperty = DependencyProperty.Register(
         nameof(ShowSupplier), typeof(bool), typeof(OrdersTable), new PropertyMetadata(false));
+    public static readonly DependencyProperty NewOrderCommandProperty = DependencyProperty.Register(
+        nameof(NewOrderCommand), typeof(ICommand), typeof(OrdersTable), new PropertyMetadata(null, (d, _) => ((OrdersTable)d).Rebuild()));
+    public static readonly DependencyProperty SideBySideProperty = DependencyProperty.Register(
+        nameof(SideBySide), typeof(bool), typeof(OrdersTable), new PropertyMetadata(false, (d, _) => ((OrdersTable)d).Arrange()));
 
     static DependencyProperty Register(string name) => DependencyProperty.Register(
         name, typeof(IList), typeof(OrdersTable), new PropertyMetadata(null, (d, _) => ((OrdersTable)d).Rebuild()));
@@ -29,15 +37,29 @@ public partial class OrdersTable : UserControl
     public IList? Executed { get => (IList?)GetValue(ExecutedProperty); set => SetValue(ExecutedProperty, value); }
     public IList? Archived { get => (IList?)GetValue(ArchivedProperty); set => SetValue(ArchivedProperty, value); }
     public bool ShowSupplier { get => (bool)GetValue(ShowSupplierProperty); set => SetValue(ShowSupplierProperty, value); }
+    public ICommand? NewOrderCommand { get => (ICommand?)GetValue(NewOrderCommandProperty); set => SetValue(NewOrderCommandProperty, value); }
+    public bool SideBySide { get => (bool)GetValue(SideBySideProperty); set => SetValue(SideBySideProperty, value); }
 
     public OrdersTable() => InitializeComponent();
 
-    void Rebuild() => Sections.ItemsSource = new List<SectionData>
+    void Rebuild()
     {
-        new(Loc.T("order.drafts"), Drafts ?? new List<SavedOrderRow>()),
-        new(Loc.T("order.executed"), Executed ?? new List<SavedOrderRow>()),
-        new(Loc.T("order.archived"), Archived ?? new List<SavedOrderRow>()),
-    };
+        var sections = new List<SectionData>
+        {
+            new(Loc.T("order.drafts"), Drafts ?? new List<SavedOrderRow>(), NewOrderCommand),
+            new(Loc.T("order.executed"), Executed ?? new List<SavedOrderRow>()),
+        };
+        // archived orders are shown on the supplier only (the Orders page leaves them unbound)
+        if (Archived is not null) sections.Add(new(Loc.T("order.archived"), Archived));
+        Sections.ItemsSource = sections;
+    }
+
+    void Arrange()
+    {
+        Sections.ItemsPanel = SideBySide ? (ItemsPanelTemplate)Resources["Columns"] : new ItemsPanelTemplate(new FrameworkElementFactory(typeof(StackPanel)));
+        Sections.ItemContainerStyle = SideBySide ? (Style)Resources["ColumnItem"] : null;
+        Sections.Margin = SideBySide ? new Thickness(-8, 0, -8, 0) : new Thickness();
+    }
 
     // the supplier column is shown on the Orders page only
     void Grid_Loaded(object sender, RoutedEventArgs e) =>
