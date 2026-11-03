@@ -20,6 +20,7 @@ public partial class SupplierHistoryWindow : Window
     public SupplierHistoryWindow(Supplier supplier)
     {
         InitializeComponent();
+        MaxHeight = SystemParameters.WorkArea.Height;
         NativeWindow.UseDarkTitleBar(this);
         Title = TitleText.Text = Loc.F("supplierHistory.title", supplier.Name);
         var days = AppState.Store.GetSupplierHistory(supplier.Id);

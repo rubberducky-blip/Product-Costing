@@ -385,8 +385,10 @@ public sealed partial class ItemEditorViewModel : PageViewModel
                 Breakdown.Add(new(Loc.F("cost.perUnit", Strings.Measure(saleUnit)), Fmt.Money4(sc.UnitCost * f)));
                 if (multi && i < bc.Sources.Count - 1) Breakdown.Add(new("", "", "sep"));
             }
-            if (multi) Breakdown.Add(new(Loc.T("cost.weighted"), Fmt.Money4(bc.UnitCost * f), "total"));
-            if (waste is > 0 and < 100)
+            // the weighted cost differs from the total only when waste is added to it
+            var hasWaste = waste is > 0 and < 100;
+            if (multi && hasWaste) Breakdown.Add(new(Loc.T("cost.weighted"), Fmt.Money4(bc.UnitCost * f), "total"));
+            if (hasWaste)
                 Breakdown.Add(new(Loc.F("cost.waste", Fmt.Pct(waste.Value)), "+" + Fmt.Money4((cost - bc.UnitCost) * f)));
         }
 
