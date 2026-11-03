@@ -6,7 +6,7 @@ namespace ProductCosting.Core.Data;
 /// <summary>Opens connections to the local SQLite database and keeps its schema up to date.</summary>
 public sealed class Db
 {
-    public const int SchemaVersion = 6;
+    public const int SchemaVersion = 7;
 
     static int _initialized;
 
@@ -90,6 +90,13 @@ public sealed class Db
             c.Execute("PRAGMA user_version = 6", transaction: t);
             t.Commit();
             reprice = version >= 1;
+        }
+        if (version < 7)
+        {
+            using var t = c.BeginTransaction();
+            c.Execute(Schema.V7, transaction: t);
+            c.Execute("PRAGMA user_version = 7", transaction: t);
+            t.Commit();
         }
         return reprice;
     }
@@ -345,5 +352,10 @@ static class Schema
             WHERE purchase_unit IS NULL AND purchase_qty >= 100 AND item_id IN (SELECT id FROM items WHERE unit = 1);
         UPDATE items SET price_unit = (SELECT src.purchase_unit FROM item_sources src WHERE src.item_id = items.id ORDER BY src.position LIMIT 1)
             WHERE kind <> 1;
+        """;
+
+    // order lines in the unit the item is bought in (metres, m²…); older lines stay in the base unit
+    public const string V7 = """
+        ALTER TABLE purchase_order_lines ADD COLUMN entry_unit INTEGER;
         """;
 }

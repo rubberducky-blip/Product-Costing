@@ -373,6 +373,7 @@ public static class Strings
         ["history.change"] = ("Μεταβολή", "Change"),
         ["history.reasons"] = ("Αιτίες", "Reasons"),
         ["history.margin"] = ("Περιθώριο", "Margin"),
+        ["history.per"] = ("τιμή ανά {0}", "price per {0}"),
 
         ["settings.title"] = ("Ρυθμίσεις", "Settings"),
         ["settings.costs"] = ("Κόστος παραγωγής", "Production costs"),

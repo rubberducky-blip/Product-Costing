@@ -118,7 +118,7 @@ public sealed partial class Store
     public PurchaseOrder? GetOrder(long id) => GetOrders().FirstOrDefault(o => o.Id == id);
 
     public List<PurchaseOrderLine> GetOrderLines(long orderId) => Read(c => c.Query<PurchaseOrderLine>("""
-        SELECT item_id, variant, code, supplier_code, name, unit, quantity, unit_price, currency, discount_pct, shipping_pct
+        SELECT item_id, variant, code, supplier_code, name, unit, entry_unit, quantity, unit_price, currency, discount_pct, shipping_pct
         FROM purchase_order_lines WHERE order_id=@orderId ORDER BY position
         """, new { orderId }).ToList());
 
@@ -140,9 +140,9 @@ public sealed partial class Store
         var i = 0;
         foreach (var l in lines)
             c.Execute("""
-                INSERT INTO purchase_order_lines(order_id, item_id, variant, code, supplier_code, name, unit, quantity, unit_price, currency,
+                INSERT INTO purchase_order_lines(order_id, item_id, variant, code, supplier_code, name, unit, entry_unit, quantity, unit_price, currency,
                     discount_pct, shipping_pct, position)
-                VALUES(@id, @ItemId, @Variant, @Code, @SupplierCode, @Name, @Unit, @Quantity, @UnitPrice, @Currency, @DiscountPct, @ShippingPct, @pos)
+                VALUES(@id, @ItemId, @Variant, @Code, @SupplierCode, @Name, @Unit, @EntryUnit, @Quantity, @UnitPrice, @Currency, @DiscountPct, @ShippingPct, @pos)
                 """, new DynamicParameters(l).Also(p => { p.Add("id", id); p.Add("pos", i++); }), t);
         return id;
     });
@@ -221,7 +221,7 @@ public sealed partial class Store
 
     /// <summary>Items bought from a supplier (one row per item), for the supplier page and the order form.</summary>
     public List<SupplierItemRow> GetSupplierItems(long supplierId) => Read(c => c.Query<SupplierItemRow>("""
-        SELECT i.id AS item_id, i.kind, i.code, i.name, src.supplier_code, src.purchase_price, src.purchase_qty, i.unit,
+        SELECT i.id AS item_id, i.kind, i.code, i.name, src.supplier_code, src.purchase_price, src.purchase_qty, i.unit, src.purchase_unit,
                COALESCE(src.currency, s.currency, 0) AS currency, src.weight, src.moq, src.pack_qty,
                COALESCE(src.discount_pct, s.discount_pct) AS discount_pct, COALESCE(src.shipping_pct, s.shipping_pct) AS shipping_pct
         FROM item_sources src JOIN items i ON i.id = src.item_id JOIN suppliers s ON s.id = src.supplier_id

@@ -8,7 +8,7 @@ using S = ProductCosting.Core.Localization.Strings;
 
 namespace ProductCosting.Core.Pdf;
 
-public sealed record OrderLine(string Code, string? SupplierCode, string Name, string? Variant, decimal Quantity, QtyUnit Unit);
+public sealed record OrderLine(string Code, string? SupplierCode, string Name, string? Variant, decimal Quantity, MeasureUnit Unit);
 
 /// <summary>PDF exports: price-change report and supplier order.</summary>
 public static class PdfReports
@@ -104,7 +104,7 @@ public static class PdfReports
                     table.Cell().Element(BodyCell).AlignRight().Text(Money(n.OldPrice, currency));
                     table.Cell().Element(BodyCell).AlignRight().Text(Money(n.NewPrice, currency));
                     table.Cell().Element(BodyCell).AlignRight().Text((n.ChangePct > 0 ? "+" : "") + n.ChangePct.ToString("N1", Culture) + "%").FontColor(color);
-                    table.Cell().Element(BodyCell).AlignRight().Text(Money(n.CurrentPrice, currency)).SemiBold();
+                    table.Cell().Element(BodyCell).AlignRight().Text(Money(n.CurrentPrice, currency) + n.PerUnitText).SemiBold();
                     table.Cell().Element(BodyCell).Text(t =>
                     {
                         t.Span(S.Reasons(n.Reasons));
@@ -164,7 +164,7 @@ public static class PdfReports
                         table.Cell().Element(BodyCell).Text(l.Code);
                         table.Cell().Element(BodyCell).Text(l.Name);
                         table.Cell().Element(BodyCell).Text(l.Variant ?? "");
-                        table.Cell().Element(BodyCell).AlignRight().Text(l.Quantity.ToString("0.###", Culture) + " " + S.Unit(l.Unit)).SemiBold();
+                        table.Cell().Element(BodyCell).AlignRight().Text(l.Quantity.ToString("0.###", Culture) + " " + S.Measure(l.Unit)).SemiBold();
                     }
                 });
                 col.Item().PaddingTop(10).AlignRight().Text(t =>

@@ -16,9 +16,10 @@ public sealed class SearchResult(SearchHit hit)
     public string? Snippet => Hit.Snippet is null ? null : $"“{Hit.Snippet}”";
     public bool HasSnippet => Hit.Snippet is not null;
     public string KindText => Hit.IsSupplier ? Loc.T("kind.supplier") : Strings.Kind(Hit.Kind);
-    // raw materials are bought per cm, cm², kg…: their cost per unit says more than a rounded price
+    // bought items are priced per the unit they are bought in (per m², per kg…)
     public string PriceText => Hit.IsSupplier ? ""
-        : Hit.Kind == ItemKind.RawMaterial ? $"{Fmt.Money4(Hit.Cost)}/{Strings.Unit(Hit.Unit)}"
+        : Hit.Unit.EntryUnit(Hit.PriceUnit) is var u && u != MeasureUnit.Pcs && Hit.Kind != ItemKind.Product
+            ? $"{Fmt.Money(Hit.Price)} / {Strings.Measure(u)}"
         : Fmt.Money(Hit.Price);
     public string Glyph => Hit.IsSupplier ? "\uE716" : Hit.Kind switch
     {

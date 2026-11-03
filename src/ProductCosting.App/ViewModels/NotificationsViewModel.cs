@@ -22,7 +22,7 @@ public sealed class NotificationItem(PriceNotification n)
     public string Glyph => IsIncrease ? "\uE74A" : "\uE74B";
     public string DirectionText => Loc.T(IsIncrease ? "notify.up" : "notify.down");
     public string OldText => Fmt.Money(Model.OldPrice);
-    public string NewText => Fmt.Money(Model.NewPrice);
+    public string NewText => Fmt.Money(Model.NewPrice) + Model.PerUnitText;
     public string ChangeText => Fmt.Signed(Model.ChangePct);
     public string ReasonsText => Strings.Reasons(Model.Reasons);
     public string TimeText => DateTime.TryParse(Model.UpdatedAt, out var d) ? d.ToString("g", Loc.Culture) : "";

@@ -160,7 +160,7 @@ public sealed partial class Store
 
     /// <summary>Everything that can go into a recipe (raw materials, merchandise, products), with its folder in its own list.</summary>
     public List<(MaterialInfo Info, long? FolderId, long? MaterialFolderId)> GetMaterials() => Read(c => c.Query<MaterialInfo, long?, long?, (MaterialInfo, long?, long?)>("""
-        SELECT id, kind, code, name, unit, piece_length_cm, piece_area_cm2, piece_weight_kg, cost, has_waste, usable_as_material,
+        SELECT id, kind, code, name, unit, price_unit, piece_length_cm, piece_area_cm2, piece_weight_kg, cost, has_waste, usable_as_material,
                folder_id AS folder, material_folder_id AS mfolder
         FROM items
         """, (m, f, mf) => (m, f, mf), splitOn: "folder,mfolder").OrderBy(x => x.Item1.Code, NaturalComparer.Instance).ToList());

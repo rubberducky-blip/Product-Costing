@@ -26,6 +26,8 @@ public sealed class OrderRow : CommunityToolkit.Mvvm.ComponentModel.ObservableOb
     public string Name { get; init; } = "";
     public string? Variant { get; init; }
     public QtyUnit Unit { get; init; }
+    /// <summary>The unit the item is ordered in (m, m², kg, pieces…): quantity, MOQ, pack and unit price are all in it.</summary>
+    public MeasureUnit Entry { get; init; }
     public decimal? Moq { get; init; }
     public decimal? Pack { get; init; }
     /// <summary>Purchase price of one unit, in <see cref="Currency"/>.</summary>
@@ -36,7 +38,7 @@ public sealed class OrderRow : CommunityToolkit.Mvvm.ComponentModel.ObservableOb
     public bool IsReadOnly { get; init; }
     public NumField Qty { get; } = new(null, allowEmpty: true);
 
-    public string UnitText => Strings.Unit(Unit);
+    public string UnitText => Strings.Measure(Entry);
     public string MoqText => Moq is decimal m ? Fmt.Num(m) : "—";
     public string PackText => Pack is decimal p ? Fmt.Num(p) : "—";
     public string UnitPriceText => Fmt.Exact(UnitPrice, Currency);
@@ -61,7 +63,7 @@ public sealed class OrderRow : CommunityToolkit.Mvvm.ComponentModel.ObservableOb
 
     public PurchaseOrderLine ToLine() => new()
     {
-        ItemId = ItemId == 0 ? null : ItemId, Variant = Variant, Code = Code, SupplierCode = SupplierCode, Name = Name, Unit = Unit,
+        ItemId = ItemId == 0 ? null : ItemId, Variant = Variant, Code = Code, SupplierCode = SupplierCode, Name = Name, Unit = Unit, EntryUnit = Entry,
         Quantity = Qty.Value ?? 0, UnitPrice = UnitPrice, Currency = Currency, DiscountPct = DiscountPct, ShippingPct = ShippingPct,
     };
 }
@@ -107,11 +109,11 @@ public partial class OrderWindow : Window
             var variants = AppState.Store.GetVariants(items.Select(i => i.ItemId));
             foreach (var i in items)
             {
-                var unitPrice = i.PurchaseQty > 0 ? i.PurchasePrice / i.PurchaseQty : i.PurchasePrice;
+                // ordered in the unit it is bought in (e.g. m²), at the price of one of it
                 OrderRow Row(string? variant, string? code) => new()
                 {
-                    ItemId = i.ItemId, Code = i.Code, SupplierCode = code, Name = i.Name, Variant = variant, Unit = i.Unit, Moq = i.Moq, Pack = i.PackQty,
-                    UnitPrice = unitPrice, Currency = i.Currency, DiscountPct = i.DiscountPct, ShippingPct = i.ShippingPct,
+                    ItemId = i.ItemId, Code = i.Code, SupplierCode = code, Name = i.Name, Variant = variant, Unit = i.Unit, Entry = i.EntryUnit,
+                    Moq = i.EntryMoq, Pack = i.EntryPack, UnitPrice = i.EntryUnitPrice, Currency = i.Currency, DiscountPct = i.DiscountPct, ShippingPct = i.ShippingPct,
                 };
                 var vs = variants.TryGetValue(i.ItemId, out var all) ? all.Where(v => v.SupplierId is null || v.SupplierId == supplier.Id).ToList() : [];
                 if (vs.Count > 0) foreach (var v in vs) _rows.Add(Row(v.Name, v.Code ?? i.SupplierCode));
@@ -127,11 +129,14 @@ public partial class OrderWindow : Window
                 row = new OrderRow
                 {
                     ItemId = line.ItemId ?? 0, Code = line.Code, SupplierCode = line.SupplierCode, Name = line.Name, Variant = line.Variant, Unit = line.Unit,
+                    Entry = line.ShownUnit,
                     UnitPrice = line.UnitPrice, Currency = line.Currency, DiscountPct = line.DiscountPct, ShippingPct = line.ShippingPct, IsReadOnly = readOnly,
                 };
                 _rows.Add(row);
             }
-            row.Qty.Set(line.Quantity);
+            // a draft saved in another unit (or before units) keeps its amount: 15000 cm² becomes 1.5 m²
+            row.Qty.Set(line.ShownUnit == row.Entry ? line.Quantity
+                : line.ShownUnit.Dimension() == row.Entry.Dimension() ? row.Entry.FromBase(line.ShownUnit.ToBase(line.Quantity)) : line.Quantity);
         }
         _savedKey = orderId is null ? "" : Key();
 
@@ -255,7 +260,7 @@ public partial class OrderWindow : Window
         };
         if (dlg.ShowDialog(this) != true) return;
         var pdf = PdfReports.SupplierOrder(_supplier,
-            lines.Select(r => new OrderLine(r.Code, r.SupplierCode, r.Name, r.Variant, r.Qty.Value!.Value, r.Unit)).ToList(), DateTime.Now);
+            lines.Select(r => new OrderLine(r.Code, r.SupplierCode, r.Name, r.Variant, r.Qty.Value!.Value, r.Entry)).ToList(), DateTime.Now);
         File.WriteAllBytes(dlg.FileName, pdf);
         NotificationsViewModel.OpenFile(dlg.FileName);
     }
@@ -272,7 +277,7 @@ public partial class OrderWindow : Window
         };
         if (dlg.ShowDialog(owner) != true) return;
         var pdf = PdfReports.SupplierOrder(supplier,
-            lines.Select(l => new OrderLine(l.Code, l.SupplierCode, l.Name, l.Variant, l.Quantity, l.Unit)).ToList(), date);
+            lines.Select(l => new OrderLine(l.Code, l.SupplierCode, l.Name, l.Variant, l.Quantity, l.ShownUnit)).ToList(), date);
         File.WriteAllBytes(dlg.FileName, pdf);
         NotificationsViewModel.OpenFile(dlg.FileName);
     }

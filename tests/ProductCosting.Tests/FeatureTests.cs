@@ -233,6 +233,35 @@ public class FeatureTests
     }
 
     [Fact]
+    public void Orders_InThePurchaseUnit()
+    {
+        using var f = new StoreFixture();
+        var sup = f.Supplier("Hides");
+        // 1.5 m² for 90 €, ordered in 3 m² minimums and 1.5 m² packs
+        f.Store.SaveItem(new ItemDocument
+        {
+            Item = new Item { Kind = ItemKind.RawMaterial, Code = "L", Name = "Leather", Unit = QtyUnit.Cm2 },
+            Sources = [new ItemSource { SupplierId = sup, PurchasePrice = 90, PurchaseQty = 15000, PurchaseUnit = MeasureUnit.M2, Moq = 30000, PackQty = 15000 }],
+        });
+        var row = Assert.Single(f.Store.GetSupplierItems(sup));
+        Assert.Equal(MeasureUnit.M2, row.EntryUnit);
+        Assert.Equal(1.5m, row.EntryQty);
+        Assert.Equal(60m, row.EntryUnitPrice);
+        Assert.Equal(3m, row.EntryMoq);
+        Assert.Equal(1.5m, row.EntryPack);
+
+        var id = f.Store.SaveOrder(null, sup,
+        [
+            new PurchaseOrderLine { Code = "L", Name = "Leather", Unit = QtyUnit.Cm2, EntryUnit = MeasureUnit.M2, Quantity = 3, UnitPrice = 60 },
+            new PurchaseOrderLine { Code = "OLD", Name = "Older line", Unit = QtyUnit.Cm2, Quantity = 100, UnitPrice = 0.01m },
+        ]);
+        var lines = f.Store.GetOrderLines(id);
+        Assert.Equal(MeasureUnit.M2, lines[0].ShownUnit);
+        Assert.Equal(MeasureUnit.Cm2, lines[1].ShownUnit);           // saved before units: still in cm²
+        Assert.Equal(181m, f.Store.GetOrder(id)!.TotalValue);
+    }
+
+    [Fact]
     public void History_RecordsMarginChanges_EvenWhenThePriceStays()
     {
         using var f = new StoreFixture();

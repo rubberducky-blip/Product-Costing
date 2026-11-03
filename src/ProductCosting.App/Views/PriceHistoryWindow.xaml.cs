@@ -43,6 +43,9 @@ public partial class PriceHistoryWindow : Window
     {
         InitializeComponent();
         NativeWindow.UseDarkTitleBar(this);
+        // items priced per m², kg… say so: every price in the window is per that unit
+        if (AppState.Store.GetItem(itemId) is { IsBought: true, SaleUnit: var u } && u != MeasureUnit.Pcs)
+            title += " · " + Loc.F("history.per", Strings.Measure(u));
         Title = TitleText.Text = Loc.F("history.title", title);
         var entries = AppState.Store.GetHistory(itemId);
         Chart.Entries = entries;

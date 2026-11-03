@@ -195,6 +195,9 @@ public sealed class PurchaseOrderLine
     public string? SupplierCode { get; set; }
     public string Name { get; set; } = "";
     public QtyUnit Unit { get; set; }
+    /// <summary>The unit of <see cref="Quantity"/> and <see cref="UnitPrice"/> (e.g. m²); null = the base unit (older orders).</summary>
+    public MeasureUnit? EntryUnit { get; set; }
+    public MeasureUnit ShownUnit => Unit.EntryUnit(EntryUnit);
     public decimal Quantity { get; set; }
     /// <summary>Purchase price of one unit (purchase price ÷ quantity per purchase), in <see cref="Currency"/>.</summary>
     public decimal UnitPrice { get; set; }
@@ -229,7 +232,11 @@ public sealed class PriceNotification
     public decimal CurrentPrice { get; set; }
     public decimal Cost { get; set; }
     public decimal EffMarkup { get; set; }
+    public QtyUnit Unit { get; set; }
+    public MeasureUnit? PriceUnit { get; set; }
 
+    /// <summary>" / μ²" for items priced per a measured unit, "" per piece.</summary>
+    public string PerUnitText => Unit.EntryUnit(PriceUnit) is var u && u != MeasureUnit.Pcs ? " / " + Localization.Strings.Measure(u) : "";
     public bool IsIncrease => NewPrice > OldPrice;
     public decimal ChangePct => OldPrice == 0 ? 0 : (NewPrice - OldPrice) / OldPrice * 100m;
 }
@@ -339,6 +346,8 @@ public sealed class SearchHit
     public decimal Price { get; set; }
     public decimal Cost { get; set; }
     public QtyUnit Unit { get; set; }
+    /// <summary>The unit the price is for (null = the base unit).</summary>
+    public MeasureUnit? PriceUnit { get; set; }
     /// <summary>The note or comment that matched, when the match isn't in the code, name or suppliers.</summary>
     public string? Snippet { get; set; }
 }
@@ -362,12 +371,22 @@ public sealed class SupplierItemRow
     public string Name { get; set; } = "";
     public string? SupplierCode { get; set; }
     public decimal PurchasePrice { get; set; }
+    /// <summary>In the base unit; see <see cref="EntryUnit"/> for the unit it is bought in.</summary>
     public decimal PurchaseQty { get; set; }
     public QtyUnit Unit { get; set; }
+    public MeasureUnit? PurchaseUnit { get; set; }
     public Currency Currency { get; set; }
     public decimal Weight { get; set; }
     public decimal? Moq { get; set; }
     public decimal? PackQty { get; set; }
+
+    /// <summary>The unit the item is bought in (m, m², kg, pieces…), and the quantities in it.</summary>
+    public MeasureUnit EntryUnit => Unit.EntryUnit(PurchaseUnit);
+    public decimal EntryQty => EntryUnit.FromBase(PurchaseQty);
+    public decimal? EntryMoq => Moq is decimal m ? EntryUnit.FromBase(m) : null;
+    public decimal? EntryPack => PackQty is decimal p ? EntryUnit.FromBase(p) : null;
+    /// <summary>Purchase price of one <see cref="EntryUnit"/>.</summary>
+    public decimal EntryUnitPrice => EntryQty > 0 ? PurchasePrice / EntryQty : PurchasePrice;
     /// <summary>Discount and shipping that apply (the item's own, or the supplier's).</summary>
     public decimal DiscountPct { get; set; }
     public decimal ShippingPct { get; set; }
@@ -381,6 +400,8 @@ public sealed class MaterialInfo
     public string Code { get; set; } = "";
     public string Name { get; set; } = "";
     public QtyUnit Unit { get; set; }
+    /// <summary>The unit the material is priced per (null = the base unit); for showing its cost the way it is bought.</summary>
+    public MeasureUnit? PriceUnit { get; set; }
     public decimal? PieceLengthCm { get; set; }
     public decimal? PieceAreaCm2 { get; set; }
     public decimal? PieceWeightKg { get; set; }

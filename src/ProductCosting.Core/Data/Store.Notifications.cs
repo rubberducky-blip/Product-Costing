@@ -10,7 +10,7 @@ public sealed partial class Store
     public List<PriceNotification> GetNotifications() => Read(c => c.Query<PriceNotification>("""
         SELECT n.id, n.item_id, n.old_price, n.new_price, n.reasons, n.updated_at, n.adjusted,
                i.code, i.name, i.kind, i.price AS current_price,
-               i.cost * (CASE i.price_unit WHEN 2 THEN 100.0 WHEN 4 THEN 10000.0 WHEN 5 THEN 0.001 ELSE 1.0 END) AS cost, i.eff_markup
+               i.cost * (CASE i.price_unit WHEN 2 THEN 100.0 WHEN 4 THEN 10000.0 WHEN 5 THEN 0.001 ELSE 1.0 END) AS cost, i.eff_markup, i.unit, i.price_unit
         FROM price_notifications n JOIN items i ON i.id = n.item_id
         ORDER BY n.updated_at DESC, i.code
         """).ToList());
@@ -87,7 +87,7 @@ public sealed partial class Store
         if (items.Count > 0)
         {
             foreach (var (hit, key, notes) in c.Query<SearchHit, string, string?, (SearchHit, string, string?)>(
-                "SELECT 0 AS is_supplier, id, kind, code, name, price, cost, unit, list_key, notes FROM items WHERE id IN @items",
+                "SELECT 0 AS is_supplier, id, kind, code, name, price, cost, unit, price_unit, list_key, notes FROM items WHERE id IN @items",
                 (h, k, n) => (h, k, n), new { items }, splitOn: "list_key,notes"))
             {
                 if (!TextNorm.Normalize(key).Contains(q))

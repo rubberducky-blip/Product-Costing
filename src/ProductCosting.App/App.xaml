@@ -27,6 +27,7 @@
             <l:CurrencyConverter x:Key="CurrencyName" />
             <l:ReasonsConverter x:Key="ReasonNames" />
             <l:BoolToVisibilityConverter x:Key="Visible" />
+            <l:SupplierQtyConverter x:Key="SupplierQty" />
             <l:BoolToDoubleConverter x:Key="QtyWidth" True="226" False="142" />
             <l:BoolToVisibilityConverter x:Key="Hidden" Invert="True" />
             <l:BoolToVisibilityConverter x:Key="VisibleKeepSpace" KeepSpace="True" />

@@ -57,7 +57,20 @@ public sealed class PurchasePriceConverter : IValueConverter
 public sealed class SupplierPriceConverter : IValueConverter
 {
     public object Convert(object? value, Type t, object? p, CultureInfo c) =>
-        value is SupplierItemRow r ? Fmt.Exact(r.PurchasePrice, r.Currency) : "";
+        value is SupplierItemRow r ? Fmt.Exact(r.PurchasePrice, r.Currency) + Per(r) : "";
+    public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => Binding.DoNothing;
+
+    // "88,00 € / 1,5 μ²": what the price buys, unless it is one piece
+    static string Per(SupplierItemRow r) => r.EntryUnit == MeasureUnit.Pcs && r.EntryQty == 1 ? ""
+        : $" / {(r.EntryQty == 1 ? "" : Fmt.Num(r.EntryQty) + " ")}{Strings.Measure(r.EntryUnit)}";
+}
+
+/// <summary>A supplier item's minimum order (parameter "moq") or pack size ("pack") in the unit it is bought in.</summary>
+public sealed class SupplierQtyConverter : IValueConverter
+{
+    public object Convert(object? value, Type t, object? p, CultureInfo c) =>
+        value is SupplierItemRow r && ((p as string) == "pack" ? r.EntryPack : r.EntryMoq) is decimal q
+            ? $"{Fmt.Num(q)} {Strings.Measure(r.EntryUnit)}" : "";
     public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => Binding.DoNothing;
 }
 

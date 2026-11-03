@@ -84,7 +84,7 @@ internal static class Smoke
             });
 
         var hide = Raw("R-001", "Δέρμα μοσχαρίσιο φυσικό", leathers, crete, "DK-NAT-150", 85, 15000, QtyUnit.Cm2, waste: 20, buyIn: MeasureUnit.M2);
-        var hideBlack = Raw("R-002", "Δέρμα μοσχαρίσιο μαύρο", leathers, usa, "LW-BLK", 96, 15000, QtyUnit.Cm2, waste: 25, moq: 30000, pack: 15000);
+        var hideBlack = Raw("R-002", "Δέρμα μοσχαρίσιο μαύρο", leathers, usa, "LW-BLK", 96, 15000, QtyUnit.Cm2, waste: 25, moq: 30000, pack: 15000, buyIn: MeasureUnit.M2);
         var thread = Raw("R-010", "Κλωστή κερωμένη 0,8 mm", hardware, italy, "TH-08", 12, 50000, QtyUnit.Cm, buyIn: MeasureUnit.M);
         var zip = Raw("R-020", "Φερμουάρ μεταλλικό 20 εκ.", hardware, italy, "ZP-20", 35, 100, QtyUnit.Pcs, len: 20);
         var rings = Raw("R-021", "Κρίκοι ορειχάλκινοι", hardware, italy, "RG-BR", 18, 200, QtyUnit.Pcs);
@@ -469,7 +469,7 @@ internal static class Smoke
             Shot((FrameworkElement)win.Content, "19-order");
             win.Close();
             File.WriteAllBytes(Path.Combine(_dir, "order.pdf"), PdfReports.SupplierOrder(sup,
-                [new OrderLine("M-200", "MUG-350-W", "Κούπα κεραμική 350 ml", "Λευκή", 24, QtyUnit.Pcs)], DateTime.Now));
+                [new OrderLine("M-200", "MUG-350-W", "Κούπα κεραμική 350 ml", "Λευκή", 24, MeasureUnit.Pcs)], DateTime.Now));
         });
         await Step("dialog", async () =>
         {

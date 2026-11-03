@@ -338,7 +338,7 @@ public class StoreTests
         var rows = f.Store.GetSupplierItems(sup);
         Assert.Single(rows);
         Assert.Equal(2, f.Store.GetVariants([m])[m].Count);
-        var pdf = PdfReports.SupplierOrder(f.Store.GetSupplier(sup)!, [new OrderLine("M1", "S1-R", "Κούπα", "Κόκκινο", 12, QtyUnit.Pcs)], f.Now);
+        var pdf = PdfReports.SupplierOrder(f.Store.GetSupplier(sup)!, [new OrderLine("M1", "S1-R", "Κούπα", "Κόκκινο", 12, MeasureUnit.Pcs)], f.Now);
         Assert.True(pdf.Length > 1000);
     }
 

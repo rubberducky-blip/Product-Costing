@@ -158,7 +158,10 @@ public sealed partial class ItemEditorViewModel : PageViewModel
             var mats = store.GetMaterials().Where(m => m.Info.Id != _doc.Item.Id).ToList();
             _materials = mats.ToDictionary(m => m.Info.Id, m => m.Info);
             (long, string, string?, long?) Entry(MaterialInfo m, long? folder) =>
-                (m.Id, $"{m.Code} · {m.Name}", $"{Fmt.Money4(m.Cost)}/{Strings.Unit(m.Unit)}", folder);
+                (m.Id, $"{m.Code} · {m.Name}", CostPer(m), folder);
+            // the cost per the unit the material is bought in (per m², per kg…)
+            static string CostPer(MaterialInfo m) =>
+                m.Unit.EntryUnit(m.PriceUnit) is var u ? $"{Fmt.Money4(m.Cost * u.Factor())}/{Strings.Measure(u)}" : "";
             MaterialEntries = PickerEntry.Tree(rawFolders, mats
                 .Where(m => m.Info.Kind == ItemKind.RawMaterial || (m.Info.Kind == ItemKind.Merchandise && m.Info.UsableAsMaterial))
                 .Select(m => Entry(m.Info, m.Info.Kind == ItemKind.RawMaterial ? m.FolderId : m.MaterialFolderId)));
