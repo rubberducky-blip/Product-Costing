@@ -298,6 +298,8 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         // bought items are priced per the unit of their first supplier row (e.g. per m²); costs are shown per that unit
         var saleUnit = IsBought ? Unit.EntryUnit(Sources.FirstOrDefault()?.PurchaseUnit) : MeasureUnit.Pcs;
         var f = saleUnit.Factor();
+        // set when the purchase price is the whole cost: the total line then says "purchase price"
+        string? totalLabel = null;
 
         if (IsProduct)
         {
@@ -361,6 +363,9 @@ public sealed partial class ItemEditorViewModel : PageViewModel
             var waste = IsRaw && HasWaste ? WastePct.Value : null;
             cost = Costing.WithWaste(bc.UnitCost, waste);
             var multi = bc.Sources.Count > 1;
+            var hasWaste = waste is > 0 and < 100;
+            // one supplier and no waste: the source's cost per unit is the total, shown once below
+            var single = !multi && !hasWaste;
             for (var i = 0; i < bc.Sources.Count; i++)
             {
                 var sc = bc.Sources[i];
@@ -370,6 +375,17 @@ public sealed partial class ItemEditorViewModel : PageViewModel
                     var name = sc.Source.SupplierId is long sid && _suppliers.TryGetValue(sid, out var sup) ? sup.Name : Loc.T("item.noSupplier");
                     Breakdown.Add(new($"{name} · {Fmt.Pct(Math.Round(sc.Share * 100, 1))}", "", "header"));
                 }
+                var entry = Unit.EntryUnit(sc.Source.PurchaseUnit);
+                var entryQty = entry.FromBase(sc.Source.PurchaseQty);
+                // a price in euro for exactly one unit, with no discount or shipping, is already the cost per unit
+                var plain = sc.Currency == Currency.Eur && sc.DiscountPct == 0 && sc.ShippingPct == 0 && entryQty == 1 && entry == saleUnit;
+                if (plain)
+                {
+                    if (single) totalLabel = Loc.T("cost.listPrice");
+                    else Breakdown.Add(new(Loc.T("cost.listPrice") + PerUnit(saleUnit), Fmt.Exact(sc.ListPrice, sc.Currency)));
+                    if (multi && i < bc.Sources.Count - 1) Breakdown.Add(new("", "", "sep"));
+                    continue;
+                }
                 Breakdown.Add(new(Loc.T("cost.listPrice"), Fmt.Exact(sc.ListPrice, sc.Currency)));
                 if (sc.Currency == Currency.Usd)
                     Breakdown.Add(new($"{Loc.T("cost.inEur")} (1 € = {Fmt.Num(s.UsdPerEur)} $)", Fmt.Money4(sc.ListPriceEur), "sub"));
@@ -377,16 +393,13 @@ public sealed partial class ItemEditorViewModel : PageViewModel
                     Breakdown.Add(new($"{Loc.T("cost.discount")} {Fmt.Pct(sc.DiscountPct)}", "−" + Fmt.Money4(sc.ListPriceEur - sc.Net), "sub"));
                 if (sc.ShippingPct != 0)
                     Breakdown.Add(new($"{Loc.T("cost.shipping")} {Fmt.Pct(sc.ShippingPct)}", "+" + Fmt.Money4(sc.Shipping), "sub"));
-                var entry = Unit.EntryUnit(sc.Source.PurchaseUnit);
-                var entryQty = entry.FromBase(sc.Source.PurchaseQty);
                 // "÷ 1,5 μ²" only when the price buys more (or less) than one unit, or another unit than the one priced per
                 if (entryQty != 1 || entry != saleUnit)
                     Breakdown.Add(new($"÷ {Fmt.Num(entryQty)} {Strings.Measure(entry)}", "", "sub"));
-                Breakdown.Add(new(Loc.F("cost.perUnit", Strings.Measure(saleUnit)), Fmt.Money4(sc.UnitCost * f)));
+                if (!single) Breakdown.Add(new(Loc.F("cost.perUnit", Strings.Measure(saleUnit)), Fmt.Money4(sc.UnitCost * f)));
                 if (multi && i < bc.Sources.Count - 1) Breakdown.Add(new("", "", "sep"));
             }
             // the weighted cost differs from the total only when waste is added to it
-            var hasWaste = waste is > 0 and < 100;
             if (multi && hasWaste) Breakdown.Add(new(Loc.T("cost.weighted"), Fmt.Money4(bc.UnitCost * f), "total"));
             if (hasWaste)
                 Breakdown.Add(new(Loc.F("cost.waste", Fmt.Pct(waste!.Value)), "+" + Fmt.Money4((cost - bc.UnitCost) * f)));
@@ -400,8 +413,9 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         StepHint = Loc.F("common.default", Fmt.Num(s.RoundingStep));
 
         Breakdown.Add(new("", "", "sep"));
-        var per = saleUnit == MeasureUnit.Pcs ? "" : " / " + Strings.Measure(saleUnit);
-        Breakdown.Add(new(Loc.T("cost.total") + per, Fmt.Money4(saleCost), "total"));
+        var per = PerUnit(saleUnit);
+        Breakdown.Add(new((totalLabel ?? Loc.T("cost.total")) + per,
+            totalLabel is null ? Fmt.Money4(saleCost) : Fmt.Exact(saleCost, Currency.Eur), "total"));
         Breakdown.Add(new($"{Loc.T("cost.markup")} {Fmt.Pct(markup)}", "+" + Fmt.Money4(price.RawPrice - saleCost)));
         Breakdown.Add(new(Loc.T("cost.rawPrice"), Fmt.Money4(price.RawPrice), "sub"));
         Breakdown.Add(new(Loc.T("cost.price") + per, Fmt.Money(price.Price), "big"));
@@ -432,6 +446,8 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         OnPropertyChanged(nameof(VariantSupplierWidth));
         Dirty = Snapshot() != _original;
     }
+
+    static string PerUnit(MeasureUnit u) => u == MeasureUnit.Pcs ? "" : " / " + Strings.Measure(u);
 
     /// <summary>Canonical text of everything editable: equal snapshots mean "no change", even after edits were undone.</summary>
     string Snapshot()

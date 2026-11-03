@@ -74,7 +74,10 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
         var code = string.IsNullOrWhiteSpace(s.Country) ? (s.Id == 0 ? Countries.Default : null) : s.Country.Trim();
         var all = Countries.All;
         _otherCountry = code is not null && Countries.Find(code) is null ? code : null;
+        // alphabetical in the current language (the ids stay the countries' places in the list)
+        var byName = StringComparer.Create(Loc.Culture, ignoreCase: true);
         CountryEntries = PickerEntry.Flat(all.Select((c, i) => ((long)i, c.Name, c.El + " " + c.En + " " + c.Code))
+            .OrderBy(e => e.Name, byName)
             .Concat(_otherCountry is null ? [] : [((long)all.Count, _otherCountry, _otherCountry)]));
         OnPropertyChanged(nameof(CountryEntries));
         CountryId = code is null ? null
