@@ -412,7 +412,8 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         MarkupHint = Loc.F("common.default", Fmt.Pct(s.DefaultMarkupPct));
         StepHint = Loc.F("common.default", Fmt.Num(s.RoundingStep));
 
-        Breakdown.Add(new("", "", "sep"));
+        // nothing above the total (a plain purchase price): no dividing line either
+        if (Breakdown.Count > 0) Breakdown.Add(new("", "", "sep"));
         var per = PerUnit(saleUnit);
         Breakdown.Add(new((totalLabel ?? Loc.T("cost.total")) + per,
             totalLabel is null ? Fmt.Money4(saleCost) : Fmt.Exact(saleCost, Currency.Eur), "total"));

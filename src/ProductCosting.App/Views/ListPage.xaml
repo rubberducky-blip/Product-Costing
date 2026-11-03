@@ -182,12 +182,12 @@
                     <DataGrid.ContextMenu>
                         <ContextMenu>
                             <MenuItem Header="{l:T common.open}" Click="Menu_Open" />
-                            <MenuItem Header="{l:T common.duplicate}" Click="Menu_Duplicate" />
-                            <MenuItem Header="{l:T item.history}" Click="Menu_History" Tag="item" />
-                            <MenuItem Header="{l:T menu.setPrice}" Click="Menu_SetPrice" Tag="item" />
-                            <MenuItem Header="{l:T menu.setPurchase}" Click="Menu_SetPurchase" Tag="bought" />
+                            <MenuItem Header="{l:T common.duplicate}" Click="Menu_Duplicate" InputGestureText="Ctrl+D" />
+                            <MenuItem Header="{l:T item.history}" Click="Menu_History" Tag="item" InputGestureText="Ctrl+H" />
+                            <MenuItem Header="{l:T menu.setPrice}" Click="Menu_SetPrice" Tag="item" InputGestureText="Ctrl+W" />
+                            <MenuItem Header="{l:T menu.setPurchase}" Click="Menu_SetPurchase" Tag="bought" InputGestureText="Ctrl+Q" />
                             <MenuItem Header="{l:T supplier.newOrder}" Click="Menu_NewOrder" Tag="supplier" />
-                            <MenuItem Header="{l:T supplier.history}" Click="Menu_SupplierHistory" Tag="supplier" />
+                            <MenuItem Header="{l:T supplier.history}" Click="Menu_SupplierHistory" Tag="supplier" InputGestureText="Ctrl+H" />
                             <Separator />
                             <MenuItem Header="{l:T common.delete}" Click="Menu_Delete" Foreground="{DynamicResource DangerTextBrush}" />
                         </ContextMenu>
@@ -244,12 +244,12 @@
                     <DataGrid.ContextMenu>
                         <ContextMenu>
                             <MenuItem Header="{l:T common.open}" Click="Menu_Open" />
-                            <MenuItem Header="{l:T common.duplicate}" Click="Menu_Duplicate" />
-                            <MenuItem Header="{l:T item.history}" Click="Menu_History" Tag="item" />
-                            <MenuItem Header="{l:T menu.setPrice}" Click="Menu_SetPrice" Tag="item" />
-                            <MenuItem Header="{l:T menu.setPurchase}" Click="Menu_SetPurchase" Tag="bought" />
+                            <MenuItem Header="{l:T common.duplicate}" Click="Menu_Duplicate" InputGestureText="Ctrl+D" />
+                            <MenuItem Header="{l:T item.history}" Click="Menu_History" Tag="item" InputGestureText="Ctrl+H" />
+                            <MenuItem Header="{l:T menu.setPrice}" Click="Menu_SetPrice" Tag="item" InputGestureText="Ctrl+W" />
+                            <MenuItem Header="{l:T menu.setPurchase}" Click="Menu_SetPurchase" Tag="bought" InputGestureText="Ctrl+Q" />
                             <MenuItem Header="{l:T supplier.newOrder}" Click="Menu_NewOrder" Tag="supplier" />
-                            <MenuItem Header="{l:T supplier.history}" Click="Menu_SupplierHistory" Tag="supplier" />
+                            <MenuItem Header="{l:T supplier.history}" Click="Menu_SupplierHistory" Tag="supplier" InputGestureText="Ctrl+H" />
                             <Separator />
                             <MenuItem Header="{l:T common.delete}" Click="Menu_Delete" Foreground="{DynamicResource DangerTextBrush}" />
                         </ContextMenu>

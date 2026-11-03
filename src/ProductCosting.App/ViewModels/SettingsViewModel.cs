@@ -81,6 +81,10 @@ public sealed partial class SettingsViewModel : PageViewModel
         new("↑ / ↓", Loc.T("keys.sections")),
         new("Esc", Loc.T("keys.settings")),
         new("Ctrl + B", Loc.T("keys.backup")),
+        new("Ctrl + D", Loc.T("keys.duplicate")),
+        new("Ctrl + H", Loc.T("keys.history")),
+        new("Ctrl + Q", Loc.T("keys.purchase")),
+        new("Ctrl + W", Loc.T("keys.price")),
     ];
     public List<Choice<string>> Languages { get; } = [new("el", "Ελληνικά"), new("en", "English")];
     public List<Choice<string>> Themes { get; } = ThemeManager.Themes.Select(t => new Choice<string>(t.Id, Loc.T(t.LabelKey))).ToList();

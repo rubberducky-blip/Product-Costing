@@ -25,12 +25,13 @@
                     <TextBlock Text="{l:T order.none}" Style="{StaticResource Muted}" Margin="20,0,20,16"
                                Visibility="{Binding HasRows, Converter={StaticResource Hidden}}" />
                     <DataGrid ItemsSource="{Binding Rows}" SelectionMode="Single" Visibility="{Binding HasRows, Converter={StaticResource Visible}}"
-                              MouseDoubleClick="Grid_MouseDoubleClick" ContextMenuOpening="Grid_ContextMenuOpening" Loaded="Grid_Loaded">
+                              MouseDoubleClick="Grid_MouseDoubleClick" ContextMenuOpening="Grid_ContextMenuOpening" Loaded="Grid_Loaded"
+                              PreviewKeyDown="Grid_PreviewKeyDown">
                         <DataGrid.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="{l:T common.open}" Click="Menu_Open" />
                                 <MenuItem Header="{l:T order.export}" Click="Menu_Export" />
-                                <MenuItem Header="{l:T order.copy}" Click="Menu_Copy" />
+                                <MenuItem Header="{l:T order.copy}" Click="Menu_Copy" InputGestureText="Ctrl+D" />
                                 <MenuItem Header="{l:T order.execute}" Click="Menu_Execute" Tag="draft" />
                                 <MenuItem Header="{l:T order.archive}" Click="Menu_Archive" Tag="executed" />
                                 <MenuItem Header="{l:T order.unarchive}" Click="Menu_Unarchive" Tag="archived" />
