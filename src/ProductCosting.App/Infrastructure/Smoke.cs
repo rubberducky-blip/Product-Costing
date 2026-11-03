@@ -135,7 +135,7 @@ internal static class Smoke
         sup.DiscountPct = 15;
         store.SaveSupplier(sup);
         store.SetPurchasePrice(hide, 92);
-        store.SetPurchasePrice(belt, 4.21m);   // the price rounds back to the same: only the margin changes
+        store.SetPurchasePrice(belt, 4.205m);  // the price rounds back to the same 9,65: only the margin changes
         day = day.AddDays(5);
         store.SetPurchasePrice(hide, 88);
         store.SetPurchasePrice(belt, 3.9m);

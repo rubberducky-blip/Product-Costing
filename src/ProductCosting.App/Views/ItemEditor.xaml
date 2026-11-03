@@ -449,25 +449,25 @@
                     <StackPanel>
                         <TextBlock Text="{l:T cost.title}" Style="{StaticResource Caption}" FontWeight="SemiBold" />
                         <TextBlock Text="{Binding PriceText}" FontFamily="{StaticResource DisplayFont}" FontSize="34" FontWeight="SemiBold" Margin="0,6,0,0" />
-                        <StackPanel Orientation="Horizontal" Margin="0,6,0,20">
-                            <Border Style="{StaticResource Badge}" Background="{DynamicResource CardHoverBrush}">
+                        <WrapPanel Margin="0,6,0,14">
+                            <Border Style="{StaticResource Badge}" Background="{DynamicResource CardHoverBrush}" Margin="0,0,0,6">
                                 <TextBlock Foreground="{DynamicResource TextMutedBrush}">
                                     <Run Text="{l:T list.cost}" /><Run Text=" " /><Run Text="{Binding CostText, Mode=OneWay}" Foreground="{DynamicResource TextBrush}" />
                                 </TextBlock>
                             </Border>
-                            <Border Style="{StaticResource Badge}" Margin="8,0,0,0"
+                            <Border Style="{StaticResource Badge}" Margin="8,0,0,6"
                                     Background="{Binding MarginPct, Converter={StaticResource MarginBrush}, ConverterParameter=soft}">
                                 <TextBlock Foreground="{Binding MarginPct, Converter={StaticResource MarginBrush}}">
                                     <Run Text="{l:T list.margin}" /><Run Text=" " /><Run Text="{Binding MarginText, Mode=OneWay}" />
                                 </TextBlock>
                             </Border>
-                            <Border Style="{StaticResource Badge}" Margin="8,0,0,0" Visibility="{Binding HasAdjMargin, Converter={StaticResource Visible}}"
+                            <Border Style="{StaticResource Badge}" Margin="8,0,0,6" Visibility="{Binding HasAdjMargin, Converter={StaticResource Visible}}"
                                     Background="{Binding AdjMarginPct, Converter={StaticResource MarginBrush}, ConverterParameter=soft}">
                                 <TextBlock Foreground="{Binding AdjMarginPct, Converter={StaticResource MarginBrush}}">
                                     <Run Text="{l:T list.adjMargin}" /><Run Text=" " /><Run Text="{Binding AdjMarginText, Mode=OneWay}" />
                                 </TextBlock>
                             </Border>
-                        </StackPanel>
+                        </WrapPanel>
                         <Border Style="{StaticResource Card}" Padding="16,12">
                             <ItemsControl ItemsSource="{Binding Breakdown}">
                                 <ItemsControl.ItemTemplate>

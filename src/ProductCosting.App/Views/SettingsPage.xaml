@@ -67,11 +67,11 @@
                                 <ComboBox ItemsSource="{Binding RoundingModes}" SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding RoundingMode}"
                                           HorizontalAlignment="Stretch" />
                             </StackPanel>
-                            <StackPanel Style="{StaticResource Field}" Width="320">
-                                <TextBlock Text="{l:T settings.salesOverhead}" Style="{StaticResource FieldLabel}" TextTrimming="CharacterEllipsis" />
-                                <l:NumBox Field="{Binding SalesOverhead}" />
-                            </StackPanel>
                         </WrapPanel>
+                        <StackPanel Width="320" HorizontalAlignment="Left" Margin="0,14,0,0">
+                            <TextBlock Text="{l:T settings.salesOverhead}" Style="{StaticResource FieldLabel}" TextTrimming="CharacterEllipsis" />
+                            <l:NumBox Field="{Binding SalesOverhead}" />
+                        </StackPanel>
                         <TextBlock Text="{l:T settings.salesOverheadHelp}" Style="{StaticResource Caption}" TextWrapping="Wrap" MaxWidth="900" HorizontalAlignment="Left" Margin="0,10,0,0" />
                     </StackPanel>
                 </Border>

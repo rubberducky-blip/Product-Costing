@@ -288,7 +288,7 @@ public sealed class ItemRow : System.ComponentModel.INotifyPropertyChanged
     /// <summary>Sales overhead of the settings, set by the list for merchandise and raw materials (0 for products).</summary>
     public decimal SalesOverheadPct { get; set; }
     /// <summary>Gross margin minus the sales overhead.</summary>
-    public decimal AdjMarginPct => MarginPct - SalesOverheadPct;
+    public decimal AdjMarginPct => Price > 0 ? MarginPct - SalesOverheadPct : 0;
 }
 
 public sealed class SupplierRow

@@ -398,7 +398,7 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         Breakdown.Add(new(Loc.T("cost.price"), Fmt.Money(price.Price), "big"));
         Breakdown.Add(new(Loc.T("cost.profit"), Fmt.Money(price.Profit)));
         // merchandise and raw materials sold as they are: the margin left after the sales overhead (prices stay as they are)
-        var salesOverhead = IsBought ? s.SalesOverheadPct : 0;
+        var salesOverhead = IsBought && price.Price > 0 ? s.SalesOverheadPct : 0;
         var adjusted = Costing.AdjustedMargin(price.MarginPct, Kind, salesOverhead);
         Breakdown.Add(new(Loc.T(salesOverhead != 0 ? "cost.grossMargin" : "cost.margin"), Fmt.Pct(Math.Round(price.MarginPct, 1)), "row", MarginBrushConverter.Tone(price.MarginPct)));
         if (salesOverhead != 0)
