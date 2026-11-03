@@ -175,7 +175,7 @@ public sealed class PriceChart : FrameworkElement
             var lines = new List<FormattedText>
             {
                 Text(en.Date.ToString("D", Loc.Culture), B("TextMutedBrush")),
-                Text(en.OldPrice is decimal old && old != 0
+                Text(en.OldPrice is decimal old && old != 0 && old != en.Price
                     ? $"{Fmt.Money(old)} → {Fmt.Money(en.Price)}   ({Fmt.Signed((en.Price - old) / old * 100)})"
                     : Fmt.Money(en.Price), B("TextBrush"), 13),
             };
