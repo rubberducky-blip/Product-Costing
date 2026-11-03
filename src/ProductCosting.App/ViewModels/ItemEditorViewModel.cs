@@ -379,7 +379,8 @@ public sealed partial class ItemEditorViewModel : PageViewModel
                     Breakdown.Add(new($"{Loc.T("cost.shipping")} {Fmt.Pct(sc.ShippingPct)}", "+" + Fmt.Money4(sc.Shipping), "sub"));
                 var entry = Unit.EntryUnit(sc.Source.PurchaseUnit);
                 var entryQty = entry.FromBase(sc.Source.PurchaseQty);
-                if (entryQty != 1 || entry.Factor() != 1)
+                // "÷ 1,5 μ²" only when the price buys more (or less) than one unit, or another unit than the one priced per
+                if (entryQty != 1 || entry != saleUnit)
                     Breakdown.Add(new($"÷ {Fmt.Num(entryQty)} {Strings.Measure(entry)}", "", "sub"));
                 Breakdown.Add(new(Loc.F("cost.perUnit", Strings.Measure(saleUnit)), Fmt.Money4(sc.UnitCost * f)));
                 if (multi && i < bc.Sources.Count - 1) Breakdown.Add(new("", "", "sep"));
