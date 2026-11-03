@@ -42,13 +42,7 @@ public partial class PriceHistoryWindow : Window
     public PriceHistoryWindow(long itemId, string title)
     {
         InitializeComponent();
-        MaxHeight = SystemParameters.WorkArea.Height;
-        // fit the window again once the table has its rows (the first sizing happens before they exist)
-        ContentRendered += (_, _) => Dispatcher.BeginInvoke(() =>
-        {
-            SizeToContent = SizeToContent.Manual;
-            SizeToContent = SizeToContent.Height;
-        }, System.Windows.Threading.DispatcherPriority.ContextIdle);
+        WindowFit.HeightToContent(this);
         NativeWindow.UseDarkTitleBar(this);
         // items priced per m², kg… say so: every price in the window is per that unit
         if (AppState.Store.GetItem(itemId) is { IsBought: true, SaleUnit: var u } && u != MeasureUnit.Pcs)

@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:l="clr-namespace:ProductCosting.App.Infrastructure"
         xmlns:c="clr-namespace:ProductCosting.App.Controls"
-        Style="{StaticResource AppWindow}" Width="960" SizeToContent="Height" MinWidth="640"
+        Style="{StaticResource AppWindow}" Width="960" Height="600" MinWidth="640"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False" PreviewKeyDown="Window_PreviewKeyDown">
     <Grid Margin="24" LayoutTransform="{x:Static l:UiScale.Transform}">
         <Grid.RowDefinitions>
