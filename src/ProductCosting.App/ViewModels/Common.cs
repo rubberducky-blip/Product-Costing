@@ -9,8 +9,13 @@ public sealed record Choice<T>(T Value, string Label);
 
 public static class Choices
 {
+    /// <summary>What an item is measured by: pieces, length, area, weight.</summary>
     public static List<Choice<QtyUnit>> Units() =>
-        Enum.GetValues<QtyUnit>().Select(u => new Choice<QtyUnit>(u, Strings.Unit(u))).ToList();
+        Enum.GetValues<QtyUnit>().Select(u => new Choice<QtyUnit>(u, Strings.Dimension(u))).ToList();
+
+    /// <summary>Units a quantity can be typed in (pcs, cm, m, cm², m², g, kg).</summary>
+    public static List<Choice<MeasureUnit>> Measures(IEnumerable<MeasureUnit>? units = null) =>
+        (units ?? Enum.GetValues<MeasureUnit>()).Select(u => new Choice<MeasureUnit>(u, Strings.Measure(u))).ToList();
 
     public static List<Choice<Currency>> Currencies() =>
     [
@@ -57,7 +62,7 @@ public abstract class EditRow : ObservableObject
     {
         base.OnPropertyChanged(e);
         // derived display values don't count as edits
-        if (e.PropertyName is { } n && !n.EndsWith("Text") && !n.EndsWith("Hint") && !n.EndsWith("Choices") && !n.StartsWith("Is"))
+        if (e.PropertyName is { } n && !n.EndsWith("Text") && !n.EndsWith("Hint") && !n.EndsWith("Choices") && !n.StartsWith("Is") && !n.StartsWith("Has"))
             Touch();
     }
 }

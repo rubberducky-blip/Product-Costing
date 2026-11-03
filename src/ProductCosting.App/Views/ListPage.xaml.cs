@@ -42,6 +42,7 @@ public partial class ListPage : UserControl
         UnitCol.Visibility = Vis(_vm.IsBought);
         PurchaseCol.Visibility = Vis(_vm.IsBought);
         ProfitCol.Visibility = Vis(_vm.IsProducts);
+        AdjMarginCol.Visibility = Vis(_vm.IsBought && AppState.Settings.SalesOverheadPct != 0);
     }
 
     void Unbind()
@@ -174,6 +175,12 @@ public partial class ListPage : UserControl
     {
         if (ActiveGrid.SelectedItem is SupplierRow r && AppState.Store.GetSupplier(r.Id) is { } s)
             new OrderWindow(s) { Owner = Window.GetWindow(this) }.ShowDialog();
+    }
+
+    void Menu_SupplierHistory(object sender, RoutedEventArgs e)
+    {
+        if (ActiveGrid.SelectedItem is SupplierRow r && AppState.Store.GetSupplier(r.Id) is { } s)
+            new SupplierHistoryWindow(s) { Owner = Window.GetWindow(this) }.ShowDialog();
     }
 
     void Menu_Open(object sender, RoutedEventArgs e)

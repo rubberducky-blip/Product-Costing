@@ -99,12 +99,22 @@ public sealed partial class ItemEditorViewModel : PageViewModel
 
     partial void OnWasteWidthChanged(System.Windows.GridLength value) => OnPropertyChanged(nameof(HasWasteColumn));
     public List<Choice<QtyUnit>> Units { get; } = Choices.Units();
+    /// <summary>Units a recipe quantity can be typed in.</summary>
+    public List<Choice<MeasureUnit>> Measures { get; } = Choices.Measures();
+
+    partial void OnUnitChanged(QtyUnit value)
+    {
+        foreach (var r in Sources) r.SetDimension(value);
+    }
 
     [ObservableProperty] private string _title = "";
     [ObservableProperty] private string _priceText = "";
     [ObservableProperty] private string _costText = "";
     [ObservableProperty] private string _marginText = "";
     [ObservableProperty] private decimal _marginPct;
+    [ObservableProperty] private bool _hasAdjMargin;
+    [ObservableProperty] private decimal _adjMarginPct;
+    [ObservableProperty] private string _adjMarginText = "";
     [ObservableProperty] private string _laborTotalText = "";
     [ObservableProperty] private string _materialsTotalText = "";
     [ObservableProperty] private string _markupHint = "";
@@ -199,7 +209,7 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         WastePct.Set(it.WastePct);
         HasUnseenChange = it.HasUnseenChange;
 
-        Reset(Sources, doc.Sources.Select(s => new SourceRow(s)));
+        Reset(Sources, doc.Sources.Select(s => new SourceRow(s, it.Unit)));
         Reset(Lines, doc.Lines.Select((l, i) => new LineRow(l,
             _productLines is { } flags && i < flags.Length ? flags[i] : IsProductComponent(l.MaterialId))));
         Reset(Labor, doc.Labor.Select(l => new LaborRow(l)));
@@ -307,10 +317,11 @@ public sealed partial class ItemEditorViewModel : PageViewModel
                     line.WarningText = Loc.T("cost.warnConversion");
                     continue;
                 }
-                var c = unitCost.Value * line.Quantity.Or0 * (1 + (line.IsWasteMaterial ? line.Waste.Or0 : 0) / 100m);
+                var c = unitCost.Value * line.BaseQuantity * (1 + (line.IsWasteMaterial ? line.Waste.Or0 : 0) / 100m);
                 materials += c;
                 line.CostText = Fmt.Money4(c);
-                line.UnitCostText = $"{Fmt.Money4(unitCost.Value)}/{Strings.Unit(line.Unit)}";
+                var entry = line.IsProductLine ? MeasureUnit.Pcs : line.EntryUnit;
+                line.UnitCostText = $"{Fmt.Money4(unitCost.Value * entry.Factor())}/{Strings.Measure(entry)}";
                 line.WarningText = "";
             }
             var width = new System.Windows.GridLength(Lines.Any(l => l.IsWasteMaterial) ? 96 : 0);
@@ -353,16 +364,20 @@ public sealed partial class ItemEditorViewModel : PageViewModel
                     var name = sc.Source.SupplierId is long sid && _suppliers.TryGetValue(sid, out var sup) ? sup.Name : Loc.T("item.noSupplier");
                     Breakdown.Add(new($"{name} · {Fmt.Pct(Math.Round(sc.Share * 100, 1))}", "", "header"));
                 }
-                Breakdown.Add(new(Loc.T("cost.listPrice"), Fmt.InCurrency(sc.ListPrice, sc.Currency)));
+                Breakdown.Add(new(Loc.T("cost.listPrice"), Fmt.Exact(sc.ListPrice, sc.Currency)));
                 if (sc.Currency == Currency.Usd)
                     Breakdown.Add(new($"{Loc.T("cost.inEur")} (1 € = {Fmt.Num(s.UsdPerEur)} $)", Fmt.Money4(sc.ListPriceEur), "sub"));
                 if (sc.DiscountPct != 0)
                     Breakdown.Add(new($"{Loc.T("cost.discount")} {Fmt.Pct(sc.DiscountPct)}", "−" + Fmt.Money4(sc.ListPriceEur - sc.Net), "sub"));
                 if (sc.ShippingPct != 0)
                     Breakdown.Add(new($"{Loc.T("cost.shipping")} {Fmt.Pct(sc.ShippingPct)}", "+" + Fmt.Money4(sc.Shipping), "sub"));
-                if (sc.Source.PurchaseQty != 1)
-                    Breakdown.Add(new($"÷ {Fmt.Num(sc.Source.PurchaseQty)} {Strings.Unit(Unit)}", "", "sub"));
+                var entry = Unit.EntryUnit(sc.Source.PurchaseUnit);
+                var entryQty = entry.FromBase(sc.Source.PurchaseQty);
+                if (entryQty != 1 || entry.Factor() != 1)
+                    Breakdown.Add(new($"÷ {Fmt.Num(entryQty)} {Strings.Measure(entry)}", "", "sub"));
                 Breakdown.Add(new(Loc.F("cost.perUnit", Strings.Unit(Unit)), Fmt.Money4(sc.UnitCost)));
+                if (entry.Factor() != 1)
+                    Breakdown.Add(new(Loc.F("cost.perEntry", Fmt.Money4(sc.UnitCost * entry.Factor()), Strings.Measure(entry)), "", "sub"));
                 if (multi && i < bc.Sources.Count - 1) Breakdown.Add(new("", "", "sep"));
             }
             if (multi) Breakdown.Add(new(Loc.T("cost.weighted"), Fmt.Money4(bc.UnitCost), "total"));
@@ -382,7 +397,15 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         Breakdown.Add(new(Loc.T("cost.rawPrice"), Fmt.Money4(price.RawPrice), "sub"));
         Breakdown.Add(new(Loc.T("cost.price"), Fmt.Money(price.Price), "big"));
         Breakdown.Add(new(Loc.T("cost.profit"), Fmt.Money(price.Profit)));
-        Breakdown.Add(new(Loc.T("cost.margin"), Fmt.Pct(Math.Round(price.MarginPct, 1)), "row", MarginBrushConverter.Tone(price.MarginPct)));
+        // merchandise and raw materials sold as they are: the margin left after the sales overhead (prices stay as they are)
+        var salesOverhead = IsBought ? s.SalesOverheadPct : 0;
+        var adjusted = Costing.AdjustedMargin(price.MarginPct, Kind, salesOverhead);
+        Breakdown.Add(new(Loc.T(salesOverhead != 0 ? "cost.grossMargin" : "cost.margin"), Fmt.Pct(Math.Round(price.MarginPct, 1)), "row", MarginBrushConverter.Tone(price.MarginPct)));
+        if (salesOverhead != 0)
+        {
+            Breakdown.Add(new(Loc.F("cost.salesOverhead", Fmt.Pct(salesOverhead)), "−" + Fmt.Money4(price.Price * salesOverhead / 100m), "sub"));
+            Breakdown.Add(new(Loc.T("cost.adjMargin"), Fmt.Pct(Math.Round(adjusted, 2)), "row", MarginBrushConverter.Tone(adjusted)));
+        }
         if (warn.HasFlag(CostWarning.MissingMaterial)) Breakdown.Add(new(Loc.T("cost.warnMissing"), "", "warn"));
         if (warn.HasFlag(CostWarning.NoConversion)) Breakdown.Add(new(Loc.T("cost.warnConversion"), "", "warn"));
         if (warn.HasFlag(CostWarning.NoPrice)) Breakdown.Add(new(Loc.T("cost.warnNoPrice"), "", "warn"));
@@ -391,6 +414,9 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         CostText = Fmt.Money4(cost);
         MarginText = Fmt.Pct(Math.Round(price.MarginPct, 1));
         MarginPct = price.MarginPct;
+        HasAdjMargin = salesOverhead != 0;
+        AdjMarginPct = adjusted;
+        AdjMarginText = Fmt.Pct(Math.Round(adjusted, 2));
         Title = IsNew && string.IsNullOrWhiteSpace(Code) ? Loc.F("item.newTitle", KindText.ToLower(Loc.Culture)) : $"{Code}";
         OnPropertyChanged(nameof(MultipleSources));
         OnPropertyChanged(nameof(HasVariants));
@@ -406,8 +432,8 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         void S(object? o) => sb.Append(o is string str ? str.Trim() : o).Append('|');
         S(Code); S(Name); S(FolderId); S(UsableAsMaterial); S(UsableAsMaterial ? MaterialFolderId : null); S(Unit); S(Notes);
         N(Markup); N(Step); N(PieceLength); N(PieceArea); N(PieceWeight); S(HasWaste); N(WastePct);
-        foreach (var r in Sources) { sb.Append("S:"); S(r.SupplierId); S(r.SupplierCode); S(r.Currency); N(r.Price); N(r.Qty); N(r.Discount); N(r.Shipping); N(r.Weight); N(r.Moq); N(r.Pack); }
-        foreach (var r in Lines) { sb.Append("L:"); S(r.MaterialId); S(r.Unit); S(r.Comment); N(r.Quantity); N(r.Waste); }
+        foreach (var r in Sources) { sb.Append("S:"); S(r.SupplierId); S(r.SupplierCode); S(r.Currency); N(r.Price); S(r.PurchaseUnit); N(r.Qty); N(r.Discount); N(r.Shipping); N(r.Weight); N(r.Moq); N(r.Pack); }
+        foreach (var r in Lines) { sb.Append("L:"); S(r.MaterialId); S(r.EntryUnit); S(r.Comment); N(r.Quantity); N(r.Waste); }
         foreach (var r in Labor) { sb.Append("T:"); S(r.Comment); N(r.Seconds); }
         foreach (var r in Variants) { sb.Append("V:"); S(r.Name); S(r.Code); S(r.SupplierKey); }
         return sb.ToString();
@@ -418,7 +444,8 @@ public sealed partial class ItemEditorViewModel : PageViewModel
     [RelayCommand]
     void AddSource()
     {
-        Attach(Sources, new SourceRow(new ItemSource { PurchaseQty = Sources.FirstOrDefault()?.Qty.Value ?? 1, Weight = 1 }));
+        var first = Sources.FirstOrDefault()?.ToModel();
+        Attach(Sources, new SourceRow(new ItemSource { PurchaseQty = first?.PurchaseQty ?? 1, PurchaseUnit = first?.PurchaseUnit, Weight = 1 }, Unit));
         OnEdited();
     }
 
@@ -453,7 +480,7 @@ public sealed partial class ItemEditorViewModel : PageViewModel
     /// <summary>A newly picked material starts in its own unit.</summary>
     public void MaterialPicked(LineRow row)
     {
-        if (row.MaterialId is long id && _materials.TryGetValue(id, out var m)) row.Unit = row.IsProductLine ? QtyUnit.Pcs : m.Unit;
+        if (row.MaterialId is long id && _materials.TryGetValue(id, out var m) && !row.IsProductLine) row.EntryUnit = m.Unit.EntryUnit(null);
     }
 
     /// <summary>Picking a supplier fills the supplier code field focus and resets the currency to the supplier's.</summary>

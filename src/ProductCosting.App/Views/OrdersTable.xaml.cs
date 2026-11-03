@@ -97,6 +97,7 @@ public partial class OrdersTable : UserControl
 
     void Menu_Open(object sender, RoutedEventArgs e) { if (Selected(sender) is { } r) OrderActions.Open(r); }
     void Menu_Export(object sender, RoutedEventArgs e) { if (Selected(sender) is { } r) OrderActions.Export(r); }
+    void Menu_Copy(object sender, RoutedEventArgs e) { if (Selected(sender) is { } r) OrderActions.Copy(r); }
     void Menu_Execute(object sender, RoutedEventArgs e) { if (Selected(sender) is { } r) OrderActions.Execute(r); }
     void Menu_Archive(object sender, RoutedEventArgs e) { if (Selected(sender) is { } r) OrderActions.Archive(r); }
     void Menu_Unarchive(object sender, RoutedEventArgs e) { if (Selected(sender) is { } r) OrderActions.Unarchive(r); }

@@ -85,7 +85,7 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
         Notes = s.Notes ?? "";
         Discount.Set(s.DiscountPct == 0 ? null : s.DiscountPct);
         Shipping.Set(s.ShippingPct == 0 ? null : s.ShippingPct);
-        Vat.Set(s.VatPct == 0 ? null : s.VatPct);
+        Vat.Set(s.VatPct != 0 ? s.VatPct : s.Id == 0 && CountryCode == GreekCode ? GreekVat : null);
         Items.Clear();
         if (!IsNew) foreach (var i in AppState.Store.GetSupplierItems(s.Id)) Items.Add(i);
         LoadOrders();
@@ -103,7 +103,12 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
         base.OnPropertyChanged(e);
         if (e.PropertyName is nameof(Name) or nameof(FolderId) or nameof(CountryId) or nameof(Currency) or nameof(Email) or nameof(Phone) or nameof(Notes))
             Edited();
+        // Greek suppliers: VAT 24% unless one is already filled in
+        if (e.PropertyName == nameof(CountryId) && !_loading && CountryCode == GreekCode && Vat.Value is null or 0) Vat.Set(GreekVat);
     }
+
+    const string GreekCode = "GR";
+    const decimal GreekVat = 24m;
 
     void Edited()
     {

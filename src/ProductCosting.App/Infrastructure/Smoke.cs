@@ -58,6 +58,7 @@ internal static class Smoke
         s.OverheadRatePerHour = 6;
         s.DefaultMarkupPct = 120;
         s.UsdPerEur = 1.08m;
+        s.SalesOverheadPct = 24.23m;
         s.BackupFolder = Path.Combine(_dir, "backups");
         store.SaveSettings(s);
 
@@ -74,17 +75,17 @@ internal static class Smoke
         var italy = store.SaveSupplier(new Supplier { Name = "Metalli Srl", Country = "IT", DiscountPct = 5, ShippingPct = 10, FolderId = abroad });
 
         long Raw(string code, string name, long? folder, long sup, string supCode, decimal price, decimal qty, QtyUnit unit, decimal? len = null, decimal? area = null,
-            decimal? waste = null, decimal? moq = null, decimal? pack = null) =>
+            decimal? waste = null, decimal? moq = null, decimal? pack = null, MeasureUnit? buyIn = null) =>
             store.SaveItem(new ItemDocument
             {
                 Item = new Item { Kind = ItemKind.RawMaterial, Code = code, Name = name, FolderId = folder, Unit = unit, PieceLengthCm = len, PieceAreaCm2 = area,
                     HasWaste = waste is not null, WastePct = waste },
-                Sources = [new ItemSource { SupplierId = sup, SupplierCode = supCode, PurchasePrice = price, PurchaseQty = qty, Moq = moq, PackQty = pack }],
+                Sources = [new ItemSource { SupplierId = sup, SupplierCode = supCode, PurchasePrice = price, PurchaseQty = qty, PurchaseUnit = buyIn, Moq = moq, PackQty = pack }],
             });
 
-        var hide = Raw("R-001", "Δέρμα μοσχαρίσιο φυσικό", leathers, crete, "DK-NAT-150", 85, 15000, QtyUnit.Cm2, waste: 20);
+        var hide = Raw("R-001", "Δέρμα μοσχαρίσιο φυσικό", leathers, crete, "DK-NAT-150", 85, 15000, QtyUnit.Cm2, waste: 20, buyIn: MeasureUnit.M2);
         var hideBlack = Raw("R-002", "Δέρμα μοσχαρίσιο μαύρο", leathers, usa, "LW-BLK", 96, 15000, QtyUnit.Cm2, waste: 25, moq: 30000, pack: 15000);
-        var thread = Raw("R-010", "Κλωστή κερωμένη 0,8 mm", hardware, italy, "TH-08", 12, 50000, QtyUnit.Cm);
+        var thread = Raw("R-010", "Κλωστή κερωμένη 0,8 mm", hardware, italy, "TH-08", 12, 50000, QtyUnit.Cm, buyIn: MeasureUnit.M);
         var zip = Raw("R-020", "Φερμουάρ μεταλλικό 20 εκ.", hardware, italy, "ZP-20", 35, 100, QtyUnit.Pcs, len: 20);
         var rings = Raw("R-021", "Κρίκοι ορειχάλκινοι", hardware, italy, "RG-BR", 18, 200, QtyUnit.Pcs);
 
@@ -109,6 +110,7 @@ internal static class Smoke
             {
                 Item = new Item { Kind = ItemKind.Product, Code = code, Name = name, FolderId = folder },
                 Lines = lines.Select(l => new RecipeLine { MaterialId = l.Item1, Quantity = l.Item2, Unit = l.Item3, Comment = l.Item4,
+                    EntryUnit = l.Item1 == thread ? MeasureUnit.M : null,
                     WastePct = l.Item1 == hide ? 10 : null }).ToList(),
                 Labor = labor.Select(l => new LaborEntry { Seconds = l.Item1, Comment = l.Item2 }).ToList(),
             });
@@ -133,8 +135,10 @@ internal static class Smoke
         sup.DiscountPct = 15;
         store.SaveSupplier(sup);
         store.SetPurchasePrice(hide, 92);
+        store.SetPurchasePrice(belt, 4.21m);   // the price rounds back to the same: only the margin changes
         day = day.AddDays(5);
         store.SetPurchasePrice(hide, 88);
+        store.SetPurchasePrice(belt, 3.9m);
         day = day.AddDays(7);
         s = store.LoadSettings();
         s.LaborRatePerHour = 13.5m;
@@ -341,6 +345,7 @@ internal static class Smoke
             await Settle(500);
             Shot(root, "11-raw-editor");
             Check("raw editor clean after load", !vm.Current!.IsDirty);
+            Check("purchase quantity shown in m²", ((ItemEditorViewModel)vm.Current!).Sources[0] is { PurchaseUnit: MeasureUnit.M2 } src && src.Qty.Value == 1.5m);
         });
         await Step("new product", async () => { vm.NewItem(ItemKind.Product, null); await Settle(); Shot(root, "12-new-product"); vm.Current!.Discard(); });
         await Step("set price and saved order", async () =>
@@ -367,6 +372,13 @@ internal static class Smoke
             await Settle(500);
             Shot((FrameworkElement)done.Content, "19c-executed-order");
             done.Close();
+            // a new order from a copy of the executed one: unsaved, with its quantities
+            var copy = new OrderWindow(usa, copyOf: oid) { Owner = w };
+            copy.Show();
+            await Settle(500);
+            Check("copy starts as a new, unsaved order", copy.SaveButton.IsEnabled);
+            Shot((FrameworkElement)copy.Content, "19d-order-copy");
+            copy.Close();
             vm.GoCommand.Execute("orders");
             await Settle(500);
             Check("orders page", vm.Current is OrdersPageViewModel { Drafts.Count: 1, Executed.Count: 1 });
@@ -440,6 +452,13 @@ internal static class Smoke
             await Settle(500);
             Shot((FrameworkElement)win.Content, "18-history");
             win.Close();
+            var m = Id("M-100");
+            Check("margin-only change kept in the history", store.GetHistory(m).Any(h => h.MarginTrend < 0 && h.OldPrice == h.Price));
+            var mh = new PriceHistoryWindow(m, "M-100 · Ιμάντας") { Owner = w };
+            mh.Show();
+            await Settle(500);
+            Shot((FrameworkElement)mh.Content, "18b-history-margins");
+            mh.Close();
         });
         await Step("order", async () =>
         {

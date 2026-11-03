@@ -3,12 +3,16 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using ProductCosting.App.Infrastructure;
+using ProductCosting.App.Views;
 using ProductCosting.Core.Localization;
 using ProductCosting.Core.Model;
 
 namespace ProductCosting.App.Controls;
 
-/// <summary>Step chart of an item's price over time; the price holds until the next change. Hover shows the details.</summary>
+/// <summary>
+/// Step chart of an item's price over time; the price holds until the next change. Dots are green when the margin
+/// grew that day, red when it shrank. Hover shows the details.
+/// </summary>
 public sealed class PriceChart : FrameworkElement
 {
     public static readonly DependencyProperty EntriesProperty = DependencyProperty.Register(
@@ -151,12 +155,13 @@ public sealed class PriceChart : FrameworkElement
         pen.Freeze();
         dc.DrawGeometry(null, pen, line);
 
-        var up = B("DangerBrush");
-        var down = B("SuccessBrush");
+        var marginUp = B("SuccessBrush");
+        var marginDown = B("DangerBrush");
+        var same = new SolidColorBrush(accent);
         for (var i = 0; i < e.Count; i++)
         {
             var p = new Point(X(e[i].Date, min, max), Y(e[i].Price));
-            var dot = e[i].OldPrice is decimal o ? (e[i].Price > o ? up : down) : new SolidColorBrush(accent);
+            var dot = e[i].MarginTrend switch { > 0 => marginUp, < 0 => marginDown, _ => same };
             dc.DrawEllipse(B("CardBrush"), new Pen(dot, 2), p, i == _hover ? 6 : 4, i == _hover ? 6 : 4);
         }
 
@@ -174,6 +179,9 @@ public sealed class PriceChart : FrameworkElement
                     ? $"{Fmt.Money(old)} → {Fmt.Money(en.Price)}   ({Fmt.Signed((en.Price - old) / old * 100)})"
                     : Fmt.Money(en.Price), B("TextBrush"), 13),
             };
+            if (HistoryText.Margin(en) is { Length: > 0 } margin)
+                lines.Add(Text($"{Loc.T("history.margin")}: {margin}",
+                    en.MarginTrend > 0 ? B("SuccessTextBrush") : en.MarginTrend < 0 ? B("DangerTextBrush") : B("TextMutedBrush")));
             foreach (var r in en.Reasons.Split()) lines.Add(Text("• " + Strings.Reason(r), B("TextMutedBrush")));
             var tw = lines.Max(t => t.Width) + 24;
             var th = lines.Sum(t => t.Height + 3) + 18;

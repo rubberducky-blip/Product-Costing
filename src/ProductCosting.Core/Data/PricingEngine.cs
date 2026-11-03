@@ -49,7 +49,13 @@ internal sealed class PricingEngine(Store store, SqliteConnection c, SqliteTrans
         public CostWarning Warnings;
     }
 
-    sealed record Change(long Id, decimal OldPrice, decimal NewPrice, PriceReason Reasons);
+    /// <summary>A price and/or margin change; margins are gross, in % of the price (null without a price).</summary>
+    sealed record Change(long Id, decimal OldPrice, decimal NewPrice, PriceReason Reasons, decimal? OldMargin, decimal? NewMargin);
+
+    static decimal? Margin(decimal cost, decimal price) => price > 0 ? (price - cost) / price * 100m : null;
+
+    /// <summary>Margins differing by less than a hundredth of a percentage point count as unchanged.</summary>
+    static bool MarginDiff(decimal? a, decimal? b) => a is null != b is null || (a is decimal x && b is decimal y && Math.Abs(x - y) >= 0.01m);
 
     static bool Diff(decimal a, decimal b) => Math.Abs(a - b) > Eps;
 
@@ -154,7 +160,7 @@ internal sealed class PricingEngine(Store store, SqliteConnection c, SqliteTrans
         }
 
         changes = Merge(changes);
-        summary.PriceChanges = changes.Count;
+        summary.PriceChanges = changes.Count(ch => ch.Reasons.HasFlag(PriceReason.Created) || Diff(ch.OldPrice, ch.NewPrice));
         summary.Notifications = RecordChanges(changes, req);
         return summary;
     }
@@ -176,8 +182,9 @@ internal sealed class PricingEngine(Store store, SqliteConnection c, SqliteTrans
             var first = g.First();
             var last = g.Last();
             var reasons = g.Aggregate(PriceReason.None, (r, ch) => r | ch.Reasons);
-            if (reasons.HasFlag(PriceReason.Created)) merged.Add(new Change(g.Key, 0, last.NewPrice, PriceReason.Created));
-            else if (Diff(first.OldPrice, last.NewPrice)) merged.Add(new Change(g.Key, first.OldPrice, last.NewPrice, reasons));
+            if (reasons.HasFlag(PriceReason.Created)) merged.Add(new Change(g.Key, 0, last.NewPrice, PriceReason.Created, null, last.NewMargin));
+            else if (Diff(first.OldPrice, last.NewPrice) || MarginDiff(first.OldMargin, last.NewMargin))
+                merged.Add(new Change(g.Key, first.OldPrice, last.NewPrice, reasons, first.OldMargin, last.NewMargin));
         }
         return merged;
     }
@@ -226,10 +233,14 @@ internal sealed class PricingEngine(Store store, SqliteConnection c, SqliteTrans
             _update.ExecuteNonQuery();
         }
 
+        var oldMargin = Margin(r.Cost, r.Price);
+        var newMargin = Margin(cost, price);
         if (created)
-            changes.Add(new Change(r.Id, r.Price, price, PriceReason.Created));
+            changes.Add(new Change(r.Id, r.Price, price, PriceReason.Created, null, newMargin));
         else if (priceChanged)
-            changes.Add(new Change(r.Id, r.Price, price, reasons == PriceReason.None ? PriceReason.Rounding : reasons));
+            changes.Add(new Change(r.Id, r.Price, price, reasons == PriceReason.None ? PriceReason.Rounding : reasons, oldMargin, newMargin));
+        else if (MarginDiff(oldMargin, newMargin))
+            changes.Add(new Change(r.Id, r.Price, price, reasons, oldMargin, newMargin)); // same price, different cost
     }
 
     int RecordChanges(List<Change> changes, RecalcRequest req)
@@ -242,16 +253,19 @@ internal sealed class PricingEngine(Store store, SqliteConnection c, SqliteTrans
         using var hist = c.CreateCommand();
         hist.Transaction = t;
         hist.CommandText = """
-            INSERT INTO price_history(item_id, day, old_price, price, reasons) VALUES($id, $day, $old, $new, $r)
-            ON CONFLICT(item_id, day) DO UPDATE SET price = excluded.price, reasons = reasons | excluded.reasons;
+            INSERT INTO price_history(item_id, day, old_price, price, reasons, old_margin, margin) VALUES($id, $day, $old, $new, $r, $om, $nm)
+            ON CONFLICT(item_id, day) DO UPDATE SET price = excluded.price, reasons = reasons | excluded.reasons, margin = excluded.margin;
             DELETE FROM price_history WHERE item_id = $id AND day = $day AND old_price IS NOT NULL
-                AND abs(price - old_price) < 0.0000001 AND (reasons & 1) = 0;
+                AND abs(price - old_price) < 0.0000001 AND (reasons & 1) = 0
+                AND (old_margin IS NULL OR margin IS NULL OR abs(margin - old_margin) < 0.01);
             """;
         var hId = hist.Parameters.Add("$id", SqliteType.Integer);
         var hDay = hist.Parameters.Add("$day", SqliteType.Text);
         var hOld = hist.Parameters.Add("$old", SqliteType.Real);
         var hNew = hist.Parameters.Add("$new", SqliteType.Real);
         var hR = hist.Parameters.Add("$r", SqliteType.Integer);
+        var hOm = hist.Parameters.Add("$om", SqliteType.Real);
+        var hNm = hist.Parameters.Add("$nm", SqliteType.Real);
 
         using var note = c.CreateCommand();
         note.Transaction = t;
@@ -277,9 +291,12 @@ internal sealed class PricingEngine(Store store, SqliteConnection c, SqliteTrans
             hOld.Value = created ? DBNull.Value : (double)ch.OldPrice;
             hNew.Value = (double)ch.NewPrice;
             hR.Value = (int)ch.Reasons;
+            hOm.Value = ch.OldMargin is decimal om ? (double)om : DBNull.Value;
+            hNm.Value = ch.NewMargin is decimal nm ? (double)nm : DBNull.Value;
             hist.ExecuteNonQuery();
 
-            if (created || req.Direct.Contains(ch.Id)) continue;
+            // a margin-only change goes into the history but needs no price notification
+            if (created || req.Direct.Contains(ch.Id) || !Diff(ch.OldPrice, ch.NewPrice)) continue;
             nId.Value = ch.Id;
             nOld.Value = (double)ch.OldPrice;
             nNew.Value = (double)ch.NewPrice;

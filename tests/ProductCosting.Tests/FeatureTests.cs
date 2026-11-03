@@ -144,14 +144,15 @@ public class FeatureTests
     [Fact]
     public void OrderTotals_StatusesAndValues()
     {
-        // 10 × 2 € with 10% discount and 5% shipping, VAT 24% on goods − discount + shipping
+        // 10 × 2 € with 10% discount and 5% shipping; VAT 24% on goods − discount; shipping is estimated after the total
         var t = ProductCosting.Core.Calc.Costing.Order(
             [new PurchaseOrderLine { Quantity = 10, UnitPrice = 2, DiscountPct = 10, ShippingPct = 5 }], 24, Currency.Eur, 1.1m);
         Assert.Equal(20m, t.Goods);
         Assert.Equal(2m, t.Discount);
         Assert.Equal(0.9m, t.Shipping);
-        Assert.Equal(4.536m, t.Vat);
-        Assert.Equal(23.436m, t.Total);
+        Assert.Equal(4.32m, t.Vat);
+        Assert.Equal(22.32m, t.Total);
+        Assert.Equal(23.22m, t.TotalWithShipping);
         // dollars into a euro total
         Assert.Equal(10m, ProductCosting.Core.Calc.Costing.Order([new PurchaseOrderLine { Quantity = 1, UnitPrice = 11, Currency = Currency.Usd }], 0, Currency.Eur, 1.1m).Total);
 
@@ -161,7 +162,7 @@ public class FeatureTests
         var id = f.Store.SaveOrder(null, sup, [new PurchaseOrderLine { Code = "X", Name = "X", Quantity = 3, UnitPrice = 2.5m }]);
         var o = f.Store.GetOrders(sup).Single();
         Assert.Equal(OrderStatus.Draft, o.Status);
-        Assert.Equal(7.5m, o.TotalValue);
+        Assert.Equal(9.3m, o.TotalValue); // 7.5 + 24% VAT
         Assert.Equal(24m, o.VatPct);
         f.Store.SetOrderStatus(id, OrderStatus.Archived);                 // not before it is executed
         Assert.Equal(OrderStatus.Draft, f.Store.GetOrder(id)!.Status);
@@ -195,6 +196,61 @@ public class FeatureTests
     }
 
     [Fact]
+    public void Units_EnteredInMetresAndGrams_StoredInBaseUnits()
+    {
+        Assert.Equal(250m, MeasureUnit.G.FromBase(0.25m));
+        Assert.Equal(0.25m, MeasureUnit.G.ToBase(250));
+        Assert.Equal(MeasureUnit.Cm2, QtyUnit.Cm2.EntryUnit(MeasureUnit.Kg)); // a unit of another dimension falls back
+
+        using var f = new StoreFixture();
+        // 2 m of leather for 10 €: 0.05 € per cm
+        var leather = f.Store.SaveItem(new ItemDocument
+        {
+            Item = new Item { Kind = ItemKind.RawMaterial, Code = "L", Name = "L", Unit = QtyUnit.Cm },
+            Sources = [new ItemSource { PurchasePrice = 10, PurchaseQty = MeasureUnit.M.ToBase(2), PurchaseUnit = MeasureUnit.M }],
+        });
+        Assert.Equal(0.05m, f.Store.GetItem(leather)!.Cost);
+        Assert.Equal(MeasureUnit.M, f.Store.LoadItem(leather)!.Sources[0].PurchaseUnit);
+        // a recipe line typed in metres: 0.3 m = 30 cm
+        var p = f.Store.SaveItem(new ItemDocument
+        {
+            Item = new Item { Kind = ItemKind.Product, Code = "P", Name = "P" },
+            Lines = [new RecipeLine { MaterialId = leather, Quantity = 30, Unit = QtyUnit.Cm, EntryUnit = MeasureUnit.M }],
+        });
+        var line = f.Store.LoadItem(p)!.Lines[0];
+        Assert.Equal(MeasureUnit.M, line.EntryUnit);
+        Assert.Equal(0.3m, MeasureUnit.M.FromBase(line.Quantity));
+        Assert.Equal(1.5m, f.Store.GetItem(p)!.CostMaterials);
+    }
+
+    [Fact]
+    public void History_RecordsMarginChanges_EvenWhenThePriceStays()
+    {
+        using var f = new StoreFixture();
+        var m = f.Bought(ItemKind.Merchandise, "M", 10);            // price 20,00, margin 50%
+        f.Now = f.Now.AddDays(1);
+        var doc = f.Store.LoadItem(m)!;
+        doc.Sources[0].PurchasePrice = 10.01m;                       // 20,02 rounds back to 20,00
+        f.Store.SaveItem(doc);
+        Assert.Equal(20m, f.Store.GetItem(m)!.Price);
+        var h = f.Store.GetHistory(m);
+        Assert.Equal(2, h.Count);
+        Assert.Equal(50m, Math.Round(h[1].OldMargin!.Value, 4));
+        Assert.Equal(49.95m, Math.Round(h[1].Margin!.Value, 4));
+        Assert.Equal(-1, h[1].MarginTrend);
+        Assert.Empty(f.Store.GetNotifications());                   // no price change, nothing to notify
+
+        // the sales overhead lowers the adjusted margin of bought items only, never prices
+        Assert.Equal(25.77m, ProductCosting.Core.Calc.Costing.AdjustedMargin(50m, ItemKind.Merchandise, 24.23m));
+        Assert.Equal(50m, ProductCosting.Core.Calc.Costing.AdjustedMargin(50m, ItemKind.Product, 24.23m));
+        var s = f.Store.LoadSettings();
+        s.SalesOverheadPct = 24.23m;
+        f.Store.SaveSettings(s);
+        Assert.Equal(24.23m, f.Store.LoadSettings().SalesOverheadPct);
+        Assert.Equal(20m, f.Store.GetItem(m)!.Price);
+    }
+
+    [Fact]
     public void Upgrade_FromSchemaVersion1()
     {
         var dir = Path.Combine(Path.GetTempPath(), "pc-up-" + Guid.NewGuid().ToString("N"));
@@ -206,11 +262,14 @@ public class FeatureTests
             c.Execute(typeof(Db).Assembly.GetType("ProductCosting.Core.Data.Schema")!.GetField("V1")!.GetValue(null) as string ?? "");
             c.Execute("PRAGMA user_version = 1");
             c.Execute("INSERT INTO items(kind, code, name, created_at, updated_at) VALUES(3, 'OLD', 'Old', '', '')");
+            c.Execute("INSERT INTO suppliers(name, country, created_at, updated_at) VALUES('GR', 'GR', '', ''), ('IT', 'IT', '', '')");
         }
         var store = new Store(new Db(path));
         var item = store.GetItemRows(ListScope.RawMaterials, null).Single();
         Assert.Equal("OLD", item.Code);
         Assert.False(store.LoadItem(item.Id)!.Item.HasWaste);
+        // Greek suppliers get the 24% VAT default, others keep none
+        Assert.Equal([24m, 0m], store.GetSuppliers().OrderBy(s => s.Name).Select(s => s.VatPct));
         SqliteConnection.ClearAllPools();
         try { Directory.Delete(dir, true); } catch { }
     }

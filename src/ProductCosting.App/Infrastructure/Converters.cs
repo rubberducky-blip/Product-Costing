@@ -49,7 +49,7 @@ public sealed class Decimals2Converter : IValueConverter
 public sealed class PurchasePriceConverter : IValueConverter
 {
     public object Convert(object? value, Type t, object? p, CultureInfo c) =>
-        value is ItemRow { PurchasePrice: decimal price } r ? Fmt.InCurrency(price, r.PurchaseCurrency) : "";
+        value is ItemRow { PurchasePrice: decimal price } r ? Fmt.Exact(price, r.PurchaseCurrency) : "";
     public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => Binding.DoNothing;
 }
 
@@ -57,7 +57,7 @@ public sealed class PurchasePriceConverter : IValueConverter
 public sealed class SupplierPriceConverter : IValueConverter
 {
     public object Convert(object? value, Type t, object? p, CultureInfo c) =>
-        value is SupplierItemRow r ? Fmt.InCurrency(r.PurchasePrice, r.Currency) : "";
+        value is SupplierItemRow r ? Fmt.Exact(r.PurchasePrice, r.Currency) : "";
     public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => Binding.DoNothing;
 }
 
@@ -102,6 +102,15 @@ public sealed class BoolToVisibilityConverter : IValueConverter
         };
         return b ^ Invert ? Visibility.Visible : KeepSpace ? Visibility.Hidden : Visibility.Collapsed;
     }
+    public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => Binding.DoNothing;
+}
+
+/// <summary>One of two sizes depending on a flag (e.g. a wider field when it carries a unit picker).</summary>
+public sealed class BoolToDoubleConverter : IValueConverter
+{
+    public double True { get; set; }
+    public double False { get; set; }
+    public object Convert(object? value, Type t, object? p, CultureInfo c) => value is true ? True : False;
     public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => Binding.DoNothing;
 }
 

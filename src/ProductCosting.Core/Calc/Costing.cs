@@ -30,7 +30,11 @@ public sealed record ProductCost(
     public decimal Total => Materials + Labor + Overhead;
 }
 
-public sealed record OrderTotals(decimal Goods, decimal Discount, decimal Shipping, decimal VatPct, decimal Vat, decimal Total);
+/// <summary>Order value: goods − discount + VAT = total. Shipping is only an estimate, added after the total.</summary>
+public sealed record OrderTotals(decimal Goods, decimal Discount, decimal Shipping, decimal VatPct, decimal Vat, decimal Total)
+{
+    public decimal TotalWithShipping => Total + Shipping;
+}
 
 public sealed record PriceResult(decimal Cost, decimal MarkupPct, decimal Step, decimal RawPrice, decimal Price)
 {
@@ -186,9 +190,16 @@ public static class Costing
             discount += d;
             shipping += (value - d) * l.ShippingPct / 100m;
         }
-        var vat = (goods - discount + shipping) * vatPct / 100m;
-        return new OrderTotals(goods, discount, shipping, vatPct, vat, goods - discount + shipping + vat);
+        var vat = (goods - discount) * vatPct / 100m;
+        return new OrderTotals(goods, discount, shipping, vatPct, vat, goods - discount + vat);
     }
+
+    /// <summary>
+    /// Margin after the sales overhead (a share of the selling price) for merchandise and raw materials sold as they are;
+    /// manufactured products keep their gross margin. Costs and prices are never changed by it.
+    /// </summary>
+    public static decimal AdjustedMargin(decimal grossMarginPct, ItemKind kind, decimal salesOverheadPct) =>
+        kind == ItemKind.Product ? grossMarginPct : grossMarginPct - salesOverheadPct;
 
     public static decimal Convert(decimal amount, Currency from, Currency to, decimal usdPerEur) =>
         from == to ? amount : to == Currency.Eur ? ToEur(amount, from, usdPerEur) : amount * usdPerEur;

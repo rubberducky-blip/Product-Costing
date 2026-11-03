@@ -39,7 +39,7 @@ public sealed class OrderRow : CommunityToolkit.Mvvm.ComponentModel.ObservableOb
     public string UnitText => Strings.Unit(Unit);
     public string MoqText => Moq is decimal m ? Fmt.Num(m) : "—";
     public string PackText => Pack is decimal p ? Fmt.Num(p) : "—";
-    public string UnitPriceText => Fmt.InCurrency(UnitPrice, Currency);
+    public string UnitPriceText => Fmt.Exact(UnitPrice, Currency);
     public string ValueText => Qty.Value is > 0 ? Fmt.InCurrency(UnitPrice * Qty.Value.Value, Currency) : "";
     internal string Key => $"{ItemId}|{Variant}";
     internal string Search => TextNorm.Join(Code, SupplierCode, Name, Variant);
@@ -83,7 +83,8 @@ public partial class OrderWindow : Window
     string _savedKey = "";
 
     /// <param name="orderId">A saved order to continue (draft) or look at (executed / archived); null starts a new order.</param>
-    public OrderWindow(Supplier supplier, long? orderId = null)
+    /// <param name="copyOf">A new order starts with the quantities of this saved order (at today's prices).</param>
+    public OrderWindow(Supplier supplier, long? orderId = null, long? copyOf = null)
     {
         InitializeComponent();
         NativeWindow.UseDarkTitleBar(this);
@@ -97,7 +98,7 @@ public partial class OrderWindow : Window
             if (_status != OrderStatus.Draft) _vatPct = saved.VatPct;
         }
         var readOnly = _status != OrderStatus.Draft;
-        var savedLines = orderId is long oid ? AppState.Store.GetOrderLines(oid) : [];
+        var savedLines = (orderId ?? copyOf) is long oid ? AppState.Store.GetOrderLines(oid) : [];
 
         if (!readOnly)
         {
@@ -134,7 +135,8 @@ public partial class OrderWindow : Window
         }
         _savedKey = orderId is null ? "" : Key();
 
-        if (orderId is null)
+        // a copy is a new order of its own: it neither loads nor overwrites the unsaved quantities kept for the supplier
+        if (orderId is null && copyOf is null)
         {
             var draft = Drafts.TryGetValue(supplier.Id, out var d) ? d : Drafts[supplier.Id] = [];
             foreach (var r in _rows)
@@ -177,9 +179,11 @@ public partial class OrderWindow : Window
         {
             new(Loc.T("order.goods"), M(t.Goods)),
             new(Loc.T("cost.discount"), "−" + M(t.Discount)),
-            new(Loc.T("order.shippingEst"), "+" + M(t.Shipping)),
             new($"{Loc.T("order.vat")} {Fmt.Pct(t.VatPct)}", "+" + M(t.Vat)),
             new(Loc.T("order.total"), M(t.Total), "big"),
+            // shipping is only an estimate: shown after the total, in small print
+            new(Loc.T("order.shippingEst"), "+" + M(t.Shipping), "sub"),
+            new(Loc.T("order.withShipping"), M(t.TotalWithShipping), "sub"),
         };
     }
 

@@ -6,7 +6,7 @@ namespace ProductCosting.Core.Data;
 /// <summary>Opens connections to the local SQLite database and keeps its schema up to date.</summary>
 public sealed class Db
 {
-    public const int SchemaVersion = 4;
+    public const int SchemaVersion = 5;
 
     static int _initialized;
 
@@ -72,6 +72,13 @@ public sealed class Db
             using var t = c.BeginTransaction();
             c.Execute(Schema.V4, transaction: t);
             c.Execute("PRAGMA user_version = 4", transaction: t);
+            t.Commit();
+        }
+        if (version < 5)
+        {
+            using var t = c.BeginTransaction();
+            c.Execute(Schema.V5, transaction: t);
+            c.Execute("PRAGMA user_version = 5", transaction: t);
             t.Commit();
         }
     }
@@ -307,5 +314,14 @@ static class Schema
             PRIMARY KEY(item_id, supplier_id, day)
         ) WITHOUT ROWID;
         CREATE INDEX ix_supplier_price_history ON supplier_price_history(supplier_id, day);
+        """;
+
+    // the unit quantities are typed in (metres, grams…); margins in the price history; 24% VAT for Greek suppliers
+    public const string V5 = """
+        ALTER TABLE item_sources ADD COLUMN purchase_unit INTEGER;
+        ALTER TABLE recipe_lines ADD COLUMN entry_unit INTEGER;
+        ALTER TABLE price_history ADD COLUMN old_margin REAL;
+        ALTER TABLE price_history ADD COLUMN margin REAL;
+        UPDATE suppliers SET vat_pct = 24 WHERE vat_pct = 0 AND upper(trim(country)) IN ('GR', 'GREECE', 'ΕΛΛΑΔΑ', 'ΕΛΛΆΔΑ');
         """;
 }

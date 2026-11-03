@@ -63,6 +63,13 @@ public static class OrderActions
             AppState.Store.DeleteOrder(row.Model.Id);
     }
 
+    /// <summary>A new order for the same supplier with the quantities of this one, at today's prices.</summary>
+    public static void Copy(SavedOrderRow row)
+    {
+        if (AppState.Store.GetSupplier(row.Model.SupplierId) is { } s)
+            new OrderWindow(s, copyOf: row.Model.Id) { Owner = Owner }.ShowDialog();
+    }
+
     /// <summary>Ctrl+5 / "New order": asks for the supplier, then opens a new order.</summary>
     public static void New()
     {

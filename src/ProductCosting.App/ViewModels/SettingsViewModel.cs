@@ -35,6 +35,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         DefaultMarkup = Track();
         RoundingStep = Track();
         UsdPerEur = Track();
+        SalesOverhead = Track();
         KeepCount = new NumField(30);
         Load();
         LoadBackups();
@@ -47,6 +48,8 @@ public sealed partial class SettingsViewModel : PageViewModel
     public NumField DefaultMarkup { get; }
     public NumField RoundingStep { get; }
     public NumField UsdPerEur { get; }
+    /// <summary>Sales overhead, % of the selling price (merchandise and raw materials sold as they are).</summary>
+    public NumField SalesOverhead { get; }
     public NumField KeepCount { get; }
 
     [ObservableProperty] private RoundingMode _roundingMode;
@@ -103,6 +106,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         DefaultMarkup.Set(s.DefaultMarkupPct);
         RoundingStep.Set(s.RoundingStep);
         UsdPerEur.Set(s.UsdPerEur);
+        SalesOverhead.Set(s.SalesOverheadPct);
         RoundingMode = s.RoundingMode;
         CurrencySymbol = s.CurrencySymbol;
         Language = s.Language;
@@ -134,17 +138,17 @@ public sealed partial class SettingsViewModel : PageViewModel
     }
 
     sealed record FormState(string Labor, string Overhead, string Markup, string Step, string Usd, RoundingMode Mode, string Symbol, string Language,
-        string Theme, decimal Scale);
+        string Theme, decimal Scale, string SalesOverhead);
 
     protected override object? CaptureState() => new FormState(LaborRate.Text, OverheadRate.Text, DefaultMarkup.Text, RoundingStep.Text,
-        UsdPerEur.Text, RoundingMode, CurrencySymbol, Language, Theme, UiScale);
+        UsdPerEur.Text, RoundingMode, CurrencySymbol, Language, Theme, UiScale, SalesOverhead.Text);
 
     protected override void RestoreState(object state)
     {
         var f = (FormState)state;
         _loading = true;
         LaborRate.Text = f.Labor; OverheadRate.Text = f.Overhead; DefaultMarkup.Text = f.Markup; RoundingStep.Text = f.Step;
-        UsdPerEur.Text = f.Usd; RoundingMode = f.Mode; CurrencySymbol = f.Symbol; Language = f.Language; Theme = f.Theme; UiScale = f.Scale;
+        UsdPerEur.Text = f.Usd; RoundingMode = f.Mode; CurrencySymbol = f.Symbol; Language = f.Language; Theme = f.Theme; UiScale = f.Scale; SalesOverhead.Text = f.SalesOverhead;
         _loading = false;
         Edited();
     }
@@ -155,7 +159,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     {
         string N(NumField f) => f.IsValid ? f.Value?.ToString(CultureInfo.InvariantCulture) ?? "" : "!" + f.Text;
         return string.Join("|", N(LaborRate), N(OverheadRate), N(DefaultMarkup), N(RoundingStep), N(UsdPerEur), RoundingMode, CurrencySymbol.Trim(), Language,
-            Theme, UiScale.ToString(CultureInfo.InvariantCulture));
+            Theme, UiScale.ToString(CultureInfo.InvariantCulture), N(SalesOverhead));
     }
 
     [RelayCommand]
@@ -168,7 +172,8 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     public override bool TrySave()
     {
-        if (!LaborRate.IsValid || !OverheadRate.IsValid || !DefaultMarkup.IsValid || !RoundingStep.IsValid || UsdPerEur.Value is not > 0)
+        if (!LaborRate.IsValid || !OverheadRate.IsValid || !DefaultMarkup.IsValid || !RoundingStep.IsValid || UsdPerEur.Value is not > 0
+            || !SalesOverhead.IsValid || SalesOverhead.Or0 >= 100)
         {
             Dialogs.Error(Loc.T("common.invalidNumber"));
             return false;
@@ -183,6 +188,8 @@ public sealed partial class SettingsViewModel : PageViewModel
         s.DefaultMarkupPct = DefaultMarkup.Or0;
         s.RoundingStep = RoundingStep.Or0;
         s.UsdPerEur = UsdPerEur.Value!.Value;
+        var overheadChanged = s.SalesOverheadPct != SalesOverhead.Or0;
+        s.SalesOverheadPct = SalesOverhead.Or0;
         s.RoundingMode = RoundingMode;
         s.CurrencySymbol = string.IsNullOrWhiteSpace(CurrencySymbol) ? "€" : CurrencySymbol.Trim();
         s.Language = Language;
@@ -196,7 +203,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         }
         if (langChanged) Loc.I.SetLanguage(Language);
         // rebuild pages so colours worked out in code (margins, charts) and texts follow
-        if (langChanged || looksChanged) _main.ResetPages(this);
+        if (langChanged || looksChanged || overheadChanged) _main.ResetPages(this);
         _main.ShowToast(Loc.F("settings.saved", sum.PriceChanges));
         return true;
     }

@@ -97,8 +97,8 @@ public sealed partial class Store
             """, new { supplierId }).ToList();
         if (orders.Count == 0) return orders;
         var usdPerEur = LoadSettings(c, null).UsdPerEur;
-        var lines = c.Query<(long OrderId, double Quantity, double UnitPrice, int Currency)>($"""
-            SELECT l.order_id, l.quantity, l.unit_price, l.currency FROM purchase_order_lines l
+        var lines = c.Query<(long OrderId, double Quantity, double UnitPrice, int Currency, double DiscountPct)>($"""
+            SELECT l.order_id, l.quantity, l.unit_price, l.currency, l.discount_pct FROM purchase_order_lines l
             {(supplierId is null ? "" : "JOIN purchase_orders o ON o.id = l.order_id WHERE o.supplier_id = @supplierId")}
             """, new { supplierId }).ToLookup(l => l.OrderId);
         foreach (var o in orders)
@@ -106,7 +106,11 @@ public sealed partial class Store
             var ls = lines[o.Id].ToList();
             o.LineCount = ls.Count;
             o.TotalQuantity = ls.Sum(l => (decimal)l.Quantity);
-            o.TotalValue = ls.Sum(l => Costing.Convert((decimal)l.Quantity * (decimal)l.UnitPrice, (Currency)l.Currency, o.SupplierCurrency, usdPerEur));
+            // after discount and VAT, without the shipping estimate
+            o.TotalValue = Costing.Order(ls.Select(l => new PurchaseOrderLine
+            {
+                Quantity = (decimal)l.Quantity, UnitPrice = (decimal)l.UnitPrice, Currency = (Currency)l.Currency, DiscountPct = (decimal)l.DiscountPct,
+            }), o.VatPct, o.SupplierCurrency, usdPerEur).Total;
         }
         return orders;
     });

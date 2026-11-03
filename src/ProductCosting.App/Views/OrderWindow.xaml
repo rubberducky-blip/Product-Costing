@@ -88,6 +88,9 @@
                                 <DataTrigger Binding="{Binding IsSub}" Value="True">
                                     <Setter TargetName="Label" Property="FontSize" Value="11.5" />
                                     <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource TextFaintBrush}" />
+                                    <Setter TargetName="Value" Property="FontSize" Value="11.5" />
+                                    <Setter TargetName="Value" Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+                                    <Setter TargetName="Row" Property="Margin" Value="0,2" />
                                 </DataTrigger>
                             </DataTemplate.Triggers>
                         </DataTemplate>

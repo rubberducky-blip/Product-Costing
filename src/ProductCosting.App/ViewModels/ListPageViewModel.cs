@@ -121,6 +121,9 @@ public sealed partial class ListPageViewModel : PageViewModel
             foreach (var t in store.GetFolderTiles(Scope, FolderId)) Tiles.Add(t);
             Rows = IsSuppliers ? store.GetSupplierRows(FolderId) : store.GetItemRows(Scope, FolderId);
         }
+        // merchandise and raw materials carry the sales overhead for their adjusted margin
+        var overhead = AppState.Settings.SalesOverheadPct;
+        foreach (var r in Rows.OfType<ItemRow>()) r.SalesOverheadPct = r.Kind == ItemKind.Product ? 0 : overhead;
         _sortMode = store.GetSortMode(Scope, FolderId);
         OnPropertyChanged(nameof(SortMode));
 
@@ -250,7 +253,7 @@ public sealed partial class ListPageViewModel : PageViewModel
         var field = new NumField(null);
         field.Text = text;
         if (field.Value is not decimal price) { Dialogs.Error(Loc.T("common.invalidNumber")); return; }
-        if (AppState.Store.SetPurchasePrice(row.Id, price)) _main.ShowToast(Loc.F("menu.purchaseSet", row.Code, Fmt.InCurrency(price, row.PurchaseCurrency)));
+        if (AppState.Store.SetPurchasePrice(row.Id, price)) _main.ShowToast(Loc.F("menu.purchaseSet", row.Code, Fmt.Exact(price, row.PurchaseCurrency)));
     }
 
     public void DuplicateRows(IReadOnlyList<object> rows)

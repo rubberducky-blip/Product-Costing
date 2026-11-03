@@ -30,6 +30,7 @@
                             <ContextMenu>
                                 <MenuItem Header="{l:T common.open}" Click="Menu_Open" />
                                 <MenuItem Header="{l:T order.export}" Click="Menu_Export" />
+                                <MenuItem Header="{l:T order.copy}" Click="Menu_Copy" />
                                 <MenuItem Header="{l:T order.execute}" Click="Menu_Execute" Tag="draft" />
                                 <MenuItem Header="{l:T order.archive}" Click="Menu_Archive" Tag="executed" />
                                 <MenuItem Header="{l:T order.unarchive}" Click="Menu_Unarchive" Tag="archived" />
@@ -44,7 +45,7 @@
                                                 ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
                             <DataGridTextColumn Header="{l:T order.totalCol}" Binding="{Binding TotalText}" Width="120"
                                                 ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
-                            <DataGridTextColumn Header="{l:T order.value}" Binding="{Binding ValueText}" Width="140"
+                            <DataGridTextColumn Header="{l:T order.totalValue}" Binding="{Binding ValueText}" Width="140"
                                                 ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
                         </DataGrid.Columns>
                     </DataGrid>

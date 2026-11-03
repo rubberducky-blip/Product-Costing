@@ -22,8 +22,8 @@ public sealed partial class Store
         return new ItemDocument
         {
             Item = item,
-            Sources = c.Query<ItemSource>("SELECT id, item_id, supplier_id, supplier_code, purchase_price, purchase_qty, currency, discount_pct, shipping_pct, weight, moq, pack_qty FROM item_sources WHERE item_id=@id ORDER BY position", new { id }).ToList(),
-            Lines = c.Query<RecipeLine>("SELECT id, product_id, material_id, quantity, unit, comment, waste_pct FROM recipe_lines WHERE product_id=@id ORDER BY position", new { id }).ToList(),
+            Sources = c.Query<ItemSource>("SELECT id, item_id, supplier_id, supplier_code, purchase_price, purchase_qty, purchase_unit, currency, discount_pct, shipping_pct, weight, moq, pack_qty FROM item_sources WHERE item_id=@id ORDER BY position", new { id }).ToList(),
+            Lines = c.Query<RecipeLine>("SELECT id, product_id, material_id, quantity, unit, entry_unit, comment, waste_pct FROM recipe_lines WHERE product_id=@id ORDER BY position", new { id }).ToList(),
             Labor = c.Query<LaborEntry>("SELECT id, product_id, seconds, comment FROM labor_entries WHERE product_id=@id ORDER BY position", new { id }).ToList(),
             Variants = c.Query<ItemVariant>("SELECT id, item_id, name, code, supplier_id FROM item_variants WHERE item_id=@id ORDER BY position", new { id }).ToList(),
         };
@@ -95,8 +95,8 @@ public sealed partial class Store
             {
                 s.ItemId = id;
                 c.Execute("""
-                    INSERT INTO item_sources(item_id, supplier_id, supplier_code, purchase_price, purchase_qty, currency, discount_pct, shipping_pct, weight, moq, pack_qty, position)
-                    VALUES(@ItemId, @SupplierId, @SupplierCode, @PurchasePrice, @PurchaseQty, @Currency, @DiscountPct, @ShippingPct, @Weight, @Moq, @PackQty, @pos)
+                    INSERT INTO item_sources(item_id, supplier_id, supplier_code, purchase_price, purchase_qty, purchase_unit, currency, discount_pct, shipping_pct, weight, moq, pack_qty, position)
+                    VALUES(@ItemId, @SupplierId, @SupplierCode, @PurchasePrice, @PurchaseQty, @PurchaseUnit, @Currency, @DiscountPct, @ShippingPct, @Weight, @Moq, @PackQty, @pos)
                     """, new DynamicParameters(s).Also(p => p.Add("pos", i++)), t);
             }
             i = 0;
@@ -108,8 +108,8 @@ public sealed partial class Store
         {
             var i = 0;
             foreach (var l in doc.Lines)
-                c.Execute("INSERT INTO recipe_lines(product_id, material_id, quantity, unit, comment, waste_pct, position) VALUES(@id, @MaterialId, @Quantity, @Unit, @Comment, @WastePct, @pos)",
-                    new { id, l.MaterialId, l.Quantity, l.Unit, l.Comment, l.WastePct, pos = i++ }, t);
+                c.Execute("INSERT INTO recipe_lines(product_id, material_id, quantity, unit, entry_unit, comment, waste_pct, position) VALUES(@id, @MaterialId, @Quantity, @Unit, @EntryUnit, @Comment, @WastePct, @pos)",
+                    new { id, l.MaterialId, l.Quantity, l.Unit, l.EntryUnit, l.Comment, l.WastePct, pos = i++ }, t);
             i = 0;
             foreach (var l in doc.Labor)
                 c.Execute("INSERT INTO labor_entries(product_id, seconds, comment, position) VALUES(@id, @Seconds, @Comment, @pos)",
@@ -229,7 +229,7 @@ public sealed partial class Store
     }
 
     public List<PriceHistoryEntry> GetHistory(long itemId) => Read(c => c.Query<PriceHistoryEntry>(
-        "SELECT item_id, day, old_price, price, reasons FROM price_history WHERE item_id=@itemId ORDER BY day", new { itemId }).ToList());
+        "SELECT item_id, day, old_price, price, reasons, old_margin, margin FROM price_history WHERE item_id=@itemId ORDER BY day", new { itemId }).ToList());
 
     // ---------- lists ----------
 

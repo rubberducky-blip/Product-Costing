@@ -13,5 +13,8 @@ public static class Fmt
     public static string Num(decimal? v) => v is null ? "" : Num(v.Value);
     public static string Usd(decimal v) => v.ToString("N2", Loc.Culture) + " $";
     public static string InCurrency(decimal v, Currency c) => c == Currency.Usd ? Usd(v) : Money(v);
+    /// <summary>A purchase price exactly as entered (at least two decimals, never rounded to them).</summary>
+    public static string Exact(decimal v, Currency c) =>
+        Math.Round(v, 6).ToString("#,##0.00####", Loc.Culture) + (c == Currency.Usd ? " $" : " " + Symbol);
     public static string Signed(decimal v) => (v > 0 ? "+" : "") + v.ToString("N1", Loc.Culture) + "%";
 }

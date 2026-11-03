@@ -28,6 +28,13 @@
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="{l:T history.margin}" Width="170" HeaderStyle="{StaticResource NumHeader}">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding MarginText}" Foreground="{Binding MarginBrush}" Style="{StaticResource NumCell}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                     <DataGridTextColumn Header="{l:T history.reasons}" Binding="{Binding ReasonsText}" Width="*" ElementStyle="{StaticResource MutedCell}" />
                 </DataGrid.Columns>
             </DataGrid>

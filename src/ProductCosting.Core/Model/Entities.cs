@@ -15,6 +15,11 @@ public sealed class AppSettings
     public decimal UiScale { get; set; } = 1m;
     /// <summary>How many US dollars one euro buys (1 € = X $).</summary>
     public decimal UsdPerEur { get; set; } = 1.10m;
+    /// <summary>
+    /// Operating overhead of selling, as a share of the selling price. Shown as the adjusted margin of merchandise and
+    /// raw materials sold as they are; it never changes costs or prices.
+    /// </summary>
+    public decimal SalesOverheadPct { get; set; }
     public string BackupFolder { get; set; } = "";
     public bool AutoBackup { get; set; } = true;
     public int BackupKeepCount { get; set; } = 30;
@@ -94,7 +99,10 @@ public sealed class ItemSource
     public long? SupplierId { get; set; }
     public string? SupplierCode { get; set; }
     public decimal PurchasePrice { get; set; }
+    /// <summary>In the item's base unit (cm, cm², kg or pieces).</summary>
     public decimal PurchaseQty { get; set; } = 1;
+    /// <summary>The unit the purchase quantity is typed in (e.g. metres); null = the base unit.</summary>
+    public MeasureUnit? PurchaseUnit { get; set; }
     /// <summary>Null = the supplier's currency (euro when there is no supplier).</summary>
     public Currency? Currency { get; set; }
     public decimal? DiscountPct { get; set; }
@@ -111,8 +119,11 @@ public sealed class RecipeLine
     public long Id { get; set; }
     public long ProductId { get; set; }
     public long? MaterialId { get; set; }
+    /// <summary>In the base unit of <see cref="Unit"/>.</summary>
     public decimal Quantity { get; set; }
     public QtyUnit Unit { get; set; }
+    /// <summary>The unit the quantity is typed in (e.g. grams); null = the base unit.</summary>
+    public MeasureUnit? EntryUnit { get; set; }
     public string? Comment { get; set; }
     /// <summary>Extra waste on this line (materials with waste only): 10% means 10% more is used than the quantity.</summary>
     public decimal? WastePct { get; set; }
@@ -222,6 +233,11 @@ public sealed class PriceHistoryEntry
     public decimal? OldPrice { get; set; }
     public decimal Price { get; set; }
     public PriceReason Reasons { get; set; }
+    /// <summary>Gross margin (% of the price) before and after the day's changes; null where unknown.</summary>
+    public decimal? OldMargin { get; set; }
+    public decimal? Margin { get; set; }
+    /// <summary>+1 the margin went up that day, −1 down, 0 unchanged or unknown (a hundredth of a point counts as no change).</summary>
+    public int MarginTrend => OldMargin is decimal o && Margin is decimal m && Math.Abs(m - o) >= 0.01m ? Math.Sign(m - o) : 0;
 
     public DateTime Date => DateTime.ParseExact(Day, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
 }
@@ -269,6 +285,10 @@ public sealed class ItemRow : System.ComponentModel.INotifyPropertyChanged
     public bool IsMerchandiseAsMaterial => Kind == ItemKind.Merchandise && UsableAsMaterial;
     public decimal Profit => Price - Cost;
     public decimal MarginPct => Price > 0 ? (Price - Cost) / Price * 100m : 0;
+    /// <summary>Sales overhead of the settings, set by the list for merchandise and raw materials (0 for products).</summary>
+    public decimal SalesOverheadPct { get; set; }
+    /// <summary>Gross margin minus the sales overhead.</summary>
+    public decimal AdjMarginPct => MarginPct - SalesOverheadPct;
 }
 
 public sealed class SupplierRow

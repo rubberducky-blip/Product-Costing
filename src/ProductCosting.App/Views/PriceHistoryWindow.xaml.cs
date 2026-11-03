@@ -15,6 +15,22 @@ public sealed class HistoryRow(PriceHistoryEntry e)
         : "";
     public Brush ChangeBrush => (Brush)Application.Current.FindResource(e.OldPrice is decimal o && e.Price > o ? "DangerTextBrush" : "SuccessTextBrush");
     public string ReasonsText => Strings.Reasons(e.Reasons);
+    public string MarginText => HistoryText.Margin(e);
+    /// <summary>Green when the margin grew, red when it shrank.</summary>
+    public Brush MarginBrush => (Brush)Application.Current.FindResource(e.MarginTrend switch
+    {
+        > 0 => "SuccessTextBrush",
+        < 0 => "DangerTextBrush",
+        _ => "TextMutedBrush",
+    });
+}
+
+public static class HistoryText
+{
+    /// <summary>"32,5% → 35,1%", or just the margin when it did not change (empty for history from before margins were kept).</summary>
+    public static string Margin(PriceHistoryEntry e) => e.Margin is not decimal m ? ""
+        : e.MarginTrend != 0 ? $"{Fmt.Pct(Math.Round(e.OldMargin!.Value, 1))} → {Fmt.Pct(Math.Round(m, 1))}"
+        : Fmt.Pct(Math.Round(m, 1));
 }
 
 public partial class PriceHistoryWindow : Window

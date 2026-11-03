@@ -23,6 +23,11 @@ public static class Strings
 
     public static string Unit(QtyUnit u) => Get("unit." + u.ToString().ToLowerInvariant());
 
+    /// <summary>What an item is measured by: pieces, length, area, weight.</summary>
+    public static string Dimension(QtyUnit u) => Get("dim." + u.ToString().ToLowerInvariant());
+
+    public static string Measure(MeasureUnit u) => Get("mu." + u.ToString().ToLowerInvariant());
+
     public static string Reason(PriceReason r) => Get("reason." + r);
 
     public static string Reasons(PriceReason r) => string.Join(", ", r.Split().Select(Reason));
@@ -45,6 +50,17 @@ public static class Strings
         ["unit.cm"] = ("εκ.", "cm"),
         ["unit.cm2"] = ("εκ²", "cm²"),
         ["unit.kg"] = ("κιλά", "kg"),
+        ["dim.pcs"] = ("Τεμάχια", "Pieces"),
+        ["dim.cm"] = ("Μήκος", "Length"),
+        ["dim.cm2"] = ("Εμβαδό", "Area"),
+        ["dim.kg"] = ("Βάρος", "Weight"),
+        ["mu.pcs"] = ("τεμ.", "pcs"),
+        ["mu.cm"] = ("εκ.", "cm"),
+        ["mu.m"] = ("μ.", "m"),
+        ["mu.cm2"] = ("εκ²", "cm²"),
+        ["mu.m2"] = ("μ²", "m²"),
+        ["mu.g"] = ("γρ.", "g"),
+        ["mu.kg"] = ("κιλά", "kg"),
 
         ["currency.eur"] = ("Ευρώ (€)", "Euro (€)"),
         ["currency.usd"] = ("Δολάριο ($)", "US dollar ($)"),
@@ -110,6 +126,7 @@ public static class Strings
         ["list.profit"] = ("Κέρδος", "Profit"),
         ["list.markup"] = ("Προσαύξηση", "Markup"),
         ["list.margin"] = ("Περιθώριο", "Margin"),
+        ["list.adjMargin"] = ("Καθ. περιθώριο", "Adj. margin"),
         ["list.type"] = ("Τύπος", "Type"),
         ["list.country"] = ("Χώρα", "Country"),
         ["list.discount"] = ("Έκπτωση", "Discount"),
@@ -225,6 +242,10 @@ public static class Strings
         ["cost.price"] = ("Τελική τιμή", "Final price"),
         ["cost.profit"] = ("Κέρδος", "Profit"),
         ["cost.margin"] = ("Περιθώριο", "Margin"),
+        ["cost.grossMargin"] = ("Μικτό περιθώριο", "Gross margin"),
+        ["cost.salesOverhead"] = ("Έξοδα πωλήσεων {0} της τιμής", "Sales overhead {0} of the price"),
+        ["cost.adjMargin"] = ("Καθαρό περιθώριο", "Adjusted margin"),
+        ["cost.perEntry"] = ("= {0} ανά {1}", "= {0} per {1}"),
         ["cost.warnMissing"] = ("Μια πρώτη ύλη της συνταγής λείπει ή δεν έχει επιλεγεί.", "A raw material in the recipe is missing or not chosen."),
         ["cost.warnConversion"] = ("Κάποιες γραμμές δεν κοστολογούνται: η μονάδα δεν μετατρέπεται. Ορίστε μέγεθος τεμαχίου στην πρώτη ύλη.", "Some lines can't be costed: the unit can't be converted. Set the piece size on the material."),
         ["cost.warnNoPrice"] = ("Δεν έχει οριστεί τιμή αγοράς.", "No purchase price set."),
@@ -241,7 +262,6 @@ public static class Strings
         ["supplier.vat"] = ("ΦΠΑ %", "VAT %"),
         ["supplier.history"] = ("Ιστορικό αυξήσεων", "Price increases"),
         ["supplierHistory.title"] = ("Ιστορικό αυξήσεων · {0}", "Price increases · {0}"),
-        ["supplierHistory.help"] = ("Αλλαγές στις τιμές αγοράς των ειδών του προμηθευτή, ανά ημέρα (καταγράφονται από αυτή την έκδοση και μετά).", "Changes to the purchase prices of this supplier's items, per day (recorded from this version on)."),
         ["supplierHistory.changed"] = ("{0} από {1} είδη", "{0} of {1} items"),
         ["supplierHistory.upDown"] = ("↑ {0} · ↓ {1}", "↑ {0} · ↓ {1}"),
         ["supplierHistory.items"] = ("Είδη που άλλαξαν", "Items changed"),
@@ -274,6 +294,9 @@ public static class Strings
         ["order.confirmDelete"] = ("Να διαγραφεί η παραγγελία της {0};", "Delete the order of {0}?"),
         ["order.unitPrice"] = ("Τιμή αγοράς / μον.", "Unit price"),
         ["order.value"] = ("Αξία", "Value"),
+        ["order.totalValue"] = ("Σύνολο", "Total"),
+        ["order.withShipping"] = ("Σύνολο με μεταφορικά", "Total with shipping"),
+        ["order.copy"] = ("Νέα παραγγελία από αντίγραφο", "New order from a copy"),
         ["order.totals"] = ("Σύνολα παραγγελίας", "Order totals"),
         ["order.goods"] = ("Αξία προϊόντων", "Goods"),
         ["order.shippingEst"] = ("Μεταφορικά (εκτίμηση)", "Shipping (estimate)"),
@@ -349,6 +372,7 @@ public static class Strings
         ["history.price"] = ("Τιμή", "Price"),
         ["history.change"] = ("Μεταβολή", "Change"),
         ["history.reasons"] = ("Αιτίες", "Reasons"),
+        ["history.margin"] = ("Περιθώριο", "Margin"),
 
         ["settings.title"] = ("Ρυθμίσεις", "Settings"),
         ["settings.costs"] = ("Κόστος παραγωγής", "Production costs"),
@@ -364,6 +388,8 @@ public static class Strings
         ["settings.currency"] = ("Νόμισμα και ισοτιμία", "Currency and exchange rate"),
         ["settings.currencySymbol"] = ("Σύμβολο νομίσματος", "Currency symbol"),
         ["settings.usdRate"] = ("1 € = ? $", "1 € = ? $"),
+        ["settings.salesOverhead"] = ("Γενικά έξοδα πωλήσεων % (επί της τιμής πώλησης)", "Sales overhead % (of the selling price)"),
+        ["settings.salesOverheadHelp"] = ("Λειτουργικά έξοδα που αναλογούν στις πωλήσεις εμπορευμάτων και πρώτων υλών. Δεν αλλάζουν κόστη ή τιμές· εμφανίζεται το καθαρό περιθώριο = μικτό περιθώριο − έξοδα πωλήσεων. Δεν αφορά τα προϊόντα παραγωγής.", "Operating overhead allocated to selling merchandise and raw materials. Costs and prices do not change; the adjusted margin = gross margin − sales overhead is shown. Manufactured products are not affected."),
         ["settings.usdRateHelp"] = ("Οι τιμές σε δολάρια μετατρέπονται σε ευρώ πριν από κάθε άλλο υπολογισμό.", "Dollar prices are converted to euro before any other calculation."),
         ["settings.appearance"] = ("Εμφάνιση", "Appearance"),
         ["settings.theme"] = ("Θέμα", "Theme"),

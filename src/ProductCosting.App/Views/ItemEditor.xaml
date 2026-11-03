@@ -177,16 +177,22 @@
                                                     </WrapPanel.Resources>
                                                     <StackPanel Margin="0,0,10,0">
                                                         <TextBlock Text="{l:T item.purchasePrice}" Style="{StaticResource FieldLabel}" />
-                                                        <l:NumBox Field="{Binding Price}" FontWeight="SemiBold" Decimals="2" />
+                                                        <l:NumBox Field="{Binding Price}" FontWeight="SemiBold" />
                                                     </StackPanel>
                                                     <StackPanel Margin="0,0,10,0">
                                                         <TextBlock Text="{l:T item.currency}" Style="{StaticResource FieldLabel}" />
                                                         <ComboBox ItemsSource="{Binding CurrencyChoices}" SelectedValuePath="Value" DisplayMemberPath="Label"
                                                                   SelectedValue="{Binding Currency}" HorizontalAlignment="Stretch" />
                                                     </StackPanel>
-                                                    <StackPanel Margin="0,0,10,0">
+                                                    <!-- quantity with its unit (cm or m, g or kg…) for items measured by length, area or weight -->
+                                                    <StackPanel Margin="0,0,10,0" Width="{Binding HasUnitChoice, Converter={StaticResource QtyWidth}}">
                                                         <TextBlock Text="{l:T item.purchaseQty}" Style="{StaticResource FieldLabel}" TextTrimming="CharacterEllipsis" />
-                                                        <l:NumBox Field="{Binding Qty}" />
+                                                        <DockPanel>
+                                                            <ComboBox DockPanel.Dock="Right" Width="78" MinWidth="0" Margin="6,0,0,0" ItemsSource="{Binding UnitChoices}"
+                                                                      SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding PurchaseUnit}"
+                                                                      Visibility="{Binding HasUnitChoice, Converter={StaticResource Visible}}" />
+                                                            <l:NumBox Field="{Binding Qty}" />
+                                                        </DockPanel>
                                                     </StackPanel>
                                                     <StackPanel Margin="0,0,10,0">
                                                         <TextBlock Text="{l:T item.discount}" Style="{StaticResource FieldLabel}" />
@@ -323,8 +329,8 @@
                                                                 Placeholder="{l:T item.pickProduct}" Picked="MaterialPicker_Picked"
                                                                 Visibility="{Binding IsProductLine, Converter={StaticResource Visible}}" />
                                                 <l:NumBox Grid.Column="1" Field="{Binding Quantity}" Margin="10,0,0,0" />
-                                                <ComboBox Grid.Column="2" Margin="10,0,0,0" ItemsSource="{Binding DataContext.Units, ElementName=Root}"
-                                                          SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding Unit}" MinWidth="0"
+                                                <ComboBox Grid.Column="2" Margin="10,0,0,0" ItemsSource="{Binding DataContext.Measures, ElementName=Root}"
+                                                          SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding EntryUnit}" MinWidth="0"
                                                           Visibility="{Binding IsProductLine, Converter={StaticResource Hidden}}" />
                                                 <l:NumBox Grid.Column="3" Field="{Binding Waste}" Margin="10,0,0,0" l:Hint.Text="0"
                                                           Visibility="{Binding IsWasteMaterial, Converter={StaticResource Visible}}" />
@@ -453,6 +459,12 @@
                                     Background="{Binding MarginPct, Converter={StaticResource MarginBrush}, ConverterParameter=soft}">
                                 <TextBlock Foreground="{Binding MarginPct, Converter={StaticResource MarginBrush}}">
                                     <Run Text="{l:T list.margin}" /><Run Text=" " /><Run Text="{Binding MarginText, Mode=OneWay}" />
+                                </TextBlock>
+                            </Border>
+                            <Border Style="{StaticResource Badge}" Margin="8,0,0,0" Visibility="{Binding HasAdjMargin, Converter={StaticResource Visible}}"
+                                    Background="{Binding AdjMarginPct, Converter={StaticResource MarginBrush}, ConverterParameter=soft}">
+                                <TextBlock Foreground="{Binding AdjMarginPct, Converter={StaticResource MarginBrush}}">
+                                    <Run Text="{l:T list.adjMargin}" /><Run Text=" " /><Run Text="{Binding AdjMarginText, Mode=OneWay}" />
                                 </TextBlock>
                             </Border>
                         </StackPanel>

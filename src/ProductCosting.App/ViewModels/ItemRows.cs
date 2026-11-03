@@ -7,18 +7,45 @@ namespace ProductCosting.App.ViewModels;
 
 public sealed partial class SourceRow : EditRow
 {
-    public SourceRow(ItemSource s)
+    /// <param name="dimension">What the item is measured by; quantities are shown in the source's entry unit.</param>
+    public SourceRow(ItemSource s, QtyUnit dimension)
     {
+        _purchaseUnit = dimension.EntryUnit(s.PurchaseUnit);
+        UnitChoices = Choices.Measures(dimension.EntryUnits());
         _supplierId = s.SupplierId;
         _supplierCode = s.SupplierCode ?? "";
         _currency = s.Currency is null ? -1 : (int)s.Currency;
         Price = Num(s.PurchasePrice);
-        Qty = Num(s.PurchaseQty, min: 0.000001m);
+        Qty = Num(_purchaseUnit.FromBase(s.PurchaseQty), min: 0.000001m);
         Discount = Num(s.DiscountPct, allowEmpty: true);
         Shipping = Num(s.ShippingPct, allowEmpty: true);
         Weight = Num(s.Weight);
-        Moq = Num(s.Moq, allowEmpty: true);
-        Pack = Num(s.PackQty, allowEmpty: true);
+        Moq = Num(s.Moq is decimal m ? _purchaseUnit.FromBase(m) : null, allowEmpty: true);
+        Pack = Num(s.PackQty is decimal p ? _purchaseUnit.FromBase(p) : null, allowEmpty: true);
+    }
+
+    /// <summary>Unit of the purchase quantity, MOQ and pack (e.g. metres for an item measured by length).</summary>
+    [ObservableProperty] private MeasureUnit _purchaseUnit;
+    [ObservableProperty] private List<Choice<MeasureUnit>> _unitChoices;
+    public bool HasUnitChoice => UnitChoices.Count > 1;
+
+    partial void OnUnitChoicesChanged(List<Choice<MeasureUnit>> value) => OnPropertyChanged(nameof(HasUnitChoice));
+
+    /// <summary>The item's unit changed: offer that dimension's units (the typed numbers stay).</summary>
+    public void SetDimension(QtyUnit dimension)
+    {
+        Quiet = true;
+        try
+        {
+            var unit = dimension.EntryUnit(PurchaseUnit);
+            UnitChoices = Choices.Measures(dimension.EntryUnits());
+            PurchaseUnit = unit;
+            OnPropertyChanged(nameof(PurchaseUnit));
+        }
+        finally
+        {
+            Quiet = false;
+        }
     }
 
     [ObservableProperty] private long? _supplierId;
@@ -74,13 +101,14 @@ public sealed partial class SourceRow : EditRow
         SupplierId = SupplierId,
         SupplierCode = string.IsNullOrWhiteSpace(SupplierCode) ? null : SupplierCode.Trim(),
         PurchasePrice = Price.Or0,
-        PurchaseQty = Qty.Value ?? 1,
+        PurchaseQty = PurchaseUnit.ToBase(Qty.Value ?? 1),
+        PurchaseUnit = PurchaseUnit == MeasureUnit.Pcs ? null : PurchaseUnit,
         Currency = Currency < 0 ? null : (Currency)Currency,
         DiscountPct = Discount.Value,
         ShippingPct = Shipping.Value,
         Weight = Weight.Value ?? 1,
-        Moq = Moq.Value is > 0 ? Moq.Value : null,
-        PackQty = Pack.Value is > 0 ? Pack.Value : null,
+        Moq = Moq.Value is > 0 ? PurchaseUnit.ToBase(Moq.Value.Value) : null,
+        PackQty = Pack.Value is > 0 ? PurchaseUnit.ToBase(Pack.Value.Value) : null,
     };
 }
 
@@ -91,16 +119,24 @@ public sealed partial class LineRow : EditRow
     {
         IsProductLine = isProduct;
         _materialId = l.MaterialId;
-        _unit = l.Unit;
+        _entryUnit = isProduct ? MeasureUnit.Pcs : l.Unit.EntryUnit(l.EntryUnit);
         _comment = l.Comment ?? "";
-        Quantity = Num(l.Quantity);
+        Quantity = Num(_entryUnit.FromBase(l.Quantity));
         Waste = Num(l.WastePct, allowEmpty: true);
     }
 
     [ObservableProperty] private long? _materialId;
-    [ObservableProperty] private QtyUnit _unit;
+    /// <summary>The unit the quantity is typed in (cm, m, g, kg…); its dimension is the line's unit.</summary>
+    [ObservableProperty] private MeasureUnit _entryUnit;
     [ObservableProperty] private string _comment;
+    /// <summary>In <see cref="EntryUnit"/>.</summary>
     public NumField Quantity { get; }
+
+    public QtyUnit Unit => IsProductLine ? QtyUnit.Pcs : EntryUnit.Dimension();
+
+    partial void OnEntryUnitChanged(MeasureUnit value) => OnPropertyChanged(nameof(Unit));
+    /// <summary>The quantity in the base unit (cm, cm², kg, pieces), as the costing uses it.</summary>
+    public decimal BaseQuantity => (IsProductLine ? MeasureUnit.Pcs : EntryUnit).ToBase(Quantity.Or0);
     /// <summary>Extra waste on this line, only for materials that have waste.</summary>
     public NumField Waste { get; }
     [ObservableProperty] private bool _isWasteMaterial;
@@ -125,8 +161,9 @@ public sealed partial class LineRow : EditRow
     public RecipeLine ToModel() => new()
     {
         MaterialId = MaterialId,
-        Quantity = Quantity.Or0,
-        Unit = IsProductLine ? QtyUnit.Pcs : Unit,
+        Quantity = BaseQuantity,
+        Unit = Unit,
+        EntryUnit = IsProductLine ? null : EntryUnit,
         WastePct = !IsProductLine && IsWasteMaterial && Waste.Value is > 0 ? Waste.Value : null,
         Comment = string.IsNullOrWhiteSpace(Comment) ? null : Comment.Trim(),
     };
