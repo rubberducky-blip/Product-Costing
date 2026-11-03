@@ -44,8 +44,12 @@ public sealed partial class Store
     public Store(Db db)
     {
         Db = db;
-        db.Migrate();
+        if (db.Migrate()) RepriceAfterUpgrade();
     }
+
+    /// <summary>After an upgrade that changed how prices are worked out: every price again, into the history only.</summary>
+    internal void RepriceAfterUpgrade() => Write(DataChange.Items, (c, t) =>
+        new PricingEngine(this, c, t).Run(new RecalcRequest { AllItems = true, PriceUnitAll = true, Quiet = true }));
 
     internal string Now => Clock().ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
     internal string Today => Clock().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);

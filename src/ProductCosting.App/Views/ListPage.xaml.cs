@@ -42,7 +42,6 @@ public partial class ListPage : UserControl
         UnitCol.Visibility = Vis(_vm.IsBought);
         PurchaseCol.Visibility = Vis(_vm.IsBought);
         ProfitCol.Visibility = Vis(_vm.IsProducts);
-        AdjMarginCol.Visibility = Vis(_vm.IsBought && AppState.Settings.SalesOverheadPct != 0);
     }
 
     void Unbind()

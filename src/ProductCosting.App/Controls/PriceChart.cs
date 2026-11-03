@@ -10,7 +10,7 @@ using ProductCosting.Core.Model;
 namespace ProductCosting.App.Controls;
 
 /// <summary>
-/// Step chart of an item's price over time; the price holds until the next change. Dots are green when the margin
+/// Line chart of an item's price over time: straight lines from one change to the next, then level until today. Dots are green when the margin
 /// grew that day, red when it shrank. Hover shows the details.
 /// </summary>
 public sealed class PriceChart : FrameworkElement
@@ -123,7 +123,7 @@ public sealed class PriceChart : FrameworkElement
             dc.DrawText(t, new Point(Math.Clamp(x - t.Width / 2, Left - 10, w - Right - t.Width), h - Bottom + 10));
         }
 
-        // step line + area
+        // line from change to change + area
         var accent = (Color)Application.Current.FindResource("AccentColor");
         var line = new StreamGeometry();
         var area = new StreamGeometry();
@@ -137,11 +137,9 @@ public sealed class PriceChart : FrameworkElement
             ac.LineTo(p0, false, false);
             for (var i = 1; i < e.Count; i++)
             {
-                var x = X(e[i].Date, min, max);
-                lc.LineTo(new Point(x, Y(e[i - 1].Price)), true, true);
-                lc.LineTo(new Point(x, Y(e[i].Price)), true, true);
-                ac.LineTo(new Point(x, Y(e[i - 1].Price)), false, false);
-                ac.LineTo(new Point(x, Y(e[i].Price)), false, false);
+                var pt = new Point(X(e[i].Date, min, max), Y(e[i].Price));
+                lc.LineTo(pt, true, true);
+                ac.LineTo(pt, false, false);
             }
             var end = new Point(X(max, min, max), Y(e[^1].Price));
             lc.LineTo(end, true, true);

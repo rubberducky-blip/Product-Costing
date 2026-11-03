@@ -209,8 +209,17 @@ public class FeatureTests
             Item = new Item { Kind = ItemKind.RawMaterial, Code = "L", Name = "L", Unit = QtyUnit.Cm },
             Sources = [new ItemSource { PurchasePrice = 10, PurchaseQty = MeasureUnit.M.ToBase(2), PurchaseUnit = MeasureUnit.M }],
         });
-        Assert.Equal(0.05m, f.Store.GetItem(leather)!.Cost);
+        var item = f.Store.GetItem(leather)!;
+        Assert.Equal(0.05m, item.Cost);                              // per cm, for recipes
+        Assert.Equal(MeasureUnit.M, item.PriceUnit);                 // priced per metre, like it is bought
+        Assert.Equal(5m, item.SaleCost);
+        Assert.Equal(10m, item.Price);                               // 5 € + 100% markup
         Assert.Equal(MeasureUnit.M, f.Store.LoadItem(leather)!.Sources[0].PurchaseUnit);
+        var row = f.Store.GetItemRows(ListScope.RawMaterials, null).Single(r => r.Id == leather);
+        Assert.Equal(5m, row.Cost);
+        Assert.Equal(50m, Math.Round(row.MarginPct, 6));
+        Assert.Equal(12m, f.Store.SetPrice(leather, 12));            // the markup follows the price per metre
+        Assert.Equal(140m, Math.Round(f.Store.GetItem(leather)!.EffMarkup, 6));
         // a recipe line typed in metres: 0.3 m = 30 cm
         var p = f.Store.SaveItem(new ItemDocument
         {
@@ -263,11 +272,21 @@ public class FeatureTests
             c.Execute("PRAGMA user_version = 1");
             c.Execute("INSERT INTO items(kind, code, name, created_at, updated_at) VALUES(3, 'OLD', 'Old', '', '')");
             c.Execute("INSERT INTO suppliers(name, country, created_at, updated_at) VALUES('GR', 'GR', '', ''), ('IT', 'IT', '', '')");
+            // leather bought as 15000 cm² for 90 €, priced per cm² before
+            c.Execute("INSERT INTO items(kind, code, name, unit, cost, price, created_at, updated_at) VALUES(3, 'LEA', 'Leather', 2, 0.006, 0.0, '', '')");
+            c.Execute("INSERT INTO item_sources(item_id, purchase_price, purchase_qty) VALUES((SELECT id FROM items WHERE code = 'LEA'), 90, 15000)");
         }
         var store = new Store(new Db(path));
-        var item = store.GetItemRows(ListScope.RawMaterials, null).Single();
+        var item = store.GetItemRows(ListScope.RawMaterials, null).Single(r => r.Code == "OLD");
         Assert.Equal("OLD", item.Code);
         Assert.False(store.LoadItem(item.Id)!.Item.HasWaste);
+        // area purchases are shown in m² and priced per m² after the upgrade: 60 €/m² + 100% markup
+        var lea = store.LoadItem(store.GetItemRows(ListScope.RawMaterials, null).Single(r => r.Code == "LEA").Id)!;
+        Assert.Equal(MeasureUnit.M2, lea.Sources[0].PurchaseUnit);
+        Assert.Equal(MeasureUnit.M2, lea.Item.PriceUnit);
+        Assert.Equal(120m, lea.Item.Price);
+        Assert.Contains(store.GetHistory(lea.Item.Id), h => h.Reasons.HasFlag(PriceReason.PriceUnit));
+        Assert.Empty(store.GetNotifications());
         // Greek suppliers get the 24% VAT default, others keep none
         Assert.Equal([24m, 0m], store.GetSuppliers().OrderBy(s => s.Name).Select(s => s.VatPct));
         SqliteConnection.ClearAllPools();

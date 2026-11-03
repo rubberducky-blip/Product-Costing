@@ -89,6 +89,7 @@ public sealed class BackupService(Store store)
         var safety = BackupNow("safety");
         // keep where backups go and when the last auto backup ran, they describe this computer, not the data
         var keep = store.LoadSettings();
+        var reprice = false;
         store.Exclusive(() =>
         {
             using (var src = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = file, Mode = SqliteOpenMode.ReadOnly, Pooling = false }.ToString()))
@@ -99,8 +100,9 @@ public sealed class BackupService(Store store)
             }
             SqliteConnection.ClearAllPools();
             using var c = store.Db.Open();
-            Db.Migrate(c);
+            reprice = Db.Migrate(c);
         });
+        if (reprice) store.RepriceAfterUpgrade();
         var s = store.LoadSettings();
         s.BackupFolder = keep.BackupFolder;
         s.LastAutoBackupDay = keep.LastAutoBackupDay;

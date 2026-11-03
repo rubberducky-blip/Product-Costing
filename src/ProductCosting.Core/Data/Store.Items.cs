@@ -10,7 +10,7 @@ public sealed partial class Store
     const string ItemColumns = """
         id, kind, code, name, usable_as_material, folder_id, material_folder_id, unit, piece_length_cm, piece_area_cm2,
         piece_weight_kg, markup_pct, rounding_step, notes, has_waste, waste_pct, cost, cost_materials, cost_labor, cost_overhead, labor_seconds,
-        eff_markup, eff_step, price, warnings, has_unseen_change
+        eff_markup, eff_step, price, warnings, has_unseen_change, price_unit
         """;
 
     public Item? GetItem(long id) => Read(c => c.QuerySingleOrDefault<Item>($"SELECT {ItemColumns} FROM items WHERE id=@id", new { id }));
@@ -45,14 +45,18 @@ public sealed partial class Store
         if (it.Kind != ItemKind.RawMaterial) it.HasWaste = false;
         if (!it.HasWaste) it.WastePct = null;
         if (it.Kind == ItemKind.Product && it.Id != 0) CheckNoCycle(c, t, it.Id, doc.Lines);
+        // bought items are priced per the unit of their first supplier row (e.g. per m²)
+        it.PriceUnit = it.IsBought ? it.Unit.EntryUnit(doc.Sources.FirstOrDefault()?.PurchaseUnit) : null;
+        if (it.PriceUnit == MeasureUnit.Pcs) it.PriceUnit = null;
 
         var created = it.Id == 0;
+        var priceUnitChanged = false;
         List<(long, decimal)> oldPrices = [];
         var now = Now;
         var args = new
         {
             it.Id, it.Kind, it.Code, it.Name, it.UsableAsMaterial, it.FolderId, it.MaterialFolderId, it.Unit,
-            it.PieceLengthCm, it.PieceAreaCm2, it.PieceWeightKg, it.MarkupPct, it.RoundingStep, it.HasWaste, it.WastePct,
+            it.PieceLengthCm, it.PieceAreaCm2, it.PieceWeightKg, it.MarkupPct, it.RoundingStep, it.HasWaste, it.WastePct, it.PriceUnit,
             Notes = string.IsNullOrWhiteSpace(it.Notes) ? null : it.Notes, Now = now,
         };
         if (created)
@@ -61,9 +65,9 @@ public sealed partial class Store
             var mpos = NextPosition(c, t, "SELECT max(material_position) FROM items WHERE material_folder_id IS @MaterialFolderId", it);
             it.Id = c.ExecuteScalar<long>("""
                 INSERT INTO items(kind, code, name, usable_as_material, folder_id, material_folder_id, unit, piece_length_cm,
-                    piece_area_cm2, piece_weight_kg, markup_pct, rounding_step, notes, has_waste, waste_pct, position, material_position, created_at, updated_at)
+                    piece_area_cm2, piece_weight_kg, markup_pct, rounding_step, notes, has_waste, waste_pct, price_unit, position, material_position, created_at, updated_at)
                 VALUES(@Kind, @Code, @Name, @UsableAsMaterial, @FolderId, @MaterialFolderId, @Unit, @PieceLengthCm,
-                    @PieceAreaCm2, @PieceWeightKg, @MarkupPct, @RoundingStep, @Notes, @HasWaste, @WastePct, @pos, @mpos, @Now, @Now)
+                    @PieceAreaCm2, @PieceWeightKg, @MarkupPct, @RoundingStep, @Notes, @HasWaste, @WastePct, @PriceUnit, @pos, @mpos, @Now, @Now)
                 RETURNING id
                 """, new DynamicParameters(args).Also(p => { p.Add("pos", pos); p.Add("mpos", mpos); }), t);
         }
@@ -73,11 +77,13 @@ public sealed partial class Store
                 .Select(x => (x.Item1, (decimal)x.Item2)).ToList();
             var oldMatFolder = c.ExecuteScalar<long?>("SELECT material_folder_id FROM items WHERE id=@Id", it, t);
             var oldFolder = c.ExecuteScalar<long?>("SELECT folder_id FROM items WHERE id=@Id", it, t);
+            var oldPriceUnit = c.ExecuteScalar<long?>("SELECT price_unit FROM items WHERE id=@Id", it, t);
+            priceUnitChanged = (oldPriceUnit is null ? 1m : ((MeasureUnit)oldPriceUnit.Value).Factor()) != (it.PriceUnit?.Factor() ?? 1m);
             c.Execute("""
                 UPDATE items SET code=@Code, name=@Name, usable_as_material=@UsableAsMaterial, folder_id=@FolderId,
                     material_folder_id=@MaterialFolderId, unit=@Unit, piece_length_cm=@PieceLengthCm, piece_area_cm2=@PieceAreaCm2,
                     piece_weight_kg=@PieceWeightKg, markup_pct=@MarkupPct, rounding_step=@RoundingStep, notes=@Notes,
-                    has_waste=@HasWaste, waste_pct=@WastePct, updated_at=@Now
+                    has_waste=@HasWaste, waste_pct=@WastePct, price_unit=@PriceUnit, updated_at=@Now
                 WHERE id=@Id
                 """, args, t);
             if (oldFolder != it.FolderId)
@@ -125,6 +131,7 @@ public sealed partial class Store
         req.Items.Add(id);
         req.Direct.Add(id);
         if (created) req.Created.Add(id);
+        if (priceUnitChanged) req.PriceUnitChanged.Add(id);
         // unit or piece size changes don't change the material's own cost, but do change the recipes using it
         req.Items.UnionWith(c.Query<long>("SELECT DISTINCT product_id FROM recipe_lines WHERE material_id=@id", new { id }, t));
         new PricingEngine(this, c, t).Run(req);
@@ -168,7 +175,8 @@ public sealed partial class Store
     public decimal? SetPrice(long id, decimal price) => Write(DataChange.Items | DataChange.Notifications, (c, t) =>
     {
         var s = LoadSettings(c, t);
-        var it = c.QuerySingle<(double Cost, double EffStep)>("SELECT cost, eff_step FROM items WHERE id=@id", new { id }, t);
+        var it = c.QuerySingle<(double Cost, double EffStep)>(
+            $"SELECT cost * {string.Format(EnumExtensions.FactorSql, "price_unit")}, eff_step FROM items WHERE id=@id", new { id }, t);
         var target = Costing.RoundPrice(price, (decimal)it.EffStep, s.RoundingMode);
         var markup = Costing.MarkupForPrice((decimal)it.Cost, target, (decimal)it.EffStep, s.RoundingMode);
         if (markup is null) return (decimal?)null;
@@ -234,8 +242,9 @@ public sealed partial class Store
     // ---------- lists ----------
 
     const string RowSelect = """
-        SELECT i.id, i.kind, i.code, i.name, {0} AS folder_id, {1} AS position, i.unit, i.cost, i.price, i.warnings,
-               i.has_unseen_change, i.usable_as_material, i.eff_markup
+        SELECT i.id, i.kind, i.code, i.name, {0} AS folder_id, {1} AS position, i.unit, i.price_unit,
+               i.cost * (CASE i.price_unit WHEN 2 THEN 100.0 WHEN 4 THEN 10000.0 WHEN 5 THEN 0.001 ELSE 1.0 END) AS cost,
+               i.price, i.warnings, i.has_unseen_change, i.usable_as_material, i.eff_markup
         FROM items i
         """;
 

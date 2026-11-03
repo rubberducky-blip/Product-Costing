@@ -292,6 +292,9 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         Breakdown.Clear();
         decimal cost;
         var warn = CostWarning.None;
+        // bought items are priced per the unit of their first supplier row (e.g. per m²); costs are shown per that unit
+        var saleUnit = IsBought ? Unit.EntryUnit(Sources.FirstOrDefault()?.PurchaseUnit) : MeasureUnit.Pcs;
+        var f = saleUnit.Factor();
 
         if (IsProduct)
         {
@@ -375,27 +378,27 @@ public sealed partial class ItemEditorViewModel : PageViewModel
                 var entryQty = entry.FromBase(sc.Source.PurchaseQty);
                 if (entryQty != 1 || entry.Factor() != 1)
                     Breakdown.Add(new($"÷ {Fmt.Num(entryQty)} {Strings.Measure(entry)}", "", "sub"));
-                Breakdown.Add(new(Loc.F("cost.perUnit", Strings.Unit(Unit)), Fmt.Money4(sc.UnitCost)));
-                if (entry.Factor() != 1)
-                    Breakdown.Add(new(Loc.F("cost.perEntry", Fmt.Money4(sc.UnitCost * entry.Factor()), Strings.Measure(entry)), "", "sub"));
+                Breakdown.Add(new(Loc.F("cost.perUnit", Strings.Measure(saleUnit)), Fmt.Money4(sc.UnitCost * f)));
                 if (multi && i < bc.Sources.Count - 1) Breakdown.Add(new("", "", "sep"));
             }
-            if (multi) Breakdown.Add(new(Loc.T("cost.weighted"), Fmt.Money4(bc.UnitCost), "total"));
+            if (multi) Breakdown.Add(new(Loc.T("cost.weighted"), Fmt.Money4(bc.UnitCost * f), "total"));
             if (waste is > 0 and < 100)
-                Breakdown.Add(new(Loc.F("cost.waste", Fmt.Pct(waste.Value)), "+" + Fmt.Money4(cost - bc.UnitCost)));
+                Breakdown.Add(new(Loc.F("cost.waste", Fmt.Pct(waste.Value)), "+" + Fmt.Money4((cost - bc.UnitCost) * f)));
         }
 
         var markup = Markup.Value ?? s.DefaultMarkupPct;
         var step = Step.Value ?? s.RoundingStep;
-        var price = Costing.Price(cost, markup, step, s.RoundingMode);
+        var saleCost = cost * f;
+        var price = Costing.Price(saleCost, markup, step, s.RoundingMode);
         MarkupHint = Loc.F("common.default", Fmt.Pct(s.DefaultMarkupPct));
         StepHint = Loc.F("common.default", Fmt.Num(s.RoundingStep));
 
         Breakdown.Add(new("", "", "sep"));
-        Breakdown.Add(new(Loc.T("cost.total"), Fmt.Money4(cost), "total"));
-        Breakdown.Add(new($"{Loc.T("cost.markup")} {Fmt.Pct(markup)}", "+" + Fmt.Money4(price.RawPrice - cost)));
+        var per = saleUnit == MeasureUnit.Pcs ? "" : " / " + Strings.Measure(saleUnit);
+        Breakdown.Add(new(Loc.T("cost.total") + per, Fmt.Money4(saleCost), "total"));
+        Breakdown.Add(new($"{Loc.T("cost.markup")} {Fmt.Pct(markup)}", "+" + Fmt.Money4(price.RawPrice - saleCost)));
         Breakdown.Add(new(Loc.T("cost.rawPrice"), Fmt.Money4(price.RawPrice), "sub"));
-        Breakdown.Add(new(Loc.T("cost.price"), Fmt.Money(price.Price), "big"));
+        Breakdown.Add(new(Loc.T("cost.price") + per, Fmt.Money(price.Price), "big"));
         Breakdown.Add(new(Loc.T("cost.profit"), Fmt.Money(price.Profit)));
         // merchandise and raw materials sold as they are: the margin left after the sales overhead (prices stay as they are)
         var salesOverhead = IsBought && price.Price > 0 ? s.SalesOverheadPct : 0;
@@ -410,8 +413,8 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         if (warn.HasFlag(CostWarning.NoConversion)) Breakdown.Add(new(Loc.T("cost.warnConversion"), "", "warn"));
         if (warn.HasFlag(CostWarning.NoPrice)) Breakdown.Add(new(Loc.T("cost.warnNoPrice"), "", "warn"));
 
-        PriceText = Fmt.Money(price.Price);
-        CostText = Fmt.Money4(cost);
+        PriceText = Fmt.Money(price.Price) + per;
+        CostText = Fmt.Money4(saleCost);
         MarginText = Fmt.Pct(Math.Round(price.MarginPct, 1));
         MarginPct = price.MarginPct;
         HasAdjMargin = salesOverhead != 0;

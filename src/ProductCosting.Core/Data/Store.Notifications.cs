@@ -9,7 +9,8 @@ public sealed partial class Store
 {
     public List<PriceNotification> GetNotifications() => Read(c => c.Query<PriceNotification>("""
         SELECT n.id, n.item_id, n.old_price, n.new_price, n.reasons, n.updated_at, n.adjusted,
-               i.code, i.name, i.kind, i.price AS current_price, i.cost, i.eff_markup
+               i.code, i.name, i.kind, i.price AS current_price,
+               i.cost * (CASE i.price_unit WHEN 2 THEN 100.0 WHEN 4 THEN 10000.0 WHEN 5 THEN 0.001 ELSE 1.0 END) AS cost, i.eff_markup
         FROM price_notifications n JOIN items i ON i.id = n.item_id
         ORDER BY n.updated_at DESC, i.code
         """).ToList());
@@ -44,7 +45,8 @@ public sealed partial class Store
         var adjusted = new List<long>();
         FillTemp(c, t, "adjust_n", notificationIds);
         var rows = c.Query<(long Id, long ItemId, double OldPrice, double Cost, double EffStep)>("""
-            SELECT n.id, n.item_id, n.old_price, i.cost, i.eff_step FROM price_notifications n JOIN items i ON i.id = n.item_id
+            SELECT n.id, n.item_id, n.old_price, i.cost * (CASE i.price_unit WHEN 2 THEN 100.0 WHEN 4 THEN 10000.0 WHEN 5 THEN 0.001 ELSE 1.0 END),
+                   i.eff_step FROM price_notifications n JOIN items i ON i.id = n.item_id
             WHERE n.id IN (SELECT id FROM temp.adjust_n)
             """, transaction: t).ToList();
         using var upd = c.CreateCommand();

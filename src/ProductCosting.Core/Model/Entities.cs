@@ -67,6 +67,11 @@ public sealed class Item
     public decimal? PieceLengthCm { get; set; }
     public decimal? PieceAreaCm2 { get; set; }
     public decimal? PieceWeightKg { get; set; }
+    /// <summary>
+    /// Bought items are priced per their purchase unit (e.g. per m² while the cost is kept per cm² for recipes);
+    /// null = per base unit. Set on save from the first supplier row.
+    /// </summary>
+    public MeasureUnit? PriceUnit { get; set; }
     public decimal? MarkupPct { get; set; }
     public decimal? RoundingStep { get; set; }
     public string? Notes { get; set; }
@@ -88,6 +93,9 @@ public sealed class Item
     public bool HasUnseenChange { get; set; }
 
     public bool IsBought => Kind != ItemKind.Product;
+    /// <summary>The unit the price is for, and the cost of one of it.</summary>
+    public MeasureUnit SaleUnit => Unit.EntryUnit(PriceUnit);
+    public decimal SaleCost => Cost * SaleUnit.Factor();
     public bool IsMaterial => Kind == ItemKind.RawMaterial || (Kind == ItemKind.Merchandise && UsableAsMaterial);
 }
 
@@ -257,6 +265,9 @@ public sealed class ItemRow : System.ComponentModel.INotifyPropertyChanged
     public string? Suppliers { get; set; }
     public string? SupplierCode { get; set; }
     public QtyUnit Unit { get; set; }
+    /// <summary>The unit the price is for (null = the base unit); <see cref="Cost"/> is per that unit too.</summary>
+    public MeasureUnit? PriceUnit { get; set; }
+    public string UnitText => Localization.Strings.Measure(Unit.EntryUnit(PriceUnit));
     public decimal Cost { get; set; }
     public decimal Price { get; set; }
     public decimal EffMarkup { get; set; }

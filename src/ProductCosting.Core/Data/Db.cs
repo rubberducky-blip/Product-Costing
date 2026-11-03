@@ -6,7 +6,7 @@ namespace ProductCosting.Core.Data;
 /// <summary>Opens connections to the local SQLite database and keeps its schema up to date.</summary>
 public sealed class Db
 {
-    public const int SchemaVersion = 5;
+    public const int SchemaVersion = 6;
 
     static int _initialized;
 
@@ -34,13 +34,14 @@ public sealed class Db
         return c;
     }
 
-    public void Migrate()
+    /// <summary>Brings the file up to date. True when every price must be recomputed afterwards (pricing rules changed).</summary>
+    public bool Migrate()
     {
         using var c = Open();
-        Migrate(c);
+        return Migrate(c);
     }
 
-    public static void Migrate(SqliteConnection c)
+    public static bool Migrate(SqliteConnection c)
     {
         var version = c.ExecuteScalar<long>("PRAGMA user_version");
         if (version > SchemaVersion)
@@ -81,6 +82,16 @@ public sealed class Db
             c.Execute("PRAGMA user_version = 5", transaction: t);
             t.Commit();
         }
+        var reprice = false;
+        if (version < 6)
+        {
+            using var t = c.BeginTransaction();
+            c.Execute(Schema.V6, transaction: t);
+            c.Execute("PRAGMA user_version = 6", transaction: t);
+            t.Commit();
+            reprice = version >= 1;
+        }
+        return reprice;
     }
 
     /// <summary>True when the file is a SQLite database with this app's tables.</summary>
@@ -323,5 +334,16 @@ static class Schema
         ALTER TABLE price_history ADD COLUMN old_margin REAL;
         ALTER TABLE price_history ADD COLUMN margin REAL;
         UPDATE suppliers SET vat_pct = 24 WHERE vat_pct = 0 AND upper(trim(country)) IN ('GR', 'GREECE', 'ΕΛΛΑΔΑ', 'ΕΛΛΆΔΑ');
+        """;
+
+    // bought items are priced per their purchase unit; existing length and area purchases are shown in metres and m²
+    public const string V6 = """
+        ALTER TABLE items ADD COLUMN price_unit INTEGER;
+        UPDATE item_sources SET purchase_unit = 4
+            WHERE purchase_unit IS NULL AND item_id IN (SELECT id FROM items WHERE unit = 2);
+        UPDATE item_sources SET purchase_unit = 2
+            WHERE purchase_unit IS NULL AND purchase_qty >= 100 AND item_id IN (SELECT id FROM items WHERE unit = 1);
+        UPDATE items SET price_unit = (SELECT src.purchase_unit FROM item_sources src WHERE src.item_id = items.id ORDER BY src.position LIMIT 1)
+            WHERE kind <> 1;
         """;
 }

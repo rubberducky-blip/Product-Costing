@@ -37,7 +37,8 @@ public sealed partial class SourceRow : EditRow
         Quiet = true;
         try
         {
-            var unit = dimension.EntryUnit(PurchaseUnit);
+            // a new dimension starts in its usual purchase unit (m, m², kg)
+            var unit = PurchaseUnit.Dimension() == dimension ? PurchaseUnit : dimension.PurchaseDefault();
             UnitChoices = Choices.Measures(dimension.EntryUnits());
             PurchaseUnit = unit;
             OnPropertyChanged(nameof(PurchaseUnit));

@@ -53,26 +53,35 @@
                 <Border Style="{StaticResource Card}" Margin="0,16,0,0">
                     <StackPanel>
                         <TextBlock Text="{l:T settings.pricing}" Style="{StaticResource H2}" Margin="0,0,0,14" />
-                        <WrapPanel>
-                            <StackPanel Style="{StaticResource Field}">
-                                <TextBlock Text="{l:T settings.defaultMarkup}" Style="{StaticResource FieldLabel}" />
+                        <!-- the four pricing fields share one row -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="16" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="16" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="16" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="{l:T settings.defaultMarkup}" Style="{StaticResource FieldLabel}" TextTrimming="CharacterEllipsis" />
                                 <l:NumBox Field="{Binding DefaultMarkup}" />
                             </StackPanel>
-                            <StackPanel Style="{StaticResource Field}">
-                                <TextBlock Text="{l:T settings.roundingStep}" Style="{StaticResource FieldLabel}" />
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="{l:T settings.roundingStep}" Style="{StaticResource FieldLabel}" TextTrimming="CharacterEllipsis" />
                                 <l:NumBox Field="{Binding RoundingStep}" Decimals="2" />
                             </StackPanel>
-                            <StackPanel Style="{StaticResource Field}">
-                                <TextBlock Text="{l:T settings.roundingMode}" Style="{StaticResource FieldLabel}" />
+                            <StackPanel Grid.Column="4">
+                                <TextBlock Text="{l:T settings.roundingMode}" Style="{StaticResource FieldLabel}" TextTrimming="CharacterEllipsis" />
                                 <ComboBox ItemsSource="{Binding RoundingModes}" SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding RoundingMode}"
                                           HorizontalAlignment="Stretch" />
                             </StackPanel>
-                        </WrapPanel>
-                        <StackPanel Width="320" HorizontalAlignment="Left" Margin="0,14,0,0">
-                            <TextBlock Text="{l:T settings.salesOverhead}" Style="{StaticResource FieldLabel}" TextTrimming="CharacterEllipsis" />
-                            <l:NumBox Field="{Binding SalesOverhead}" />
-                        </StackPanel>
-                        <TextBlock Text="{l:T settings.salesOverheadHelp}" Style="{StaticResource Caption}" TextWrapping="Wrap" MaxWidth="900" HorizontalAlignment="Left" Margin="0,10,0,0" />
+                            <StackPanel Grid.Column="6">
+                                <TextBlock Text="{l:T settings.salesOverhead}" Style="{StaticResource FieldLabel}" TextTrimming="CharacterEllipsis" />
+                                <l:NumBox Field="{Binding SalesOverhead}" />
+                            </StackPanel>
+                        </Grid>
                     </StackPanel>
                 </Border>
 

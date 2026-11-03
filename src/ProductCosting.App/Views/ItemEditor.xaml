@@ -177,7 +177,7 @@
                                                     </WrapPanel.Resources>
                                                     <StackPanel Margin="0,0,10,0">
                                                         <TextBlock Text="{l:T item.purchasePrice}" Style="{StaticResource FieldLabel}" />
-                                                        <l:NumBox Field="{Binding Price}" FontWeight="SemiBold" />
+                                                        <l:NumBox Field="{Binding Price}" FontWeight="SemiBold" Decimals="2" />
                                                     </StackPanel>
                                                     <StackPanel Margin="0,0,10,0">
                                                         <TextBlock Text="{l:T item.currency}" Style="{StaticResource FieldLabel}" />

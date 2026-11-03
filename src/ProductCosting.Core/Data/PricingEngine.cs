@@ -16,6 +16,12 @@ internal sealed class RecalcRequest
     public bool AllProducts { get; set; }
     public bool UsdItems { get; set; }
     public bool ExchangeRate { get; set; }
+    /// <summary>Items now priced per another unit: their price change carries that reason.</summary>
+    public HashSet<long> PriceUnitChanged { get; } = [];
+    /// <summary>Every item priced per a unit other than its base one changed its price unit (database upgrade).</summary>
+    public bool PriceUnitAll { get; set; }
+    /// <summary>Changes go to the history but raise no notifications.</summary>
+    public bool Quiet { get; set; }
 
     public bool IsEmpty => Items.Count == 0 && !AllItems && !AllProducts && !UsdItems;
 }
@@ -47,6 +53,8 @@ internal sealed class PricingEngine(Store store, SqliteConnection c, SqliteTrans
         public decimal Cost, CostMaterials, CostLabor, CostOverhead, EffMarkup, EffStep, Price;
         public int LaborSeconds;
         public CostWarning Warnings;
+        /// <summary>Base units in one price unit: the price is for cost × factor (1 for products).</summary>
+        public decimal Factor = 1;
     }
 
     /// <summary>A price and/or margin change; margins are gross, in % of the price (null without a price).</summary>
@@ -98,9 +106,11 @@ internal sealed class PricingEngine(Store store, SqliteConnection c, SqliteTrans
             var cost = Costing.WithWaste(bc.UnitCost, r.HasWaste ? r.WastePct : null);
             var markup = r.MarkupPct ?? s.DefaultMarkupPct;
             var step = r.RoundingStep ?? s.RoundingStep;
-            var price = Costing.RoundPrice(cost * (1 + markup / 100m), step, s.RoundingMode);
+            // priced per purchase unit (e.g. per m²); the cost stays per base unit for the recipes
+            var price = Costing.RoundPrice(cost * r.Factor * (1 + markup / 100m), step, s.RoundingMode);
 
             var reasons = PriceReason.None;
+            if (req.PriceUnitChanged.Contains(r.Id) || (req.PriceUnitAll && r.Factor != 1)) reasons |= PriceReason.PriceUnit;
             if (Diff(cost, r.Cost))
             {
                 reasons |= req.ExchangeRate ? PriceReason.ExchangeRate
@@ -233,8 +243,8 @@ internal sealed class PricingEngine(Store store, SqliteConnection c, SqliteTrans
             _update.ExecuteNonQuery();
         }
 
-        var oldMargin = Margin(r.Cost, r.Price);
-        var newMargin = Margin(cost, price);
+        var oldMargin = Margin(r.Cost * r.Factor, r.Price);
+        var newMargin = Margin(cost * r.Factor, price);
         if (created)
             changes.Add(new Change(r.Id, r.Price, price, PriceReason.Created, null, newMargin));
         else if (priceChanged)
@@ -296,7 +306,7 @@ internal sealed class PricingEngine(Store store, SqliteConnection c, SqliteTrans
             hist.ExecuteNonQuery();
 
             // a margin-only change goes into the history but needs no price notification
-            if (created || req.Direct.Contains(ch.Id) || !Diff(ch.OldPrice, ch.NewPrice)) continue;
+            if (created || req.Quiet || req.Direct.Contains(ch.Id) || !Diff(ch.OldPrice, ch.NewPrice)) continue;
             nId.Value = ch.Id;
             nOld.Value = (double)ch.OldPrice;
             nNew.Value = (double)ch.NewPrice;
@@ -313,7 +323,8 @@ internal sealed class PricingEngine(Store store, SqliteConnection c, SqliteTrans
         cmd.Transaction = t;
         cmd.CommandText = $"""
             SELECT id, kind, usable_as_material, markup_pct, rounding_step, cost, cost_materials, cost_labor, cost_overhead,
-                   labor_seconds, eff_markup, eff_step, price, warnings, has_waste, waste_pct
+                   labor_seconds, eff_markup, eff_step, price, warnings, has_waste, waste_pct,
+                   {string.Format(EnumExtensions.FactorSql, "price_unit")}
             FROM items WHERE {where}
             """;
         using var rd = cmd.ExecuteReader();
@@ -338,6 +349,7 @@ internal sealed class PricingEngine(Store store, SqliteConnection c, SqliteTrans
                 Warnings = (CostWarning)rd.GetInt32(13),
                 HasWaste = rd.GetInt64(14) != 0,
                 WastePct = rd.IsDBNull(15) ? null : (decimal)rd.GetDouble(15),
+                Factor = (decimal)rd.GetDouble(16),
             });
         }
         return list;

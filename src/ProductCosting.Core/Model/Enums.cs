@@ -41,6 +41,8 @@ public enum PriceReason
     MarginAdjustment = 1024,
     Rounding = 2048,
     Other = 4096,
+    /// <summary>The item is now priced per another unit (e.g. per m² instead of per cm²).</summary>
+    PriceUnit = 8192,
 }
 
 [Flags]
@@ -89,6 +91,18 @@ public static class EnumExtensions
             QtyUnit.Kg => MeasureUnit.Kg,
             _ => MeasureUnit.Pcs,
         };
+
+    /// <summary>The unit new purchase rows start in: metres, square metres, kilograms (items are bought in larger units).</summary>
+    public static MeasureUnit PurchaseDefault(this QtyUnit d) => d switch
+    {
+        QtyUnit.Cm => MeasureUnit.M,
+        QtyUnit.Cm2 => MeasureUnit.M2,
+        QtyUnit.Kg => MeasureUnit.Kg,
+        _ => MeasureUnit.Pcs,
+    };
+
+    /// <summary>SQL for the factor of an items.price_unit column (cost per base unit × factor = cost per price unit).</summary>
+    public const string FactorSql = "CASE {0} WHEN 2 THEN 100.0 WHEN 4 THEN 10000.0 WHEN 5 THEN 0.001 ELSE 1.0 END";
 
     /// <summary>A stored base quantity in the entry unit (rounded off the binary noise of the database).</summary>
     public static decimal FromBase(this MeasureUnit u, decimal baseQty) => Math.Round(baseQty / u.Factor(), 6);

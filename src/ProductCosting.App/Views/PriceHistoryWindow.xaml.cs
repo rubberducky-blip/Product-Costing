@@ -50,5 +50,9 @@ public partial class PriceHistoryWindow : Window
         if (entries.Count == 0) TableCard.Visibility = Visibility.Collapsed;
     }
 
-    void Close_Click(object sender, RoutedEventArgs e) => Close();
+    // Esc closes the window (there is no close button)
+    void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.Escape) Close();
+    }
 }
