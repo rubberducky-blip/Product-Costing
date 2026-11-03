@@ -9,6 +9,9 @@ namespace ProductCosting.App.Infrastructure;
 /// </summary>
 public static class WindowFit
 {
+    /// <summary>What the last fit measured (for the smoke test).</summary>
+    public static string LastFit { get; private set; } = "none";
+
     public static void HeightToContent(Window w)
     {
         w.MaxHeight = SystemParameters.WorkArea.Height;
@@ -17,6 +20,7 @@ public static class WindowFit
             if (w.Content is not FrameworkElement content || VisualTreeHelper.GetParent(content) is not FrameworkElement host) return;
             content.Measure(new Size(host.ActualWidth, double.PositiveInfinity));
             var extra = content.DesiredSize.Height - host.ActualHeight;
+            LastFit = $"content wants {content.DesiredSize.Height:0}, has {host.ActualHeight:0}, window {w.ActualHeight:0}";
             var height = Math.Min(w.MaxHeight, w.ActualHeight + extra);
             // stay centred where it opened, inside the screen
             var area = SystemParameters.WorkArea;

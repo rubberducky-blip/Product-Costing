@@ -457,6 +457,9 @@ internal static class Smoke
             var mh = new PriceHistoryWindow(m, "M-100 · Ιμάντας") { Owner = w };
             mh.Show();
             await Settle(500);
+            var mc = (FrameworkElement)mh.Content;
+            Log($"history window {mh.ActualHeight:0} (set {mh.Height:0}, max {mh.MaxHeight:0}), content {mc.ActualHeight:0}, table {mh.Table.ActualHeight:0} for {mh.Table.Items.Count} rows; fit: {WindowFit.LastFit}");
+            Check("history window shows its whole table", mh.Table.Items.Count <= 10 && mh.Table.ActualHeight >= 40 + mh.Table.Items.Count * 30);
             Shot((FrameworkElement)mh.Content, "18b-history-margins");
             mh.Close();
         });
