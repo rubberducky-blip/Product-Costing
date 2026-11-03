@@ -389,7 +389,7 @@ public sealed partial class ItemEditorViewModel : PageViewModel
             var hasWaste = waste is > 0 and < 100;
             if (multi && hasWaste) Breakdown.Add(new(Loc.T("cost.weighted"), Fmt.Money4(bc.UnitCost * f), "total"));
             if (hasWaste)
-                Breakdown.Add(new(Loc.F("cost.waste", Fmt.Pct(waste.Value)), "+" + Fmt.Money4((cost - bc.UnitCost) * f)));
+                Breakdown.Add(new(Loc.F("cost.waste", Fmt.Pct(waste!.Value)), "+" + Fmt.Money4((cost - bc.UnitCost) * f)));
         }
 
         var markup = Markup.Value ?? s.DefaultMarkupPct;

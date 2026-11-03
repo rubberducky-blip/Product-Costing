@@ -21,6 +21,12 @@ public partial class SupplierHistoryWindow : Window
     {
         InitializeComponent();
         MaxHeight = SystemParameters.WorkArea.Height;
+        // fit the window again once the table has its rows (the first sizing happens before they exist)
+        ContentRendered += (_, _) => Dispatcher.BeginInvoke(() =>
+        {
+            SizeToContent = SizeToContent.Manual;
+            SizeToContent = SizeToContent.Height;
+        }, System.Windows.Threading.DispatcherPriority.ContextIdle);
         NativeWindow.UseDarkTitleBar(this);
         Title = TitleText.Text = Loc.F("supplierHistory.title", supplier.Name);
         var days = AppState.Store.GetSupplierHistory(supplier.Id);
