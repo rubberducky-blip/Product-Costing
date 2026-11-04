@@ -97,7 +97,7 @@ public static class ItemImport
                 : h.Contains("moq") || h.Contains("ελαχ") || h.Contains("minimum") ? ImportField.Moq
                 : h.Contains("πωλ") || h.Contains("sale") || h.Contains("sell") || h.Contains("λιαν") ? ImportField.Price
                 : h.Contains("κοστ") || h.Contains("αγορ") || h.Contains("cost") || h.Contains("purchase") ? ImportField.Cost
-                : h.Contains("τυπ") || h.Contains("ειδος") || h.Contains("κατηγ") || h.Contains("type") || h.Contains("kind") ? ImportField.Kind
+                : h.Contains("τυπ") || h.Contains("ειδο") || h.Contains("κατηγ") || h.Contains("type") || h.Contains("kind") ? ImportField.Kind
                 : h.Contains("ονομ") || h.Contains("περιγρ") || h.Contains("name") || h.Contains("descr") ? ImportField.Name
                 : h.Contains("τιμη") || h.Contains("price") ? ImportField.Price
                 : null;

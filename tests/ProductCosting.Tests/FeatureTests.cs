@@ -305,6 +305,12 @@ public class FeatureTests
         Assert.Equal(2, file.Rows.Count);
         Assert.Contains(file.Problems, p => p is { Line: 4, Reason: "kind" });
         Assert.Equal(2.5m, file.Rows[1].Cost);
+        // titles as people write them: "Είδος" (type), "Λιανική" (selling price), "Περιγραφή" (name)
+        var guess = ProductCosting.Core.Import.ItemImport.Guess(["Κωδικός", "Περιγραφή", "Τιμή αγοράς", "Λιανική", "Είδος"])!;
+        Assert.Equal(1, guess[ProductCosting.Core.Import.ImportField.Name]);
+        Assert.Equal(2, guess[ProductCosting.Core.Import.ImportField.Cost]);
+        Assert.Equal(3, guess[ProductCosting.Core.Import.ImportField.Price]);
+        Assert.Equal(4, guess[ProductCosting.Core.Import.ImportField.Kind]);
 
         // "Νέος" is not a supplier yet: the app asks; here it goes to Acme
         var map = new Dictionary<string, long> { [TextNorm.Normalize("Acme")] = acme, [TextNorm.Normalize("Νέος")] = acme };
