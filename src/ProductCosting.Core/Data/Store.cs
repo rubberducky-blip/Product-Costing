@@ -107,6 +107,9 @@ public sealed partial class Store
         s.UsdPerEur = D("usd_per_eur", s.UsdPerEur);
         s.SalesOverheadPct = D("sales_overhead", s.SalesOverheadPct);
         s.Hotkeys = S("hotkeys", s.Hotkeys);
+        s.OrderPdf = OrderPdfOptions.Parse(S("order_pdf", "")) ?? OrderPdfOptions.Default;
+        s.Company = new CompanyInfo(S("company_name", ""), S("company_address", ""), S("company_vat", ""), S("company_tax_office", ""),
+            S("company_phone", ""), S("company_email", ""));
         s.BackupFolder = S("backup_folder", s.BackupFolder);
         s.AutoBackup = S("auto_backup", "1") == "1";
         s.BackupKeepCount = (int)D("backup_keep", s.BackupKeepCount);
@@ -123,7 +126,9 @@ public sealed partial class Store
             ("default_markup", N(s.DefaultMarkupPct)), ("rounding_step", N(s.RoundingStep)),
             ("rounding_mode", ((int)s.RoundingMode).ToString(CultureInfo.InvariantCulture)),
             ("currency_symbol", s.CurrencySymbol), ("language", s.Language), ("theme", s.Theme), ("ui_scale", N(s.UiScale)), ("usd_per_eur", N(s.UsdPerEur)),
-            ("sales_overhead", N(s.SalesOverheadPct)), ("hotkeys", s.Hotkeys),
+            ("sales_overhead", N(s.SalesOverheadPct)), ("hotkeys", s.Hotkeys), ("order_pdf", s.OrderPdf.Serialize()),
+            ("company_name", s.Company.Name), ("company_address", s.Company.Address), ("company_vat", s.Company.VatNumber),
+            ("company_tax_office", s.Company.TaxOffice), ("company_phone", s.Company.Phone), ("company_email", s.Company.Email),
             ("backup_folder", s.BackupFolder), ("auto_backup", s.AutoBackup ? "1" : "0"),
             ("backup_keep", s.BackupKeepCount.ToString(CultureInfo.InvariantCulture)), ("last_auto_backup", s.LastAutoBackupDay),
         };
@@ -154,11 +159,23 @@ public sealed partial class Store
         old.Theme = s.Theme;
         old.UiScale = s.UiScale;
         old.Hotkeys = s.Hotkeys;
+        old.OrderPdf = s.OrderPdf;
+        old.Company = s.Company;
         old.BackupFolder = s.BackupFolder;
         old.AutoBackup = s.AutoBackup;
         old.BackupKeepCount = s.BackupKeepCount;
         old.LastAutoBackupDay = s.LastAutoBackupDay;
         SaveSettingsRows(c, t, old);
+    });
+
+    /// <summary>Our logo for order PDFs (PNG or JPEG bytes), or null.</summary>
+    public byte[]? GetLogo() => Read(c => c.ExecuteScalar<byte[]?>("SELECT data FROM blobs WHERE key='logo'"));
+
+    /// <summary>Sets (or with null removes) the logo.</summary>
+    public void SetLogo(byte[]? data) => Write(DataChange.Settings, (c, t) =>
+    {
+        if (data is null) c.Execute("DELETE FROM blobs WHERE key='logo'", transaction: t);
+        else c.Execute("INSERT INTO blobs(key, data) VALUES('logo', @data) ON CONFLICT(key) DO UPDATE SET data = excluded.data", new { data }, t);
     });
 
     /// <summary>Recomputes every price from scratch (repair tool; normally never needed).</summary>

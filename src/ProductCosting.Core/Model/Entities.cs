@@ -22,6 +22,10 @@ public sealed class AppSettings
     public decimal SalesOverheadPct { get; set; }
     /// <summary>Keyboard shortcuts changed from their defaults, "id=Ctrl+D;…" ("" = all defaults).</summary>
     public string Hotkeys { get; set; } = "";
+    /// <summary>How order PDFs come out (suppliers can have their own).</summary>
+    public OrderPdfOptions OrderPdf { get; set; } = OrderPdfOptions.Default;
+    /// <summary>Our company, for the top of order PDFs (the logo is kept apart: <c>Store.GetLogo</c>).</summary>
+    public CompanyInfo Company { get; set; } = CompanyInfo.Empty;
     public string BackupFolder { get; set; } = "";
     public bool AutoBackup { get; set; } = true;
     public int BackupKeepCount { get; set; } = 30;
@@ -53,6 +57,8 @@ public sealed class Supplier
     public string? Email { get; set; }
     public string? Phone { get; set; }
     public string? Notes { get; set; }
+    /// <summary>This supplier's own order PDF options (<see cref="OrderPdfOptions.Serialize"/>); null = those of the settings.</summary>
+    public string? OrderPdf { get; set; }
 }
 
 public sealed class Item

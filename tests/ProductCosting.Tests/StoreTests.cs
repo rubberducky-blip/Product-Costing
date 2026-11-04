@@ -340,6 +340,29 @@ public class StoreTests
         Assert.Equal(2, f.Store.GetVariants([m])[m].Count);
         var pdf = PdfReports.SupplierOrder(f.Store.GetSupplier(sup)!, [new OrderLine("M1", "S1-R", "Κούπα", "Κόκκινο", 12, MeasureUnit.Pcs)], f.Now);
         Assert.True(pdf.Length > 1000);
+
+        // options: all columns, English, larger text, our details and logo above the supplier's
+        var png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
+        f.Store.SetLogo(png);
+        Assert.Equal(png, f.Store.GetLogo());
+        var all = (OrderPdfColumns)255;
+        var options = new OrderPdfOptions(all, "en", 11, OrderPdfHeader.Both);
+        Assert.Equal(options, OrderPdfOptions.Parse(options.Serialize()));
+        var s = f.Store.LoadSettings();
+        s.OrderPdf = options;
+        s.Company = new CompanyInfo("Leather Co", "1 Street, Athens", "123456789", "A' Athens", "210 0000000", "info@example.com");
+        f.Store.SaveSettings(s);
+        Assert.Equal(options, f.Store.LoadSettings().OrderPdf);
+        Assert.Equal("Leather Co", f.Store.LoadSettings().Company.Name);
+        var supplier = f.Store.GetSupplier(sup)!;
+        supplier.OrderPdf = (options with { Header = OrderPdfHeader.None }).Serialize();
+        f.Store.SaveSupplier(supplier);
+        Assert.Equal(OrderPdfHeader.None, OrderPdfOptions.Parse(f.Store.GetSupplier(sup)!.OrderPdf)!.Header);
+        var full = PdfReports.SupplierOrder(supplier, [new OrderLine("M1", "S1-R", "Κούπα", "Κόκκινο", 12, MeasureUnit.Pcs, 3.1m, Currency.Usd)],
+            f.Now, options, f.Store.LoadSettings().Company, png);
+        Assert.True(full.Length > 1000);
+        f.Store.SetLogo(null);
+        Assert.Null(f.Store.GetLogo());
     }
 
     [Fact]

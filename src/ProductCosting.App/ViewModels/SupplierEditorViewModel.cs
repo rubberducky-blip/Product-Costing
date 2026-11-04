@@ -30,11 +30,16 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
         Vat.Changed += Edited;
         Discount.Changed += Edited;
         Shipping.Changed += Edited;
+        Pdf.Changed += Edited;
         FolderEntries = PickerEntry.Folders(AppState.Store.GetFolders(ListScope.Suppliers), Loc.T("folder.root"));
         Load(s);
     }
 
     public override string Section => "suppliers";
+
+    /// <summary>This supplier's own order PDF options (otherwise those of Settings).</summary>
+    [ObservableProperty] private bool _ownPdf;
+    public OrderPdfForm Pdf { get; } = new();
     public IReadOnlyList<long>? Trail { get; }
     public long Id => _model.Id;
 
@@ -89,6 +94,8 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
         Discount.Set(s.DiscountPct == 0 ? null : s.DiscountPct);
         Shipping.Set(s.ShippingPct == 0 ? null : s.ShippingPct);
         Vat.Set(s.VatPct != 0 ? s.VatPct : s.Id == 0 && CountryCode == GreekCode ? GreekVat : null);
+        OwnPdf = s.OrderPdf is not null;
+        Pdf.Load(OrderPdfOptions.Parse(s.OrderPdf) ?? AppState.Settings.OrderPdf);
         Items.Clear();
         if (!IsNew) foreach (var i in AppState.Store.GetSupplierItems(s.Id)) Items.Add(i);
         LoadOrders();
@@ -104,7 +111,8 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
     protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
     {
         base.OnPropertyChanged(e);
-        if (e.PropertyName is nameof(Name) or nameof(FolderId) or nameof(CountryId) or nameof(Currency) or nameof(Email) or nameof(Phone) or nameof(Notes))
+        if (e.PropertyName is nameof(Name) or nameof(FolderId) or nameof(CountryId) or nameof(Currency) or nameof(Email) or nameof(Phone) or nameof(Notes)
+            or nameof(OwnPdf))
             Edited();
         // Greek suppliers: VAT 24% unless one is already filled in
         if (e.PropertyName == nameof(CountryId) && !_loading && CountryCode == GreekCode && Vat.Value is null or 0) Vat.Set(GreekVat);
@@ -122,10 +130,10 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
     }
 
     sealed record FormState(string Name, long? FolderId, long? CountryId, Currency Currency, string Email, string Phone, string Notes,
-        string Discount, string Shipping, string Vat);
+        string Discount, string Shipping, string Vat, bool OwnPdf, OrderPdfOptions Pdf);
 
     protected override object? CaptureState() =>
-        new FormState(Name, FolderId, CountryId, Currency, Email, Phone, Notes, Discount.Text, Shipping.Text, Vat.Text);
+        new FormState(Name, FolderId, CountryId, Currency, Email, Phone, Notes, Discount.Text, Shipping.Text, Vat.Text, OwnPdf, Pdf.ToOptions());
 
     protected override void RestoreState(object state)
     {
@@ -133,6 +141,7 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
         _loading = true;
         Name = f.Name; FolderId = f.FolderId; CountryId = f.CountryId; Currency = f.Currency;
         Email = f.Email; Phone = f.Phone; Notes = f.Notes; Discount.Text = f.Discount; Shipping.Text = f.Shipping; Vat.Text = f.Vat;
+        OwnPdf = f.OwnPdf; Pdf.Load(f.Pdf);
         _loading = false;
         Edited();
     }
@@ -146,7 +155,8 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
     string Snapshot()
     {
         string N(NumField f) => f.IsValid ? (f.Value ?? 0).ToString(CultureInfo.InvariantCulture) : "!" + f.Text;
-        return string.Join("|", Name.Trim(), FolderId, CountryCode, Currency, Email.Trim(), Phone.Trim(), Notes.Trim(), N(Discount), N(Shipping), N(Vat));
+        return string.Join("|", Name.Trim(), FolderId, CountryCode, Currency, Email.Trim(), Phone.Trim(), Notes.Trim(), N(Discount), N(Shipping), N(Vat),
+            OwnPdf ? Pdf.ToOptions().Serialize() : "");
     }
 
     [RelayCommand]
@@ -181,6 +191,7 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
         {
             Id = _model.Id, Name = Name.Trim(), FolderId = FolderId, Country = CountryCode, Currency = Currency,
             Email = Opt(Email), Phone = Opt(Phone), Notes = Opt(Notes), DiscountPct = Discount.Or0, ShippingPct = Shipping.Or0, VatPct = Vat.Or0,
+            OrderPdf = OwnPdf ? Pdf.ToOptions().Serialize() : null,
         };
         var id = AppState.Store.SaveSupplier(s);
         Load(AppState.Store.GetSupplier(id)!);

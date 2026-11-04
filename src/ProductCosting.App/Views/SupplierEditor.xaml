@@ -140,6 +140,15 @@
                     </Grid>
                 </DockPanel>
             </Border>
+            <!-- order PDFs: this supplier's own options, or those of Settings -->
+            <Border Style="{StaticResource Card}" Margin="0,16,0,0" VerticalAlignment="Top">
+                <StackPanel>
+                    <TextBlock Text="{l:T pdfopt.title}" Style="{StaticResource H2}" Margin="0,0,0,10" />
+                    <CheckBox Content="{l:T pdfopt.own}" IsChecked="{Binding OwnPdf}" />
+                    <v:OrderPdfOptionsView DataContext="{Binding Pdf}" Margin="0,14,0,0"
+                                           Visibility="{Binding DataContext.OwnPdf, ElementName=Root, Converter={StaticResource Visible}}" />
+                </StackPanel>
+            </Border>
             </StackPanel>
             </ScrollViewer>
 

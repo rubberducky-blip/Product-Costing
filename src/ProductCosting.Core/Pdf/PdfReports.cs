@@ -8,7 +8,9 @@ using S = ProductCosting.Core.Localization.Strings;
 
 namespace ProductCosting.Core.Pdf;
 
-public sealed record OrderLine(string Code, string? SupplierCode, string Name, string? Variant, decimal Quantity, MeasureUnit Unit);
+/// <summary>A line of an order PDF; the price is per <see cref="Unit"/>, in <see cref="Currency"/>.</summary>
+public sealed record OrderLine(string Code, string? SupplierCode, string Name, string? Variant, decimal Quantity, MeasureUnit Unit,
+    decimal UnitPrice = 0, Currency Currency = Currency.Eur);
 
 /// <summary>PDF exports: price-change report and supplier order.</summary>
 public static class PdfReports
@@ -32,15 +34,19 @@ public static class PdfReports
         }
     }
 
-    static CultureInfo Culture => CultureInfo.GetCultureInfo(S.Language == "en" ? "en-IE" : "el-GR");
+    static CultureInfo Culture => CultureOf(S.Language);
+
+    static CultureInfo CultureOf(string lang) => CultureInfo.GetCultureInfo(lang == "en" ? "en-IE" : "el-GR");
 
     static string Money(decimal v, string symbol) => v.ToString("N2", Culture) + " " + symbol;
 
-    static void Page(PageDescriptor page, string title, string? subtitle, DateTime now)
+    static void Page(PageDescriptor page, string title, string? subtitle, DateTime now, string? lang = null, float fontSize = 9)
     {
+        lang ??= S.Language;
+        var culture = CultureOf(lang);
         page.Size(PageSizes.A4);
         page.Margin(36);
-        page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Inter"));
+        page.DefaultTextStyle(x => x.FontSize(fontSize).FontFamily("Inter"));
         page.Header().PaddingBottom(14).Row(row =>
         {
             row.RelativeItem().Column(col =>
@@ -48,12 +54,12 @@ public static class PdfReports
                 col.Item().Text(title).FontSize(18).SemiBold().FontColor(Accent);
                 if (!string.IsNullOrWhiteSpace(subtitle)) col.Item().PaddingTop(2).Text(subtitle).FontSize(10).FontColor(Muted);
             });
-            row.ConstantItem(180).AlignRight().AlignBottom().Text(S.Format("pdf.generated", now.ToString("g", Culture))).FontSize(8).FontColor(Muted);
+            row.ConstantItem(180).AlignRight().AlignBottom().Text(string.Format(S.Get("pdf.generated", lang), now.ToString("g", culture))).FontSize(8).FontColor(Muted);
         });
         page.Footer().AlignCenter().Text(t =>
         {
             t.DefaultTextStyle(x => x.FontSize(8).FontColor(Muted));
-            var parts = S.Get("pdf.page").Split(["{0}", "{1}"], StringSplitOptions.None);
+            var parts = S.Get("pdf.page", lang).Split(["{0}", "{1}"], StringSplitOptions.None);
             t.Span(parts[0]);
             t.CurrentPageNumber();
             t.Span(parts.Length > 1 ? parts[1] : " / ");
@@ -115,62 +121,119 @@ public static class PdfReports
         })).GeneratePdf();
     }
 
-    public static byte[] SupplierOrder(Supplier supplier, IReadOnlyList<OrderLine> lines, DateTime now)
+    /// <summary>
+    /// An order for a supplier, laid out as <paramref name="options"/> say (columns, language, text size, and whether the
+    /// supplier's details, ours with the logo, both or neither go at the top).
+    /// </summary>
+    public static byte[] SupplierOrder(Supplier supplier, IReadOnlyList<OrderLine> lines, DateTime now,
+        OrderPdfOptions? options = null, CompanyInfo? company = null, byte[]? logo = null)
     {
+        var o = options ?? OrderPdfOptions.Default;
+        var lang = o.Language;
+        var culture = CultureOf(lang);
+        string T(string key) => S.Get(key, lang);
+        string Unit(MeasureUnit u) => S.Get("mu." + u.ToString().ToLowerInvariant(), lang);
+        string Price(decimal v, Currency c) => v.ToString("#,##0.00####", culture) + (c == Currency.Usd ? " $" : " €");
+        var showSupplier = o.Header is OrderPdfHeader.Supplier or OrderPdfHeader.Both;
+        var showCompany = o.Header is OrderPdfHeader.Company or OrderPdfHeader.Both && (company is { IsEmpty: false } || logo is not null);
+        var cols = o.Columns == OrderPdfColumns.None ? OrderPdfColumns.Default : o.Columns;
+        bool Has(OrderPdfColumns c) => cols.HasFlag(c);
+        var big = o.FontSize + 2;
+
         return Document.Create(doc => doc.Page(page =>
         {
-            Page(page, S.Get("order.pdfTitle"), supplier.Name, now);
+            Page(page, T("order.pdfTitle"), o.Header == OrderPdfHeader.None ? null : supplier.Name, now, lang, o.FontSize);
             page.Content().Column(col =>
             {
+                // our company (logo and details)
+                if (showCompany)
+                    col.Item().PaddingBottom(12).Row(row =>
+                    {
+                        if (logo is not null) row.ConstantItem(110).Height(56).AlignLeft().AlignMiddle().Image(logo).FitArea();
+                        if (company is { IsEmpty: false } cmp)
+                            row.RelativeItem().PaddingLeft(logo is null ? 0 : 12).Column(info =>
+                            {
+                                if (!string.IsNullOrWhiteSpace(cmp.Name)) info.Item().Text(cmp.Name).FontSize(big).SemiBold();
+                                var tax = string.Join(" · ", new[]
+                                {
+                                    string.IsNullOrWhiteSpace(cmp.VatNumber) ? null : $"{T("company.vat")}: {cmp.VatNumber}",
+                                    string.IsNullOrWhiteSpace(cmp.TaxOffice) ? null : $"{T("company.taxOffice")}: {cmp.TaxOffice}",
+                                }.OfType<string>());
+                                foreach (var v in new[] { cmp.Address, tax, string.Join(" · ", new[] { cmp.Phone, cmp.Email }.Where(x => !string.IsNullOrWhiteSpace(x))) })
+                                    if (!string.IsNullOrWhiteSpace(v)) info.Item().Text(v).FontColor(Muted);
+                            });
+                        else row.RelativeItem();
+                    });
+                // the supplier (who the order is for) and the date
                 col.Item().PaddingBottom(12).Row(row =>
                 {
                     row.RelativeItem().Column(info =>
                     {
-                        info.Item().Text(supplier.Name).FontSize(11).SemiBold();
-                        foreach (var v in new[] { Countries.Name(supplier.Country), supplier.Email, supplier.Phone })
+                        if (!showSupplier) return;
+                        if (showCompany) info.Item().Text(T("order.pdfTo")).FontColor(Muted);
+                        info.Item().Text(supplier.Name).FontSize(big).SemiBold();
+                        var country = Countries.Find(supplier.Country) is { } k ? (lang == "en" ? k.En : k.El) : supplier.Country;
+                        foreach (var v in new[] { country, supplier.Email, supplier.Phone })
                             if (!string.IsNullOrWhiteSpace(v)) info.Item().Text(v).FontColor(Muted);
                     });
                     row.ConstantItem(160).AlignRight().Column(info =>
                     {
-                        info.Item().AlignRight().Text(S.Get("order.date")).FontColor(Muted);
-                        info.Item().AlignRight().Text(now.ToString("d", Culture)).FontSize(11).SemiBold();
+                        info.Item().AlignRight().Text(T("order.date")).FontColor(Muted);
+                        info.Item().AlignRight().Text(now.ToString("d", culture)).FontSize(big).SemiBold();
                     });
                 });
                 col.Item().Table(table =>
                 {
                     table.ColumnsDefinition(c =>
                     {
-                        c.ConstantColumn(24);
-                        c.ConstantColumn(90);
-                        c.ConstantColumn(80);
-                        c.RelativeColumn(3);
-                        c.RelativeColumn(2);
-                        c.ConstantColumn(70);
+                        if (Has(OrderPdfColumns.Number)) c.ConstantColumn(24);
+                        if (Has(OrderPdfColumns.SupplierCode)) c.ConstantColumn(90);
+                        if (Has(OrderPdfColumns.OurCode)) c.ConstantColumn(80);
+                        if (Has(OrderPdfColumns.Name)) c.RelativeColumn(3);
+                        if (Has(OrderPdfColumns.Variant)) c.RelativeColumn(2);
+                        if (Has(OrderPdfColumns.Quantity)) c.ConstantColumn(70);
+                        if (Has(OrderPdfColumns.UnitPrice)) c.ConstantColumn(70);
+                        if (Has(OrderPdfColumns.Value)) c.ConstantColumn(75);
                     });
                     table.Header(h =>
                     {
-                        h.Cell().Element(HeaderCell).Text("#");
-                        h.Cell().Element(HeaderCell).Text(S.Get("list.supplierCode"));
-                        h.Cell().Element(HeaderCell).Text(S.Get("order.ourCode"));
-                        h.Cell().Element(HeaderCell).Text(S.Get("list.name"));
-                        h.Cell().Element(HeaderCell).Text(S.Get("item.variant"));
-                        h.Cell().Element(HeaderCell).AlignRight().Text(S.Get("order.qty"));
+                        if (Has(OrderPdfColumns.Number)) h.Cell().Element(HeaderCell).Text("#");
+                        if (Has(OrderPdfColumns.SupplierCode)) h.Cell().Element(HeaderCell).Text(T("list.supplierCode"));
+                        if (Has(OrderPdfColumns.OurCode)) h.Cell().Element(HeaderCell).Text(T("order.ourCode"));
+                        if (Has(OrderPdfColumns.Name)) h.Cell().Element(HeaderCell).Text(T("list.name"));
+                        if (Has(OrderPdfColumns.Variant)) h.Cell().Element(HeaderCell).Text(T("item.variant"));
+                        if (Has(OrderPdfColumns.Quantity)) h.Cell().Element(HeaderCell).AlignRight().Text(T("order.qty"));
+                        if (Has(OrderPdfColumns.UnitPrice)) h.Cell().Element(HeaderCell).AlignRight().Text(T("order.pdfUnitPrice"));
+                        if (Has(OrderPdfColumns.Value)) h.Cell().Element(HeaderCell).AlignRight().Text(T("order.value"));
                     });
                     var i = 1;
                     foreach (var l in lines)
                     {
-                        table.Cell().Element(BodyCell).Text((i++).ToString(Culture)).FontColor(Muted);
-                        table.Cell().Element(BodyCell).Text(l.SupplierCode ?? "").SemiBold();
-                        table.Cell().Element(BodyCell).Text(l.Code);
-                        table.Cell().Element(BodyCell).Text(l.Name);
-                        table.Cell().Element(BodyCell).Text(l.Variant ?? "");
-                        table.Cell().Element(BodyCell).AlignRight().Text(l.Quantity.ToString("0.###", Culture) + " " + S.Measure(l.Unit)).SemiBold();
+                        if (Has(OrderPdfColumns.Number)) table.Cell().Element(BodyCell).Text((i++).ToString(culture)).FontColor(Muted);
+                        if (Has(OrderPdfColumns.SupplierCode)) table.Cell().Element(BodyCell).Text(l.SupplierCode ?? "").SemiBold();
+                        if (Has(OrderPdfColumns.OurCode)) table.Cell().Element(BodyCell).Text(l.Code);
+                        if (Has(OrderPdfColumns.Name)) table.Cell().Element(BodyCell).Text(l.Name);
+                        if (Has(OrderPdfColumns.Variant)) table.Cell().Element(BodyCell).Text(l.Variant ?? "");
+                        if (Has(OrderPdfColumns.Quantity)) table.Cell().Element(BodyCell).AlignRight().Text(l.Quantity.ToString("0.###", culture) + " " + Unit(l.Unit)).SemiBold();
+                        if (Has(OrderPdfColumns.UnitPrice)) table.Cell().Element(BodyCell).AlignRight().Text(Price(l.UnitPrice, l.Currency));
+                        if (Has(OrderPdfColumns.Value)) table.Cell().Element(BodyCell).AlignRight().Text((l.UnitPrice * l.Quantity).ToString("N2", culture) + (l.Currency == Currency.Usd ? " $" : " €"));
                     }
                 });
-                col.Item().PaddingTop(10).AlignRight().Text(t =>
+                col.Item().PaddingTop(10).AlignRight().Column(sum =>
                 {
-                    t.Span(S.Get("order.totalLines") + ": ").FontColor(Muted);
-                    t.Span(lines.Count.ToString(Culture)).SemiBold();
+                    sum.Item().AlignRight().Text(t =>
+                    {
+                        t.Span(T("order.totalLines") + ": ").FontColor(Muted);
+                        t.Span(lines.Count.ToString(culture)).SemiBold();
+                    });
+                    // with the value column: the total per currency
+                    if (Has(OrderPdfColumns.Value))
+                        foreach (var g in lines.GroupBy(l => l.Currency))
+                            sum.Item().AlignRight().Text(t =>
+                            {
+                                t.Span(T("order.totalValue") + ": ").FontColor(Muted);
+                                t.Span(g.Sum(l => l.UnitPrice * l.Quantity).ToString("N2", culture) + (g.Key == Currency.Usd ? " $" : " €")).SemiBold();
+                            });
                 });
             });
         })).GeneratePdf();

@@ -59,6 +59,21 @@ public sealed partial class SettingsViewModel : PageViewModel
     [ObservableProperty] private decimal _uiScale = 1m;
     [ObservableProperty] private bool _dirty;
 
+    /// <summary>Order PDF options (suppliers can override them).</summary>
+    public OrderPdfForm Pdf { get; } = new();
+    [ObservableProperty] private string _companyName = "";
+    [ObservableProperty] private string _companyAddress = "";
+    [ObservableProperty] private string _companyVat = "";
+    [ObservableProperty] private string _companyTaxOffice = "";
+    [ObservableProperty] private string _companyPhone = "";
+    [ObservableProperty] private string _companyEmail = "";
+    /// <summary>The logo (saved at once when chosen or removed), for its preview.</summary>
+    [ObservableProperty] private System.Windows.Media.ImageSource? _logo;
+    public bool HasLogo => Logo is not null;
+    partial void OnLogoChanged(System.Windows.Media.ImageSource? value) => OnPropertyChanged(nameof(HasLogo));
+
+    CompanyInfo Company => new(CompanyName.Trim(), CompanyAddress.Trim(), CompanyVat.Trim(), CompanyTaxOffice.Trim(), CompanyPhone.Trim(), CompanyEmail.Trim());
+
     [ObservableProperty] private string _backupFolder = "";
     [ObservableProperty] private bool _autoBackup;
     [ObservableProperty] private string _lastAutoText = "";
@@ -90,6 +105,44 @@ public sealed partial class SettingsViewModel : PageViewModel
     }
 
     public List<ShortcutRow> Shortcuts { get; } = [];
+
+    static System.Windows.Media.ImageSource? LoadImage(byte[]? data)
+    {
+        if (data is null) return null;
+        try
+        {
+            var img = new System.Windows.Media.Imaging.BitmapImage();
+            img.BeginInit();
+            img.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+            img.StreamSource = new MemoryStream(data);
+            img.EndInit();
+            img.Freeze();
+            return img;
+        }
+        catch (Exception) { return null; }
+    }
+
+    [RelayCommand]
+    void ChooseLogo()
+    {
+        var dlg = new OpenFileDialog { Filter = "PNG / JPEG|*.png;*.jpg;*.jpeg" };
+        if (dlg.ShowDialog() != true) return;
+        var data = File.ReadAllBytes(dlg.FileName);
+        if (LoadImage(data) is not { } img)
+        {
+            Dialogs.Error(Loc.T("company.badLogo"));
+            return;
+        }
+        AppState.Store.SetLogo(data);
+        Logo = img;
+    }
+
+    [RelayCommand]
+    void RemoveLogo()
+    {
+        AppState.Store.SetLogo(null);
+        Logo = null;
+    }
 
     void LoadShortcuts(string stored)
     {
@@ -139,6 +192,12 @@ public sealed partial class SettingsViewModel : PageViewModel
         UsdPerEur.Set(s.UsdPerEur);
         SalesOverhead.Set(s.SalesOverheadPct);
         LoadShortcuts(s.Hotkeys);
+        Pdf.Changed -= Edited;
+        Pdf.Changed += Edited;
+        Pdf.Load(s.OrderPdf);
+        CompanyName = s.Company.Name; CompanyAddress = s.Company.Address; CompanyVat = s.Company.VatNumber;
+        CompanyTaxOffice = s.Company.TaxOffice; CompanyPhone = s.Company.Phone; CompanyEmail = s.Company.Email;
+        Logo = LoadImage(AppState.Store.GetLogo());
         RoundingMode = s.RoundingMode;
         CurrencySymbol = s.CurrencySymbol;
         Language = s.Language;
@@ -159,7 +218,9 @@ public sealed partial class SettingsViewModel : PageViewModel
     protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
     {
         base.OnPropertyChanged(e);
-        if (e.PropertyName is nameof(RoundingMode) or nameof(CurrencySymbol) or nameof(Language) or nameof(Theme) or nameof(UiScale)) Edited();
+        if (e.PropertyName is nameof(RoundingMode) or nameof(CurrencySymbol) or nameof(Language) or nameof(Theme) or nameof(UiScale)
+            or nameof(CompanyName) or nameof(CompanyAddress) or nameof(CompanyVat) or nameof(CompanyTaxOffice) or nameof(CompanyPhone) or nameof(CompanyEmail))
+            Edited();
     }
 
     void Edited()
@@ -170,10 +231,10 @@ public sealed partial class SettingsViewModel : PageViewModel
     }
 
     sealed record FormState(string Labor, string Overhead, string Markup, string Step, string Usd, RoundingMode Mode, string Symbol, string Language,
-        string Theme, decimal Scale, string SalesOverhead, string Hotkeys);
+        string Theme, decimal Scale, string SalesOverhead, string Hotkeys, OrderPdfOptions Pdf, CompanyInfo Company);
 
     protected override object? CaptureState() => new FormState(LaborRate.Text, OverheadRate.Text, DefaultMarkup.Text, RoundingStep.Text,
-        UsdPerEur.Text, RoundingMode, CurrencySymbol, Language, Theme, UiScale, SalesOverhead.Text, HotkeysValue());
+        UsdPerEur.Text, RoundingMode, CurrencySymbol, Language, Theme, UiScale, SalesOverhead.Text, HotkeysValue(), Pdf.ToOptions(), Company);
 
     protected override void RestoreState(object state)
     {
@@ -182,6 +243,9 @@ public sealed partial class SettingsViewModel : PageViewModel
         LaborRate.Text = f.Labor; OverheadRate.Text = f.Overhead; DefaultMarkup.Text = f.Markup; RoundingStep.Text = f.Step;
         UsdPerEur.Text = f.Usd; RoundingMode = f.Mode; CurrencySymbol = f.Symbol; Language = f.Language; Theme = f.Theme; UiScale = f.Scale; SalesOverhead.Text = f.SalesOverhead;
         LoadShortcuts(f.Hotkeys);
+        Pdf.Load(f.Pdf);
+        CompanyName = f.Company.Name; CompanyAddress = f.Company.Address; CompanyVat = f.Company.VatNumber;
+        CompanyTaxOffice = f.Company.TaxOffice; CompanyPhone = f.Company.Phone; CompanyEmail = f.Company.Email;
         _loading = false;
         Edited();
     }
@@ -192,7 +256,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     {
         string N(NumField f) => f.IsValid ? f.Value?.ToString(CultureInfo.InvariantCulture) ?? "" : "!" + f.Text;
         return string.Join("|", N(LaborRate), N(OverheadRate), N(DefaultMarkup), N(RoundingStep), N(UsdPerEur), RoundingMode, CurrencySymbol.Trim(), Language,
-            Theme, UiScale.ToString(CultureInfo.InvariantCulture), N(SalesOverhead), HotkeysValue());
+            Theme, UiScale.ToString(CultureInfo.InvariantCulture), N(SalesOverhead), HotkeysValue(), Pdf.ToOptions().Serialize(), Company.ToString());
     }
 
     [RelayCommand]
@@ -222,6 +286,8 @@ public sealed partial class SettingsViewModel : PageViewModel
         var langChanged = s.Language != Language;
         var keysChanged = s.Hotkeys != HotkeysValue();
         s.Hotkeys = HotkeysValue();
+        s.OrderPdf = Pdf.ToOptions();
+        s.Company = Company;
         var looksChanged = s.Theme != Theme || s.UiScale != UiScale;
         s.Theme = Theme;
         s.UiScale = UiScale;

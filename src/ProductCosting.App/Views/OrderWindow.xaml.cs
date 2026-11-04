@@ -277,8 +277,8 @@ public partial class OrderWindow : Window
             FileName = $"{Loc.T("order.pdfTitle")} {Sanitize(_supplier.Name)} {DateTime.Now:yyyy-MM-dd}.pdf",
         };
         if (dlg.ShowDialog(this) != true) return;
-        var pdf = PdfReports.SupplierOrder(_supplier,
-            lines.Select(r => new OrderLine(r.Code, r.SupplierCode, r.Name, r.Variant, r.Qty.Value!.Value, r.Entry)).ToList(), DateTime.Now);
+        var pdf = Pdf(_supplier,
+            lines.Select(r => new OrderLine(r.Code, r.SupplierCode, r.Name, r.Variant, r.Qty.Value!.Value, r.Entry, r.UnitPrice, r.Currency)).ToList(), DateTime.Now);
         File.WriteAllBytes(dlg.FileName, pdf);
         NotificationsViewModel.OpenFile(dlg.FileName);
     }
@@ -294,10 +294,18 @@ public partial class OrderWindow : Window
             FileName = $"{Loc.T("order.pdfTitle")} {Sanitize(supplier.Name)} {date:yyyy-MM-dd}.pdf",
         };
         if (dlg.ShowDialog(owner) != true) return;
-        var pdf = PdfReports.SupplierOrder(supplier,
-            lines.Select(l => new OrderLine(l.Code, l.SupplierCode, l.Name, l.Variant, l.Quantity, l.ShownUnit)).ToList(), date);
+        var pdf = Pdf(supplier,
+            lines.Select(l => new OrderLine(l.Code, l.SupplierCode, l.Name, l.Variant, l.Quantity, l.ShownUnit, l.UnitPrice, l.Currency)).ToList(), date);
         File.WriteAllBytes(dlg.FileName, pdf);
         NotificationsViewModel.OpenFile(dlg.FileName);
+    }
+
+    /// <summary>The order PDF with the supplier's own options, or those of Settings; our details and logo when they are shown.</summary>
+    static byte[] Pdf(Supplier supplier, List<OrderLine> lines, DateTime date)
+    {
+        var options = OrderPdfOptions.Parse(supplier.OrderPdf) ?? AppState.Settings.OrderPdf;
+        var ours = options.Header is OrderPdfHeader.Company or OrderPdfHeader.Both;
+        return PdfReports.SupplierOrder(supplier, lines, date, options, AppState.Settings.Company, ours ? AppState.Store.GetLogo() : null);
     }
 
     static string Sanitize(string s) => string.Concat(s.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));

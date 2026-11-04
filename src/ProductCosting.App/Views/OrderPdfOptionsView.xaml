@@ -1,0 +1,46 @@
+<UserControl x:Class="ProductCosting.App.Views.OrderPdfOptionsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="clr-namespace:ProductCosting.App.Infrastructure">
+    <!-- DataContext: an OrderPdfForm -->
+    <StackPanel>
+        <TextBlock Text="{l:T pdfopt.columns}" Style="{StaticResource FieldLabel}" />
+        <WrapPanel Margin="0,2,0,12">
+            <WrapPanel.Resources>
+                <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
+                    <Setter Property="Margin" Value="0,0,18,6" />
+                    <Setter Property="MinWidth" Value="0" />
+                </Style>
+            </WrapPanel.Resources>
+            <CheckBox Content="#" IsChecked="{Binding Number}" />
+            <CheckBox Content="{l:T list.supplierCode}" IsChecked="{Binding SupplierCode}" />
+            <CheckBox Content="{l:T order.ourCode}" IsChecked="{Binding OurCode}" />
+            <CheckBox Content="{l:T list.name}" IsChecked="{Binding Name}" />
+            <CheckBox Content="{l:T item.variant}" IsChecked="{Binding Variant}" />
+            <CheckBox Content="{l:T order.qty}" IsChecked="{Binding Quantity}" />
+            <CheckBox Content="{l:T order.pdfUnitPrice}" IsChecked="{Binding UnitPrice}" />
+            <CheckBox Content="{l:T order.value}" IsChecked="{Binding Value}" />
+        </WrapPanel>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="1.6*" />
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="{l:T pdfopt.language}" Style="{StaticResource FieldLabel}" />
+                <ComboBox ItemsSource="{Binding Languages}" SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding Language}" HorizontalAlignment="Stretch" />
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+                <TextBlock Text="{l:T pdfopt.fontSize}" Style="{StaticResource FieldLabel}" />
+                <ComboBox ItemsSource="{Binding FontSizes}" SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding FontSize}" HorizontalAlignment="Stretch" />
+            </StackPanel>
+            <StackPanel Grid.Column="4">
+                <TextBlock Text="{l:T pdfopt.header}" Style="{StaticResource FieldLabel}" />
+                <ComboBox ItemsSource="{Binding Headers}" SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding Header}" HorizontalAlignment="Stretch" />
+            </StackPanel>
+        </Grid>
+    </StackPanel>
+</UserControl>
