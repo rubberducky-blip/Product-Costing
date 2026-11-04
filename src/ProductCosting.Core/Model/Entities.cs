@@ -394,6 +394,9 @@ public sealed class SupplierItemRow
     public decimal ShippingPct { get; set; }
 }
 
+/// <summary>What one unit of an item costs from one supplier (euro, per base unit, after discount and shipping).</summary>
+public sealed record SupplierCost(long ItemId, long SupplierId, string SupplierName, decimal UnitCostEur);
+
 /// <summary>Cost data of a material, enough to price a recipe line.</summary>
 public sealed class MaterialInfo
 {

@@ -229,6 +229,35 @@ public sealed partial class Store
         GROUP BY i.id
         """, new { supplierId }).OrderBy(r => r.Code, NaturalComparer.Instance).ToList());
 
+    /// <summary>For each item, what it costs from each of its suppliers (to point out cheaper ones on an order).</summary>
+    public Dictionary<long, List<SupplierCost>> GetSupplierCosts(IEnumerable<long> itemIds) => Read(c =>
+    {
+        var ids = itemIds.Distinct().ToList();
+        if (ids.Count == 0) return [];
+        var usdPerEur = LoadSettings(c, null).UsdPerEur;
+        using var t = c.BeginTransaction();
+        FillTemp(c, t, "cost_items", ids);
+        var rows = c.Query<(long ItemId, long SupplierId, string Name, double Price, double Qty, int? Currency, double? Discount, double? Shipping,
+            int SupCurrency, double SupDiscount, double SupShipping)>("""
+            SELECT src.item_id, src.supplier_id, s.name, src.purchase_price, src.purchase_qty, src.currency, src.discount_pct, src.shipping_pct,
+                   s.currency, s.discount_pct, s.shipping_pct
+            FROM item_sources src JOIN suppliers s ON s.id = src.supplier_id
+            WHERE src.item_id IN (SELECT id FROM temp.cost_items)
+            """, transaction: t).ToList();
+        t.Commit();
+        return rows.Select(r =>
+            {
+                var source = new ItemSource
+                {
+                    SupplierId = r.SupplierId, PurchasePrice = (decimal)r.Price, PurchaseQty = (decimal)r.Qty, Currency = (Currency?)r.Currency,
+                    DiscountPct = (decimal?)r.Discount, ShippingPct = (decimal?)r.Shipping,
+                };
+                var sup = new Supplier { Id = r.SupplierId, Currency = (Currency)r.SupCurrency, DiscountPct = (decimal)r.SupDiscount, ShippingPct = (decimal)r.SupShipping };
+                return new SupplierCost(r.ItemId, r.SupplierId, r.Name, Costing.ComputeSource(source, sup, usdPerEur).UnitCost);
+            })
+            .GroupBy(x => x.ItemId).ToDictionary(g => g.Key, g => g.ToList());
+    });
+
     public Dictionary<long, List<ItemVariant>> GetVariants(IEnumerable<long> itemIds) => Read(c =>
     {
         var ids = itemIds.ToList();

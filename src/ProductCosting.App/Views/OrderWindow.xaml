@@ -34,7 +34,20 @@
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="{l:T list.supplierCode}" Binding="{Binding SupplierCode}" Width="140" ElementStyle="{StaticResource CellText}" />
                     <DataGridTextColumn Header="{l:T order.ourCode}" Binding="{Binding Code}" Width="110" ElementStyle="{StaticResource MutedCell}" />
-                    <DataGridTextColumn Header="{l:T list.name}" Binding="{Binding Name}" Width="*" MinWidth="180" ElementStyle="{StaticResource CellText}" />
+                    <!-- a mark when another supplier sells the item cheaper (hover: who and for how much) -->
+                    <DataGridTemplateColumn Header="{l:T list.name}" Width="*" MinWidth="180" SortMemberPath="Name">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <DockPanel VerticalAlignment="Center" Margin="4,0">
+                                    <Border DockPanel.Dock="Right" Background="Transparent" ToolTip="{Binding CheaperText}" ToolTipService.InitialShowDelay="150"
+                                            Visibility="{Binding HasCheaper, Converter={StaticResource Visible}}" Margin="6,0,0,0">
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE8EC;" FontSize="13" Foreground="{DynamicResource WarningTextBrush}" />
+                                    </Border>
+                                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                </DockPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                     <DataGridTextColumn Header="{l:T item.variant}" Binding="{Binding Variant}" Width="130" ElementStyle="{StaticResource CellText}" />
                     <DataGridTextColumn Header="{l:T list.unit}" Binding="{Binding UnitText}" Width="70" ElementStyle="{StaticResource MutedCell}" />
                     <DataGridTextColumn x:Name="MoqCol" Header="{l:T item.moq}" Binding="{Binding MoqText}" Width="130" ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />

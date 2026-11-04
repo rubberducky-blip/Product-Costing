@@ -295,6 +295,8 @@ public static class Strings
         ["order.value"] = ("Αξία", "Value"),
         ["order.totalValue"] = ("Σύνολο", "Total"),
         ["order.withShipping"] = ("Σύνολο με μεταφορικά", "Total with shipping"),
+        ["order.cheaper"] = ("Φθηνότερο από άλλους προμηθευτές (με εκπτώσεις και μεταφορικά):", "Cheaper from other suppliers (discounts and shipping included):"),
+        ["order.cheaperOwn"] = ("Από αυτόν τον προμηθευτή: {0}", "From this supplier: {0}"),
         ["order.copy"] = ("Νέα από αντίγραφο", "New from a copy"),
         ["order.totals"] = ("Σύνολα παραγγελίας", "Order totals"),
         ["order.goods"] = ("Αξία προϊόντων", "Goods"),

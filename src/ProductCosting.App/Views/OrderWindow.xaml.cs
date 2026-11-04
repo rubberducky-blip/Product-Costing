@@ -36,6 +36,9 @@ public sealed class OrderRow : CommunityToolkit.Mvvm.ComponentModel.ObservableOb
     public decimal DiscountPct { get; init; }
     public decimal ShippingPct { get; init; }
     public bool IsReadOnly { get; init; }
+    /// <summary>Other suppliers that sell this item for less (with their discount and shipping), for the hover text.</summary>
+    public string? CheaperText { get; init; }
+    public bool HasCheaper => CheaperText is not null;
     public NumField Qty { get; } = new(null, allowEmpty: true);
 
     public string UnitText => Strings.Measure(Entry);
@@ -107,6 +110,7 @@ public partial class OrderWindow : Window
             // every item of the supplier at today's prices
             var items = AppState.Store.GetSupplierItems(supplier.Id);
             var variants = AppState.Store.GetVariants(items.Select(i => i.ItemId));
+            var costs = AppState.Store.GetSupplierCosts(items.Select(i => i.ItemId));
             foreach (var i in items)
             {
                 // ordered in the unit it is bought in (e.g. m²), at the price of one of it
@@ -114,6 +118,7 @@ public partial class OrderWindow : Window
                 {
                     ItemId = i.ItemId, Code = i.Code, SupplierCode = code, Name = i.Name, Variant = variant, Unit = i.Unit, Entry = i.EntryUnit,
                     Moq = i.EntryMoq, Pack = i.EntryPack, UnitPrice = i.EntryUnitPrice, Currency = i.Currency, DiscountPct = i.DiscountPct, ShippingPct = i.ShippingPct,
+                    CheaperText = Cheaper(costs.GetValueOrDefault(i.ItemId), supplier.Id, i.EntryUnit),
                 };
                 var vs = variants.TryGetValue(i.ItemId, out var all) ? all.Where(v => v.SupplierId is null || v.SupplierId == supplier.Id).ToList() : [];
                 if (vs.Count > 0) foreach (var v in vs) _rows.Add(Row(v.Name, v.Code ?? i.SupplierCode));
@@ -158,6 +163,19 @@ public partial class OrderWindow : Window
         MoqCol.Visibility = PackCol.Visibility = hasRules ? Visibility.Visible : Visibility.Collapsed;
         Grid.ItemsSource = _rows;
         Update();
+    }
+
+    /// <summary>"Cheaper from: …" when another supplier's cost per unit (discount and shipping included) is lower, else null.</summary>
+    static string? Cheaper(List<SupplierCost>? costs, long supplierId, MeasureUnit unit)
+    {
+        if (costs is null || costs.FirstOrDefault(c => c.SupplierId == supplierId) is not { } own) return null;
+        var cheaper = costs.Where(c => c.SupplierId != supplierId && c.UnitCostEur < own.UnitCostEur - 0.000001m)
+            .OrderBy(c => c.UnitCostEur).ToList();
+        if (cheaper.Count == 0) return null;
+        string Per(SupplierCost c) => $"{Fmt.Money4(c.UnitCostEur * unit.Factor())} / {Strings.Measure(unit)}";
+        return Loc.T("order.cheaper") + "\n"
+            + string.Join("\n", cheaper.Select(c => $"• {c.SupplierName}: {Per(c)}"))
+            + "\n" + Loc.F("order.cheaperOwn", Per(own));
     }
 
     List<OrderRow> Filled => _rows.Where(r => r.Qty.Value is > 0).ToList();
