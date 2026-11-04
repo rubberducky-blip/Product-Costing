@@ -416,6 +416,19 @@ internal static class Smoke
             Check("sidebar opens the list at its top level", list.FolderId is null);
         });
         await Step("settings", async () => { vm.GoCommand.Execute("settings"); await Settle(); Shot(root, "14-settings"); });
+        await Step("import columns", async () =>
+        {
+            var win = new ImportColumnsWindow(
+            [
+                ["Κωδικός", "Περιγραφή", "Προμηθευτής", "Τιμή αγοράς", "Λιανική", "Είδος", "Σημειώσεις"],
+                ["M-900", "Κούπα", "Metalli Srl", "2,10", "6,90", "Εμπόρευμα", ""],
+            ]) { Owner = w };
+            win.Show();
+            await Settle(400);
+            Check("import columns matched from the titles", win.Map[Core.Import.ImportField.Price] == 4 && win.Map[Core.Import.ImportField.Kind] == 5);
+            Shot((FrameworkElement)win.Content, "14b-import-columns");
+            win.Close();
+        });
 
         await Step("search", async () =>
         {

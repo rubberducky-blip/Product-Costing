@@ -20,16 +20,25 @@ public static class ImportFlow
     {
         var dlg = new OpenFileDialog { Filter = "Excel (*.xlsx)|*.xlsx|CSV (*.csv)|*.csv" };
         if (dlg.ShowDialog(owner) != true) return;
-        ImportFile file;
+        List<string[]> table;
         try
         {
-            file = ItemImport.Parse(Spreadsheet.Read(dlg.FileName));
+            table = Spreadsheet.Read(dlg.FileName);
         }
-        catch (Exception ex) when (ex is IOException or InvalidDataException or System.Xml.XmlException or UnauthorizedAccessException)
+        catch (SpreadsheetException ex)
         {
-            Dialogs.Error(Loc.F("import.unreadable", ex.Message));
+            Dialogs.Error(ex.Message);
             return;
         }
+        catch (Exception ex)
+        {
+            Dialogs.Error(Loc.F("import.unreadable", $"{ex.GetType().Name}: {ex.Message}"));
+            return;
+        }
+        // the user confirms which column holds what (recognised titles are matched already)
+        var columns = new ImportColumnsWindow(table) { Owner = owner };
+        if (columns.ShowDialog() != true) return;
+        var file = ItemImport.Parse(table, columns.Map, columns.HasHeader);
         if (file.Rows.Count == 0)
         {
             Dialogs.Info(Loc.T("import.empty") + Problems(file.Problems));

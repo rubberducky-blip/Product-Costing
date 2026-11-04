@@ -356,6 +356,39 @@ public class FeatureTests
     }
 
     [Fact]
+    public void Spreadsheet_ToleratesOddPackages_AndExplainsErrors()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "pc-xlsx-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        var path = Path.Combine(dir, "odd.xlsx");
+        // backslashes and capitals in the part names, the strict namespace, the workbook found through _rels/.rels
+        using (var zip = System.IO.Compression.ZipFile.Open(path, System.IO.Compression.ZipArchiveMode.Create))
+        {
+            void Add(string name, string xml)
+            {
+                using var w = new StreamWriter(zip.CreateEntry(name).Open());
+                w.Write(xml);
+            }
+            const string ns = "http://purl.oclc.org/ooxml/spreadsheetml/main";
+            Add("_rels\\.rels", "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"r1\" Type=\"http://purl.oclc.org/ooxml/officeDocument/relationships/officeDocument\" Target=\"XL/Book.xml\"/></Relationships>");
+            Add("XL\\Book.xml", $"<workbook xmlns=\"{ns}\" xmlns:r=\"http://purl.oclc.org/ooxml/officeDocument/relationships\"><sheets><sheet name=\"A\" sheetId=\"1\" r:id=\"rId1\"/></sheets></workbook>");
+            Add("XL\\_rels\\Book.xml.rels", "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"x/worksheet\" Target=\"Sheets/One.xml\"/></Relationships>");
+            Add("XL\\Sheets\\One.xml", $"<worksheet xmlns=\"{ns}\"><sheetData><row r=\"1\"><c r=\"A1\" t=\"inlineStr\"><is><t>M-1</t></is></c><c r=\"B1\"><v>3</v></c></row></sheetData></worksheet>");
+        }
+        var rows = ProductCosting.Core.Import.Spreadsheet.Read(path);
+        Assert.Equal(["M-1", "3"], rows.Single());
+
+        // an old .xls and a renamed text file get messages that say what is wrong
+        var xls = Path.Combine(dir, "old.xlsx");
+        File.WriteAllBytes(xls, [0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1, 0, 0]);
+        Assert.Contains(".xls", Assert.Throws<ProductCosting.Core.Import.SpreadsheetException>(() => ProductCosting.Core.Import.Spreadsheet.Read(xls)).Message);
+        var txt = Path.Combine(dir, "text.xlsx");
+        File.WriteAllText(txt, "hello");
+        Assert.Throws<ProductCosting.Core.Import.SpreadsheetException>(() => ProductCosting.Core.Import.Spreadsheet.Read(txt));
+        Directory.Delete(dir, true);
+    }
+
+    [Fact]
     public void Upgrade_FromSchemaVersion1()
     {
         var dir = Path.Combine(Path.GetTempPath(), "pc-up-" + Guid.NewGuid().ToString("N"));
