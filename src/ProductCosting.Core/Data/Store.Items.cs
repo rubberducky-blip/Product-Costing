@@ -1,6 +1,7 @@
 using Dapper;
 using Microsoft.Data.Sqlite;
 using ProductCosting.Core.Calc;
+using ProductCosting.Core.Import;
 using ProductCosting.Core.Model;
 
 namespace ProductCosting.Core.Data;
@@ -28,6 +29,65 @@ public sealed partial class Store
             Variants = c.Query<ItemVariant>("SELECT id, item_id, name, code, supplier_id FROM item_variants WHERE item_id=@id ORDER BY position", new { id }).ToList(),
         };
     });
+
+    /// <summary>
+    /// Imports merchandise and raw materials: new codes are created, existing ones get the row's name and their row for
+    /// that supplier (price, supplier code, MOQ). With a selling price, the markup is set so the item sells at it.
+    /// <paramref name="suppliers"/> gives the supplier id for each supplier name of the file (normalized with TextNorm).
+    /// </summary>
+    public ImportResult ImportItems(IReadOnlyList<ImportRow> rows, IReadOnlyDictionary<string, long> suppliers)
+    {
+        int created = 0, updated = 0;
+        var problems = new List<ImportProblem>();
+        foreach (var row in rows)
+        {
+            try
+            {
+                long? supplierId = row.Supplier is { } name && suppliers.TryGetValue(TextNorm.Normalize(name).Trim(), out var sid) ? sid : null;
+                var existing = Read(c => c.ExecuteScalar<long?>("SELECT id FROM items WHERE code = @code COLLATE NOCASE", new { code = row.Code.Trim() }));
+                ItemDocument doc;
+                if (existing is null)
+                {
+                    doc = new ItemDocument
+                    {
+                        Item = new Item { Kind = row.Kind, Code = row.Code.Trim(), Name = row.Name.Trim(), Unit = QtyUnit.Pcs },
+                        Sources = [new ItemSource { SupplierId = supplierId, SupplierCode = row.SupplierCode, PurchasePrice = row.Cost ?? 0, PurchaseQty = 1, Moq = row.Moq, Weight = 1 }],
+                    };
+                }
+                else
+                {
+                    doc = LoadItem(existing.Value)!;
+                    if (doc.Item.Kind == ItemKind.Product)
+                    {
+                        problems.Add(new(row.Line, "product"));
+                        continue;
+                    }
+                    doc.Item.Name = row.Name.Trim();
+                    // the row of that supplier; a lone row without a supplier takes it; otherwise a new row
+                    var source = doc.Sources.FirstOrDefault(s => s.SupplierId == supplierId)
+                        ?? (doc.Sources is [{ SupplierId: null } only] ? only : null);
+                    if (source is null)
+                    {
+                        source = new ItemSource { PurchaseQty = doc.Sources.FirstOrDefault()?.PurchaseQty ?? 1, PurchaseUnit = doc.Sources.FirstOrDefault()?.PurchaseUnit, Weight = 1 };
+                        doc.Sources.Add(source);
+                    }
+                    source.SupplierId = supplierId;
+                    if (row.SupplierCode is not null) source.SupplierCode = row.SupplierCode;
+                    if (row.Cost is { } cost) source.PurchasePrice = cost;
+                    // the MOQ is given in the unit the item is bought in
+                    if (row.Moq is { } moq) source.Moq = doc.Item.Unit.EntryUnit(source.PurchaseUnit).ToBase(moq);
+                }
+                var id = SaveItem(doc);
+                if (existing is null) created++; else updated++;
+                if (row.Price is { } price && SetPrice(id, price) is null) problems.Add(new(row.Line, "noCost"));
+            }
+            catch (DuplicateCodeException)
+            {
+                problems.Add(new(row.Line, "code"));
+            }
+        }
+        return new ImportResult(created, updated, problems);
+    }
 
     public bool CodeExists(string code, long exceptId) =>
         Read(c => c.ExecuteScalar<long>("SELECT count(*) FROM items WHERE code = @code COLLATE NOCASE AND id <> @exceptId", new { code = code.Trim(), exceptId }) > 0);

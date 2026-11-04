@@ -290,6 +290,9 @@
                 <Border Style="{StaticResource Card}" Margin="0,16,0,0">
                     <StackPanel>
                         <TextBlock Text="{l:T settings.data}" Style="{StaticResource H2}" Margin="0,0,0,14" />
+                        <Button Style="{StaticResource PrimaryButton}" l:Btn.Icon="&#xE8B5;" Content="{l:T import.button}" Command="{Binding ImportCommand}"
+                                HorizontalAlignment="Left" />
+                        <TextBlock Text="{l:T import.help}" Style="{StaticResource Caption}" TextWrapping="Wrap" MaxWidth="900" HorizontalAlignment="Left" Margin="0,6,0,16" />
                         <TextBlock Text="{l:T settings.dbLocation}" Style="{StaticResource FieldLabel}" />
                         <TextBox Text="{Binding DatabasePath, Mode=OneWay}" IsReadOnly="True" />
                         <Button Style="{StaticResource SecondaryButton}" l:Btn.Icon="&#xE72C;" Content="{l:T settings.recalc}" Command="{Binding RecalculateAllCommand}"

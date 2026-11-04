@@ -1,0 +1,19 @@
+<Window x:Class="ProductCosting.App.Views.ImportSupplierWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l="clr-namespace:ProductCosting.App.Infrastructure"
+        xmlns:c="clr-namespace:ProductCosting.App.Controls"
+        Style="{StaticResource AppWindow}" Background="{DynamicResource CardBrush}"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" SizeToContent="Height" Width="520" ShowInTaskbar="False">
+    <StackPanel Margin="24,22,24,20" LayoutTransform="{x:Static l:UiScale.Transform}">
+        <TextBlock x:Name="TitleText" Style="{StaticResource H2}" FontSize="17" TextWrapping="Wrap" />
+        <TextBlock x:Name="BodyText" Foreground="{DynamicResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,6,0,16" />
+        <RadioButton x:Name="CreateOption" IsChecked="True" Content="{l:T import.createSupplier}" Margin="0,0,0,10" />
+        <RadioButton x:Name="ExistingOption" Content="{l:T import.useSupplier}" Checked="Option_Changed" Unchecked="Option_Changed" />
+        <c:SearchPicker x:Name="Picker" Margin="26,8,0,0" Placeholder="{l:T item.pickSupplier}" Picked="Picker_Picked" IsEnabled="False" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,22,0,0">
+            <Button Content="{l:T import.cancel}" Style="{StaticResource SecondaryButton}" IsCancel="True" MinWidth="90" />
+            <Button x:Name="OkButton" Content="{l:T common.continue}" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0" IsDefault="True" Click="Ok_Click" />
+        </StackPanel>
+    </StackPanel>
+</Window>

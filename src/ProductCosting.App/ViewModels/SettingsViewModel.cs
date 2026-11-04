@@ -123,6 +123,13 @@ public sealed partial class SettingsViewModel : PageViewModel
     }
 
     [RelayCommand]
+    void Import()
+    {
+        ImportFlow.Run(System.Windows.Application.Current.MainWindow);
+        _main.ResetPages(this);
+    }
+
+    [RelayCommand]
     void ChooseLogo()
     {
         var dlg = new OpenFileDialog { Filter = "PNG / JPEG|*.png;*.jpg;*.jpeg" };

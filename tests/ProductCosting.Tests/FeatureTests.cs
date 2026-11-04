@@ -1,3 +1,4 @@
+using ProductCosting.Core.Calc;
 using Dapper;
 using Microsoft.Data.Sqlite;
 using ProductCosting.Core.Data;
@@ -286,6 +287,72 @@ public class FeatureTests
         f.Store.SaveSettings(s);
         Assert.Equal(24.23m, f.Store.LoadSettings().SalesOverheadPct);
         Assert.Equal(20m, f.Store.GetItem(m)!.Price);
+    }
+
+    [Fact]
+    public void Import_FromSpreadsheetRows()
+    {
+        using var f = new StoreFixture();
+        var acme = f.Supplier("Acme");
+        var existing = f.Bought(ItemKind.Merchandise, "M-1", 5, acme);
+        var file = ProductCosting.Core.Import.ItemImport.Parse(
+        [
+            ["Κωδικός", "Προμηθευτής", "Όνομα", "Κωδικός προμηθευτή", "MOQ", "Κόστος αγοράς", "Τιμή πώλησης", "Τύπος"],
+            ["M-1", "ACME", "Κούπα", "A-1", "12", "4", "10", "Εμπόρευμα"],
+            ["R-9", "Νέος", "Δέρμα", "N-9", "", "2,50", "6,00", "πρώτη ύλη"],
+            ["X-1", "Acme", "Λάθος", "", "", "1", "", "κάτι άλλο"],
+        ]);
+        Assert.Equal(2, file.Rows.Count);
+        Assert.Contains(file.Problems, p => p is { Line: 4, Reason: "kind" });
+        Assert.Equal(2.5m, file.Rows[1].Cost);
+
+        // "Νέος" is not a supplier yet: the app asks; here it goes to Acme
+        var map = new Dictionary<string, long> { [TextNorm.Normalize("Acme")] = acme, [TextNorm.Normalize("Νέος")] = acme };
+        var result = f.Store.ImportItems(file.Rows, map);
+        Assert.Equal(1, result.Created);
+        Assert.Equal(1, result.Updated);
+        Assert.Empty(result.Problems);
+
+        var m1 = f.Store.LoadItem(existing)!;
+        Assert.Equal("Κούπα", m1.Item.Name);
+        Assert.Equal(4m, m1.Sources.Single().PurchasePrice);
+        Assert.Equal("A-1", m1.Sources[0].SupplierCode);
+        Assert.Equal(12m, m1.Sources[0].Moq);
+        Assert.Equal(10m, f.Store.GetItem(existing)!.Price);              // markup worked out from cost and price
+        Assert.Equal(150m, Math.Round(f.Store.GetItem(existing)!.EffMarkup, 4));
+
+        var r9 = f.Store.GetItemRows(ListScope.RawMaterials, null).Single(r => r.Code == "R-9");
+        Assert.Equal(6m, r9.Price);
+        Assert.Equal(acme, f.Store.LoadItem(r9.Id)!.Sources[0].SupplierId);
+    }
+
+    [Fact]
+    public void Spreadsheet_ReadsXlsx()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "pc-xlsx-" + Guid.NewGuid().ToString("N") + ".xlsx");
+        using (var zip = System.IO.Compression.ZipFile.Open(path, System.IO.Compression.ZipArchiveMode.Create))
+        {
+            void Add(string name, string xml)
+            {
+                using var w = new StreamWriter(zip.CreateEntry(name).Open());
+                w.Write(xml);
+            }
+            const string ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+            Add("xl/workbook.xml", $"<workbook xmlns=\"{ns}\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><sheets><sheet name=\"Φύλλο1\" sheetId=\"1\" r:id=\"rId1\"/></sheets></workbook>");
+            Add("xl/_rels/workbook.xml.rels", "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"worksheet\" Target=\"worksheets/data.xml\"/></Relationships>");
+            Add("xl/sharedStrings.xml", $"<sst xmlns=\"{ns}\"><si><t>Κωδικός</t></si><si><t>Τιμή πώλησης</t></si><si><r><t>Κού</t></r><r><t>πα</t></r></si></sst>");
+            Add("xl/worksheets/data.xml", $"<worksheet xmlns=\"{ns}\"><sheetData>"
+                + "<row r=\"1\"><c r=\"A1\" t=\"s\"><v>0</v></c><c r=\"C1\" t=\"s\"><v>1</v></c></row>"
+                + "<row r=\"2\"><c r=\"A2\" t=\"s\"><v>2</v></c><c r=\"C2\"><v>12.5</v></c></row>"
+                + "</sheetData></worksheet>");
+        }
+        var rows = ProductCosting.Core.Import.Spreadsheet.Read(path);
+        File.Delete(path);
+        Assert.Equal(2, rows.Count);
+        Assert.Equal(["Κωδικός", "", "Τιμή πώλησης"], rows[0]);
+        Assert.Equal("Κούπα", rows[1][0]);
+        Assert.Equal(12.5m, ProductCosting.Core.Import.Spreadsheet.Number(rows[1][2]));
+        Assert.Equal(1234.5m, ProductCosting.Core.Import.Spreadsheet.Number("1.234,50 €"));
     }
 
     [Fact]
