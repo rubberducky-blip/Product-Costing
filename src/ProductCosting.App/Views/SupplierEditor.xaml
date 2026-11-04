@@ -86,7 +86,7 @@
                             </StackPanel>
                             <StackPanel Grid.Column="4">
                                 <TextBlock Text="{l:T supplier.vat}" Style="{StaticResource FieldLabel}" />
-                                <l:NumBox Field="{Binding Vat}" l:Hint.Text="0" />
+                                <l:NumBox Field="{Binding Vat}" l:Hint.Text="{Binding VatHint}" />
                             </StackPanel>
                             <StackPanel Grid.Column="6">
                                 <TextBlock Text="{l:T supplier.currency}" Style="{StaticResource FieldLabel}" />
@@ -140,8 +140,13 @@
                     </Grid>
                 </DockPanel>
             </Border>
+            </StackPanel>
+            </ScrollViewer>
+
+            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
             <!-- order PDFs: this supplier's own options, or those of Settings -->
-            <Border Style="{StaticResource Card}" Margin="0,16,0,0" VerticalAlignment="Top">
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16" VerticalAlignment="Top">
                 <StackPanel>
                     <TextBlock Text="{l:T pdfopt.title}" Style="{StaticResource H2}" Margin="0,0,0,10" />
                     <CheckBox Content="{l:T pdfopt.own}" IsChecked="{Binding OwnPdf}" />
@@ -149,11 +154,6 @@
                                            Visibility="{Binding DataContext.OwnPdf, ElementName=Root, Converter={StaticResource Visible}}" />
                 </StackPanel>
             </Border>
-            </StackPanel>
-            </ScrollViewer>
-
-            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
-            <StackPanel>
             <!-- saved orders by state: double-click opens, right-click for more -->
             <v:OrdersTable Drafts="{Binding Drafts}" Executed="{Binding ExecutedOrders}" Archived="{Binding ArchivedOrders}"
                            NewOrderCommand="{Binding NewOrderCommand}"

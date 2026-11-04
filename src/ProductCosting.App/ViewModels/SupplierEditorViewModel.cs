@@ -93,7 +93,9 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
         Notes = s.Notes ?? "";
         Discount.Set(s.DiscountPct == 0 ? null : s.DiscountPct);
         Shipping.Set(s.ShippingPct == 0 ? null : s.ShippingPct);
-        Vat.Set(s.VatPct != 0 ? s.VatPct : s.Id == 0 && CountryCode == GreekCode ? GreekVat : null);
+        // the country's usual VAT (24% in Greece, else 0%) shows as the placeholder; only another rate is typed in
+        Vat.Set(s.VatPct == DefaultVat ? null : s.VatPct);
+        OnPropertyChanged(nameof(VatHint));
         OwnPdf = s.OrderPdf is not null;
         Pdf.Load(OrderPdfOptions.Parse(s.OrderPdf) ?? AppState.Settings.OrderPdf);
         Items.Clear();
@@ -114,9 +116,12 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
         if (e.PropertyName is nameof(Name) or nameof(FolderId) or nameof(CountryId) or nameof(Currency) or nameof(Email) or nameof(Phone) or nameof(Notes)
             or nameof(OwnPdf))
             Edited();
-        // Greek suppliers: VAT 24% unless one is already filled in
-        if (e.PropertyName == nameof(CountryId) && !_loading && CountryCode == GreekCode && Vat.Value is null or 0) Vat.Set(GreekVat);
+        if (e.PropertyName == nameof(CountryId)) OnPropertyChanged(nameof(VatHint));
     }
+
+    /// <summary>VAT when the field is left empty: 24% for Greek suppliers, 0% for the rest.</summary>
+    decimal DefaultVat => CountryCode == GreekCode ? GreekVat : 0m;
+    public string VatHint => Fmt.Num(DefaultVat);
 
     const string GreekCode = "GR";
     const decimal GreekVat = 24m;
@@ -190,7 +195,7 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
         var s = new Supplier
         {
             Id = _model.Id, Name = Name.Trim(), FolderId = FolderId, Country = CountryCode, Currency = Currency,
-            Email = Opt(Email), Phone = Opt(Phone), Notes = Opt(Notes), DiscountPct = Discount.Or0, ShippingPct = Shipping.Or0, VatPct = Vat.Or0,
+            Email = Opt(Email), Phone = Opt(Phone), Notes = Opt(Notes), DiscountPct = Discount.Or0, ShippingPct = Shipping.Or0, VatPct = Vat.Value ?? DefaultVat,
             OrderPdf = OwnPdf ? Pdf.ToOptions().Serialize() : null,
         };
         var id = AppState.Store.SaveSupplier(s);

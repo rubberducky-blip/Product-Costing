@@ -18,7 +18,11 @@ public static class ThemeManager
         string Danger, string DangerText, string DangerSoft, string DangerLine,
         string Success, string SuccessText, string SuccessSoft,
         string Warning, string WarningText, string WarningSoft,
-        string Hover, string Pressed, string Selected);
+        string Hover, string Pressed, string Selected)
+    {
+        /// <summary>Brushes painted as top-to-bottom gradients instead of flat colours (key → top, bottom).</summary>
+        public IReadOnlyDictionary<string, (string Top, string Bottom)>? Gradients { get; init; }
+    }
 
     static readonly Palette Dark = new(true,
         "#0E1014", "#14171C", "#181C22", "#1F242C", "#121519", "#1B1F26", "#262B33", "#363C47",
@@ -112,15 +116,26 @@ public static class ThemeManager
         "#B07A12", "#93650E", "#F2E3C2",
         "#0F3B3226", "#083B3226", "#228B5E34");
 
-    // classic Windows business software: grey dialogs, light-blue bars, beige grids, white fields, Windows blue
+    // classic Windows business software: light-blue toolbars and dark-blue frames with gradients, beige grids, white fields
     static readonly Palette ClassicErp = new(false,
-        "#EBEBEB", "#D5E6FB", "#F4F3EE", "#E9EFF8", "#FFFFFF", "#FFFFFF", "#C9D6E8", "#7498CB",
-        "#111111", "#44506A", "#7A7F88", "#FFFFFF",
-        "#0078D4", "#1A86DA", "#005FB0", "#CCE4F7", "#0058A3",
+        "#E3EAF4", "#C9DCF6", "#F4F3EE", "#E1EBF8", "#FFFFFF", "#FFFFFF", "#A9C3DD", "#5184D3",
+        "#0F1E36", "#3B4F70", "#6E7F99", "#FFFFFF",
+        "#1E5BB5", "#2A69C4", "#174A94", "#D3E3F8", "#174A94",
         "#C42B1C", "#A4262C", "#FDE7E9", "#F1B9BE",
         "#107C10", "#0E6A0E", "#DFF6DD",
         "#9D5D00", "#835000", "#FFFFCC",
-        "#1A0078D4", "#100078D4", "#80B9D1EA");
+        "#1F1E5BB5", "#141E5BB5", "#B0A3C2F5")
+    {
+        Gradients = new Dictionary<string, (string, string)>
+        {
+            ["WindowBrush"] = ("#EEF3FA", "#D2DEEF"),
+            ["SidebarBrush"] = ("#DCE8FA", "#9EBFEC"),
+            ["TopBarBrush"] = ("#E8F0FC", "#B3CDF1"),
+            ["HeaderRowBrush"] = ("#F7FAFE", "#D3E2F6"),
+            ["AccentFillBrush"] = ("#4E8EE0", "#1E5BB5"),
+            ["AccentFillHoverBrush"] = ("#62A0EC", "#2A69C4"),
+        },
+    };
 
     /// <summary>Theme ids (stored in settings) with their label keys, in menu order.</summary>
     public static IReadOnlyList<(string Id, string LabelKey)> Themes { get; } =
@@ -229,6 +244,14 @@ public static class ThemeManager
         B("SuccessBrush", p.Success); B("SuccessTextBrush", p.SuccessText); B("SuccessSoftBrush", p.SuccessSoft);
         B("WarningBrush", p.Warning); B("WarningTextBrush", p.WarningText); B("WarningSoftBrush", p.WarningSoft);
         B("HoverBrush", p.Hover); B("PressedBrush", p.Pressed); B("SelectedBrush", p.Selected);
+        // areas that themes may paint with gradients: flat by default
+        B("TopBarBrush", p.Sidebar); B("HeaderRowBrush", p.Card); B("AccentFillBrush", p.Accent); B("AccentFillHoverBrush", p.AccentHover);
+        foreach (var (key, (top, bottom)) in p.Gradients ?? new Dictionary<string, (string Top, string Bottom)>())
+        {
+            var g = new LinearGradientBrush(C(top), C(bottom), 90);
+            g.Freeze();
+            d[key] = g;
+        }
         return d;
     }
 }

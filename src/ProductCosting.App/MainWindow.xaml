@@ -75,7 +75,7 @@
             </Grid.RowDefinitions>
 
             <!-- top bar -->
-            <Border Background="{DynamicResource SidebarBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1" Padding="28,10">
+            <Border Background="{DynamicResource TopBarBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1" Padding="28,10">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />

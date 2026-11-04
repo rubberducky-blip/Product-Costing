@@ -5,6 +5,10 @@
 
     <SolidColorBrush x:Key="WindowBrush" Color="#0E1014" />
     <SolidColorBrush x:Key="SidebarBrush" Color="#14171C" />
+    <SolidColorBrush x:Key="TopBarBrush" Color="#14171C" />
+    <SolidColorBrush x:Key="HeaderRowBrush" Color="#181C22" />
+    <SolidColorBrush x:Key="AccentFillBrush" Color="#3B82F6" />
+    <SolidColorBrush x:Key="AccentFillHoverBrush" Color="#5B97F8" />
     <SolidColorBrush x:Key="CardBrush" Color="#181C22" />
     <SolidColorBrush x:Key="CardHoverBrush" Color="#1F242C" />
     <SolidColorBrush x:Key="InsetBrush" Color="#121519" />
