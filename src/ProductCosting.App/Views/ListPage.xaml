@@ -230,7 +230,7 @@
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <TextBlock Text="{Binding MarginPct, Converter={StaticResource Pct}}" Style="{StaticResource NumCell}" FontWeight="SemiBold"
-                                               Foreground="{Binding MarginPct, Converter={StaticResource MarginBrush}}" />
+                                               Foreground="{Binding MarginPct, Converter={StaticResource AdjMarginBrush}}" />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
@@ -281,8 +281,8 @@
                                             ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
                         <DataGridTextColumn Header="{l:T list.shipping}" Binding="{Binding ShippingPct, Converter={StaticResource Pct}}" Width="120"
                                             ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
-                        <DataGridTextColumn Header="{l:T list.email}" Binding="{Binding Email}" Width="*" MinWidth="180" ElementStyle="{StaticResource MutedCell}" />
-                        <DataGridTextColumn Header="{l:T list.phone}" Binding="{Binding Phone}" Width="*" MinWidth="140" ElementStyle="{StaticResource MutedCell}" />
+                        <DataGridTextColumn Header="{l:T list.email}" Binding="{Binding Email}" Width="*" ElementStyle="{StaticResource MutedCell}" />
+                        <DataGridTextColumn Header="{l:T list.phone}" Binding="{Binding Phone}" Width="*" ElementStyle="{StaticResource MutedCell}" />
                     </DataGrid.Columns>
                 </DataGrid>
 

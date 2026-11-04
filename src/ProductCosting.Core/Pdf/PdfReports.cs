@@ -40,14 +40,15 @@ public static class PdfReports
 
     static string Money(decimal v, string symbol) => v.ToString("N2", Culture) + " " + symbol;
 
-    static void Page(PageDescriptor page, string title, string? subtitle, DateTime now, string? lang = null, float fontSize = 9)
+    /// <summary>Page set-up; without a <paramref name="title"/> the page has no header (the content starts at the top).</summary>
+    static void Page(PageDescriptor page, string? title, string? subtitle, DateTime now, string? lang = null, float fontSize = 9)
     {
         lang ??= S.Language;
         var culture = CultureOf(lang);
         page.Size(PageSizes.A4);
         page.Margin(36);
         page.DefaultTextStyle(x => x.FontSize(fontSize).FontFamily("Inter"));
-        page.Header().PaddingBottom(14).Row(row =>
+        if (title is not null) page.Header().PaddingBottom(14).Row(row =>
         {
             row.RelativeItem().Column(col =>
             {
@@ -142,45 +143,59 @@ public static class PdfReports
 
         return Document.Create(doc => doc.Page(page =>
         {
-            Page(page, T("order.pdfTitle"), o.Header == OrderPdfHeader.None ? null : supplier.Name, now, lang, o.FontSize);
+            // no page header: the details below start at the top
+            Page(page, null, null, now, lang, o.FontSize);
             page.Content().Column(col =>
             {
-                // our company (logo and details)
-                if (showCompany)
-                    col.Item().PaddingBottom(12).Row(row =>
-                    {
-                        if (logo is not null) row.ConstantItem(110).Height(56).AlignLeft().AlignMiddle().Image(logo).FitArea();
-                        if (company is { IsEmpty: false } cmp)
-                            row.RelativeItem().PaddingLeft(logo is null ? 0 : 12).Column(info =>
-                            {
-                                if (!string.IsNullOrWhiteSpace(cmp.Name)) info.Item().Text(cmp.Name).FontSize(big).SemiBold();
-                                var tax = string.Join(" · ", new[]
-                                {
-                                    string.IsNullOrWhiteSpace(cmp.VatNumber) ? null : $"{T("company.vat")}: {cmp.VatNumber}",
-                                    string.IsNullOrWhiteSpace(cmp.TaxOffice) ? null : $"{T("company.taxOffice")}: {cmp.TaxOffice}",
-                                }.OfType<string>());
-                                foreach (var v in new[] { cmp.Address, tax, string.Join(" · ", new[] { cmp.Phone, cmp.Email }.Where(x => !string.IsNullOrWhiteSpace(x))) })
-                                    if (!string.IsNullOrWhiteSpace(v)) info.Item().Text(v).FontColor(Muted);
-                            });
-                        else row.RelativeItem();
-                    });
-                // the supplier (who the order is for) and the date
-                col.Item().PaddingBottom(12).Row(row =>
+                void Company(ColumnDescriptor info, CompanyInfo cmp)
                 {
-                    row.RelativeItem().Column(info =>
+                    if (!string.IsNullOrWhiteSpace(cmp.Name)) info.Item().Text(cmp.Name).FontSize(big).SemiBold();
+                    var tax = string.Join(" · ", new[]
                     {
-                        if (!showSupplier) return;
-                        if (showCompany) info.Item().Text(T("order.pdfTo")).FontColor(Muted);
-                        info.Item().Text(supplier.Name).FontSize(big).SemiBold();
-                        var country = Countries.Find(supplier.Country) is { } k ? (lang == "en" ? k.En : k.El) : supplier.Country;
-                        foreach (var v in new[] { country, supplier.Email, supplier.Phone })
-                            if (!string.IsNullOrWhiteSpace(v)) info.Item().Text(v).FontColor(Muted);
-                    });
-                    row.ConstantItem(160).AlignRight().Column(info =>
+                        string.IsNullOrWhiteSpace(cmp.VatNumber) ? null : $"{T("company.vat")}: {cmp.VatNumber}",
+                        string.IsNullOrWhiteSpace(cmp.TaxOffice) ? null : $"{T("company.taxOffice")}: {cmp.TaxOffice}",
+                    }.OfType<string>());
+                    foreach (var v in new[] { cmp.Address, tax, string.Join(" · ", new[] { cmp.Phone, cmp.Email }.Where(x => !string.IsNullOrWhiteSpace(x))) })
+                        if (!string.IsNullOrWhiteSpace(v)) info.Item().Text(v).FontColor(Muted);
+                }
+                void Supplier(ColumnDescriptor info, bool right)
+                {
+                    IContainer Line(IContainer c) => right ? c.AlignRight() : c;
+                    info.Item().Element(Line).Text(supplier.Name).FontSize(big).SemiBold();
+                    var country = Countries.Find(supplier.Country) is { } k ? (lang == "en" ? k.En : k.El) : supplier.Country;
+                    foreach (var v in new[] { country, supplier.Email, supplier.Phone })
+                        if (!string.IsNullOrWhiteSpace(v)) info.Item().Element(Line).Text(v).FontColor(Muted);
+                }
+                void Date(ColumnDescriptor info, bool gap)
+                {
+                    info.Item().PaddingTop(gap ? 8 : 0).AlignRight().Text(T("order.date")).FontColor(Muted);
+                    info.Item().AlignRight().Text(now.ToString("d", culture)).FontSize(big).SemiBold();
+                }
+
+                // ours on the left (logo and details); the supplier's, or just the date, on the right
+                col.Item().PaddingBottom(14).Row(row =>
+                {
+                    if (showCompany)
                     {
-                        info.Item().AlignRight().Text(T("order.date")).FontColor(Muted);
-                        info.Item().AlignRight().Text(now.ToString("d", culture)).FontSize(big).SemiBold();
-                    });
+                        if (logo is not null) row.ConstantItem(110).Height(56).AlignLeft().AlignTop().Image(logo).FitArea();
+                        row.RelativeItem().PaddingLeft(logo is null ? 0 : 12).Column(info =>
+                        {
+                            if (company is { IsEmpty: false } cmp) Company(info, cmp);
+                        });
+                        row.ConstantItem(220).Column(info =>
+                        {
+                            if (showSupplier) Supplier(info, right: true);
+                            Date(info, gap: showSupplier);
+                        });
+                    }
+                    else
+                    {
+                        row.RelativeItem().Column(info =>
+                        {
+                            if (showSupplier) Supplier(info, right: false);
+                        });
+                        row.ConstantItem(160).Column(info => Date(info, gap: false));
+                    }
                 });
                 col.Item().Table(table =>
                 {

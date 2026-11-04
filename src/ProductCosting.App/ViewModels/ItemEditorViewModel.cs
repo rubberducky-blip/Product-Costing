@@ -112,6 +112,8 @@ public sealed partial class ItemEditorViewModel : PageViewModel
     [ObservableProperty] private string _costText = "";
     [ObservableProperty] private string _marginText = "";
     [ObservableProperty] private decimal _marginPct;
+    [ObservableProperty] private System.Windows.Media.Brush? _marginBrush;
+    [ObservableProperty] private System.Windows.Media.Brush? _marginSoftBrush;
     [ObservableProperty] private bool _hasAdjMargin;
     [ObservableProperty] private decimal _adjMarginPct;
     [ObservableProperty] private string _adjMarginText = "";
@@ -424,7 +426,10 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         // merchandise and raw materials sold as they are: the margin left after the sales overhead (prices stay as they are)
         var salesOverhead = IsBought && price.Price > 0 ? s.SalesOverheadPct : 0;
         var adjusted = Costing.AdjustedMargin(price.MarginPct, Kind, salesOverhead);
-        Breakdown.Add(new(Loc.T(salesOverhead != 0 ? "cost.grossMargin" : "cost.margin"), Fmt.Pct(Math.Round(price.MarginPct, 1)), "row", MarginBrushConverter.Tone(price.MarginPct)));
+        // a product's cost already carries labour and overhead: its margin is a net one and gets the net colours
+        Breakdown.Add(IsProduct
+            ? new(Loc.T("cost.margin"), Fmt.Pct(Math.Round(price.MarginPct, 1)), "row", null, AdjMarginBrushConverter.For(price.MarginPct))
+            : new(Loc.T(salesOverhead != 0 ? "cost.grossMargin" : "cost.margin"), Fmt.Pct(Math.Round(price.MarginPct, 1)), "row", MarginBrushConverter.Tone(price.MarginPct)));
         if (salesOverhead != 0)
         {
             Breakdown.Add(new(Loc.F("cost.salesOverhead", Fmt.Pct(salesOverhead)), "−" + Fmt.Money4(price.Price * salesOverhead / 100m), "sub"));
@@ -438,6 +443,11 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         CostText = Fmt.Money4(saleCost);
         MarginText = Fmt.Pct(Math.Round(price.MarginPct, 1));
         MarginPct = price.MarginPct;
+        var margins = new MarginBrushConverter();
+        MarginBrush = IsProduct ? AdjMarginBrushConverter.For(price.MarginPct)
+            : (System.Windows.Media.Brush)margins.Convert(price.MarginPct, typeof(object), null, CultureInfo.CurrentCulture);
+        MarginSoftBrush = IsProduct ? AdjMarginBrushConverter.For(price.MarginPct, soft: true)
+            : (System.Windows.Media.Brush)margins.Convert(price.MarginPct, typeof(object), "soft", CultureInfo.CurrentCulture);
         HasAdjMargin = salesOverhead != 0;
         AdjMarginPct = adjusted;
         AdjMarginText = Fmt.Pct(Math.Round(adjusted, 2));

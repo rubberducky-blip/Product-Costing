@@ -74,8 +74,8 @@ public static class Hint
             var caret = Rect.Empty;
             try { caret = _tb.GetRectFromCharacterIndex(0); } catch (ArgumentOutOfRangeException) { }
             double x, y;
-            // a small gap from the cursor, so the blinking cursor never covers the first letter
-            const double gap = 3;
+            // exactly where typed text starts (the caret sits at the same place, like in an empty box with text)
+            const double gap = 0;
             if (!caret.IsEmpty && caret.Height > 0 && !double.IsNaN(caret.X) && !double.IsInfinity(caret.X))
             {
                 x = right ? caret.X - ft.Width - gap : caret.X + gap;
@@ -90,7 +90,7 @@ public static class Hint
                     Math.Max(0, _tb.ActualWidth - _tb.Padding.Left - _tb.Padding.Right), _tb.ActualHeight);
                 if (_tb.Template?.FindName("PART_ContentHost", _tb) is FrameworkElement host && host.IsVisible && host.ActualHeight > 0)
                     box = host.TransformToAncestor(_tb).TransformBounds(new Rect(0, 0, host.ActualWidth, host.ActualHeight));
-                x = right ? box.Right - ft.Width - 4 - gap : box.Left + 4 + gap;
+                x = right ? box.Right - ft.Width - 2 : box.Left + 2;
                 y = box.Top + (box.Height - ft.Height) / 2;
             }
             dc.DrawText(ft, new Point(Math.Max(2, x), y));

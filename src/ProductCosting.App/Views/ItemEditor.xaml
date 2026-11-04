@@ -456,8 +456,8 @@
                                 </TextBlock>
                             </Border>
                             <Border Style="{StaticResource Badge}" Margin="8,0,0,6"
-                                    Background="{Binding MarginPct, Converter={StaticResource MarginBrush}, ConverterParameter=soft}">
-                                <TextBlock Foreground="{Binding MarginPct, Converter={StaticResource MarginBrush}}">
+                                    Background="{Binding MarginSoftBrush}">
+                                <TextBlock Foreground="{Binding MarginBrush}">
                                     <Run Text="{l:T list.margin}" /><Run Text=" " /><Run Text="{Binding MarginText, Mode=OneWay}" />
                                 </TextBlock>
                             </Border>

@@ -35,7 +35,7 @@
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
-                    <DataGridTextColumn Header="{l:T history.reasons}" Binding="{Binding ReasonsText}" Width="*" MinWidth="200" ElementStyle="{StaticResource MutedCell}" />
+                    <DataGridTextColumn Header="{l:T history.reasons}" Binding="{Binding ReasonsText}" Width="*" ElementStyle="{StaticResource MutedCell}" />
                 </DataGrid.Columns>
             </DataGrid>
         </Border>

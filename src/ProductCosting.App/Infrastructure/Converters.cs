@@ -156,16 +156,17 @@ public sealed class DateTimeConverter : IValueConverter
 
 /// <summary>Colour of a margin %: low is bad (red), middling amber, high good (green).</summary>
 /// <summary>
-/// Colour of an adjusted (net) margin, in seven bands: below 0% very bad, 0–10% bad, 10–15% poor, 15–20% fair,
-/// 20–25% good, 25–35% very good, 35% and above excellent. Parameter "soft" gives the matching background.
+/// Colour of a net margin (adjusted margin of bought items, margin of products, whose cost already carries labour and
+/// overhead): below 0% dark red, 0–10% red, 10–15% orange, 15–25% yellow, 25–35% lime, 35% and above deep green.
+/// Parameter "soft" gives the matching background.
 /// </summary>
 public sealed class AdjMarginBrushConverter : IValueConverter
 {
-    static readonly string[] DarkColors = ["#FF4D4F", "#F87171", "#FB923C", "#FACC15", "#A3E635", "#4ADE80", "#00D97E"];
-    static readonly string[] LightColors = ["#991B1B", "#DC2626", "#EA580C", "#CA8A04", "#65A30D", "#16A34A", "#047857"];
+    static readonly string[] DarkColors = ["#FF4D4F", "#F87171", "#FB923C", "#FACC15", "#A3E635", "#22C55E"];
+    static readonly string[] LightColors = ["#991B1B", "#DC2626", "#EA580C", "#CA8A04", "#65A30D", "#15803D"];
     static readonly Dictionary<(int, bool, bool), Brush> Cache = [];
 
-    public static int Band(decimal m) => m switch { < 0 => 0, < 10 => 1, < 15 => 2, < 20 => 3, < 25 => 4, < 35 => 5, _ => 6 };
+    public static int Band(decimal m) => m switch { < 0 => 0, < 10 => 1, < 15 => 2, < 25 => 3, < 35 => 4, _ => 5 };
 
     public static Brush For(decimal margin, bool soft = false)
     {

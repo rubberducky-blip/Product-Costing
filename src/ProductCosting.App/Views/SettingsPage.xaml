@@ -239,7 +239,7 @@
                                         <DataGridTextColumn Header="{l:T backup.kind}" Binding="{Binding KindText}" Width="150" ElementStyle="{StaticResource MutedCell}" />
                                         <DataGridTextColumn Header="{l:T backup.size}" Binding="{Binding SizeBytes, Converter={StaticResource FileSize}}" Width="90"
                                                             ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
-                                        <DataGridTextColumn Header="" Binding="{Binding FileName}" Width="*" MinWidth="200" ElementStyle="{StaticResource MutedCell}" />
+                                        <DataGridTextColumn Header="" Binding="{Binding FileName}" Width="*" ElementStyle="{StaticResource MutedCell}" />
                                         <DataGridTemplateColumn Width="130">
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
@@ -277,8 +277,24 @@
                                                 Visibility="{Binding IsFixed, Converter={StaticResource Visible}}">
                                             <TextBlock Text="{Binding Keys}" FontSize="12" FontWeight="SemiBold" />
                                         </Border>
-                                        <Button Grid.Column="1" Style="{StaticResource IconButton}" l:Btn.Icon="&#xE7A7;" Command="{Binding ResetCommand}"
-                                                ToolTip="{l:T keys.reset}" Visibility="{Binding IsChanged, Converter={StaticResource Visible}}" />
+                                        <!-- a small × back to the default; it never changes the row's height -->
+                                        <Button Grid.Column="1" Command="{Binding ResetCommand}" ToolTip="{l:T keys.reset}" Width="22" Height="22" Padding="0"
+                                                MinWidth="0" MinHeight="0" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="6,0,0,0" Cursor="Hand"
+                                                Visibility="{Binding IsChanged, Converter={StaticResource VisibleKeepSpace}}">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border x:Name="Bd" Background="Transparent" CornerRadius="11">
+                                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE711;" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                   Foreground="{DynamicResource TextMutedBrush}" />
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HoverBrush}" />
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                        </Button>
                                         <TextBlock Grid.Column="2" Text="{Binding Description}" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" TextWrapping="Wrap" />
                                     </Grid>
                                 </DataTemplate>

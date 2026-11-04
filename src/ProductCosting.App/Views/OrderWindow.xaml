@@ -39,8 +39,34 @@
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <DockPanel VerticalAlignment="Center" Margin="4,0">
-                                    <Border DockPanel.Dock="Right" Background="Transparent" ToolTip="{Binding CheaperText}" ToolTipService.InitialShowDelay="150"
+                                    <Border DockPanel.Dock="Right" Background="Transparent" ToolTipService.InitialShowDelay="150"
                                             Visibility="{Binding HasCheaper, Converter={StaticResource Visible}}" Margin="6,0,0,0">
+                                        <Border.ToolTip>
+                                            <ToolTip>
+                                                <ItemsControl ItemsSource="{Binding Cheaper}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Grid Margin="0,2">
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="N" />
+                                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="P" />
+                                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="D" />
+                                                                </Grid.ColumnDefinitions>
+                                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                                                <TextBlock Grid.Column="1" Text="{Binding Price}" Margin="16,0,0,0" HorizontalAlignment="Right" />
+                                                                <TextBlock Grid.Column="2" Text="{Binding Difference}" Margin="12,0,0,0" HorizontalAlignment="Right"
+                                                                           Foreground="{DynamicResource SuccessTextBrush}" FontWeight="SemiBold" />
+                                                            </Grid>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <StackPanel Grid.IsSharedSizeScope="True" />
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                </ItemsControl>
+                                            </ToolTip>
+                                        </Border.ToolTip>
                                         <TextBlock Style="{StaticResource Icon}" Text="&#xE8EC;" FontSize="13" Foreground="{DynamicResource WarningTextBrush}" />
                                     </Border>
                                     <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />

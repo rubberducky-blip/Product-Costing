@@ -19,7 +19,7 @@
             <!-- the window grows with the table up to about ten rows, then the table scrolls -->
             <DataGrid x:Name="Table" MaxHeight="440" VirtualizingPanel.IsVirtualizing="False">
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="{l:T history.date}" Binding="{Binding DateText}" Width="*" MinWidth="140" ElementStyle="{StaticResource CellText}" />
+                    <DataGridTextColumn Header="{l:T history.date}" Binding="{Binding DateText}" Width="*" ElementStyle="{StaticResource CellText}" />
                     <DataGridTextColumn Header="{l:T supplierHistory.items}" Binding="{Binding ChangedText}" Width="200"
                                         ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
                     <DataGridTextColumn Header="{l:T supplierHistory.upDownCol}" Binding="{Binding UpDownText}" Width="160"
