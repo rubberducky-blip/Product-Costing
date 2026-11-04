@@ -1,3 +1,4 @@
+using System.Windows.Media;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
@@ -154,6 +155,36 @@ public sealed class DateTimeConverter : IValueConverter
 }
 
 /// <summary>Colour of a margin %: low is bad (red), middling amber, high good (green).</summary>
+/// <summary>
+/// Colour of an adjusted (net) margin, in seven bands: below 0% very bad, 0–10% bad, 10–15% poor, 15–20% fair,
+/// 20–25% good, 25–35% very good, 35% and above excellent. Parameter "soft" gives the matching background.
+/// </summary>
+public sealed class AdjMarginBrushConverter : IValueConverter
+{
+    static readonly string[] DarkColors = ["#FF4D4F", "#F87171", "#FB923C", "#FACC15", "#A3E635", "#4ADE80", "#00D97E"];
+    static readonly string[] LightColors = ["#991B1B", "#DC2626", "#EA580C", "#CA8A04", "#65A30D", "#16A34A", "#047857"];
+    static readonly Dictionary<(int, bool, bool), Brush> Cache = [];
+
+    public static int Band(decimal m) => m switch { < 0 => 0, < 10 => 1, < 15 => 2, < 20 => 3, < 25 => 4, < 35 => 5, _ => 6 };
+
+    public static Brush For(decimal margin, bool soft = false)
+    {
+        var dark = ThemeManager.Current.Dark;
+        var key = (Band(margin), dark, soft);
+        if (Cache.TryGetValue(key, out var b)) return b;
+        var color = (Color)ColorConverter.ConvertFromString((dark ? DarkColors : LightColors)[key.Item1]);
+        if (soft) color.A = 0x2E;
+        var brush = new SolidColorBrush(color);
+        brush.Freeze();
+        return Cache[key] = brush;
+    }
+
+    public object Convert(object? value, Type t, object? p, CultureInfo c) =>
+        value is decimal m ? For(m, (p as string) == "soft") : DependencyProperty.UnsetValue;
+
+    public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => Binding.DoNothing;
+}
+
 public sealed class MarginBrushConverter : IValueConverter
 {
     public const decimal Low = 20m, Good = 35m;

@@ -31,6 +31,13 @@ public sealed class NumBox : TextBox
     public NumBox()
     {
         GotKeyboardFocus += (_, _) => SelectAll();
+        // a click into the box selects all of it: the click itself must not then place the caret (that flashes)
+        PreviewMouseLeftButtonDown += (_, e) =>
+        {
+            if (IsKeyboardFocusWithin) return;
+            Focus();
+            e.Handled = true;
+        };
         LostKeyboardFocus += (_, _) => Pretty();
     }
 

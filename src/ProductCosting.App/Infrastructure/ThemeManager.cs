@@ -112,12 +112,22 @@ public static class ThemeManager
         "#B07A12", "#93650E", "#F2E3C2",
         "#0F3B3226", "#083B3226", "#228B5E34");
 
+    // classic Windows business software: grey dialogs, light-blue bars, beige grids, white fields, Windows blue
+    static readonly Palette ClassicErp = new(false,
+        "#EBEBEB", "#D5E6FB", "#F4F3EE", "#E9EFF8", "#FFFFFF", "#FFFFFF", "#C9D6E8", "#7498CB",
+        "#111111", "#44506A", "#7A7F88", "#FFFFFF",
+        "#0078D4", "#1A86DA", "#005FB0", "#CCE4F7", "#0058A3",
+        "#C42B1C", "#A4262C", "#FDE7E9", "#F1B9BE",
+        "#107C10", "#0E6A0E", "#DFF6DD",
+        "#9D5D00", "#835000", "#FFFFCC",
+        "#1A0078D4", "#100078D4", "#80B9D1EA");
+
     /// <summary>Theme ids (stored in settings) with their label keys, in menu order.</summary>
     public static IReadOnlyList<(string Id, string LabelKey)> Themes { get; } =
     [
         ("system", "theme.system"), ("dark", "theme.dark"), ("light", "theme.light"), ("contrast", "theme.contrast"),
         ("slate", "theme.slate"), ("nord", "theme.nord"), ("dracula", "theme.dracula"), ("solarized", "theme.solarized"),
-        ("gruvbox", "theme.gruvbox"), ("everforest", "theme.everforest"), ("sepia", "theme.sepia"),
+        ("gruvbox", "theme.gruvbox"), ("everforest", "theme.everforest"), ("sepia", "theme.sepia"), ("classic", "theme.classic"),
     ];
 
     public static Palette Current { get; private set; } = Dark;
@@ -183,6 +193,7 @@ public static class ThemeManager
         "gruvbox" => Gruvbox,
         "everforest" => Everforest,
         "sepia" => Sepia,
+        "classic" => ClassicErp,
         _ => SystemParameters.HighContrast ? Contrast : SystemUsesLight() ? Light : Dark,
     };
 

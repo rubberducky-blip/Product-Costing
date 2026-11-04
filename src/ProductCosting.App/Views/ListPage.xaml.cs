@@ -42,6 +42,8 @@ public partial class ListPage : UserControl
         UnitCol.Visibility = Vis(_vm.IsBought);
         PurchaseCol.Visibility = Vis(_vm.IsBought);
         ProfitCol.Visibility = Vis(_vm.IsProducts);
+        MarginCol.Visibility = Vis(!_vm.IsBought);
+        AdjMarginCol.Visibility = Vis(_vm.IsBought);
     }
 
     void Unbind()
@@ -70,13 +72,38 @@ public partial class ListPage : UserControl
         if (_vm is null) return;
         var sv = FindChild<ScrollViewer>(ActiveGrid);
         _scroll = (_vm.FolderId, _vm.Filter, sv?.VerticalOffset ?? 0);
+        // the selected rows stay selected after an action reloads the table (duplicate, set price…)
+        _selected = ActiveGrid.SelectedItems.Cast<object>().Select(ListPageViewModel.IdOf).ToHashSet();
+        _current = ActiveGrid.SelectedItem is { } cur ? ListPageViewModel.IdOf(cur) : null;
     }
+
+    HashSet<long> _selected = [];
+    long? _current;
 
     void RestoreScroll()
     {
         if (_vm is null || _scroll is not { } s) return;
         _scroll = null;
-        if (s.Folder != _vm.FolderId || s.Filter != _vm.Filter || s.Offset <= 0) return;
+        if (s.Folder != _vm.FolderId || s.Filter != _vm.Filter) return;
+        if (_selected.Count > 0)
+        {
+            var grid = ActiveGrid;
+            var rows = _vm.Rows.Cast<object>().Where(r => _selected.Contains(ListPageViewModel.IdOf(r))).ToList();
+            var current = rows.FirstOrDefault(r => ListPageViewModel.IdOf(r) == _current) ?? rows.FirstOrDefault();
+            _selected = [];
+            Dispatcher.BeginInvoke(() =>
+            {
+                grid.SelectedItems.Clear();
+                foreach (var r in rows) grid.SelectedItems.Add(r);
+                if (current is not null)
+                {
+                    grid.CurrentItem = current;
+                    // keyboard focus back on the row, so shortcuts keep working on it
+                    if (grid.ItemContainerGenerator.ContainerFromItem(current) is DataGridRow row) row.Focus();
+                }
+            }, System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+        if (s.Offset <= 0) return;
         Dispatcher.BeginInvoke(() => FindChild<ScrollViewer>(ActiveGrid)?.ScrollToVerticalOffset(s.Offset),
             System.Windows.Threading.DispatcherPriority.Loaded);
     }

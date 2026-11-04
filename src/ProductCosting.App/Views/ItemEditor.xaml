@@ -462,8 +462,8 @@
                                 </TextBlock>
                             </Border>
                             <Border Style="{StaticResource Badge}" Margin="8,0,0,6" Visibility="{Binding HasAdjMargin, Converter={StaticResource Visible}}"
-                                    Background="{Binding AdjMarginPct, Converter={StaticResource MarginBrush}, ConverterParameter=soft}">
-                                <TextBlock Foreground="{Binding AdjMarginPct, Converter={StaticResource MarginBrush}}">
+                                    Background="{Binding AdjMarginPct, Converter={StaticResource AdjMarginBrush}, ConverterParameter=soft}">
+                                <TextBlock Foreground="{Binding AdjMarginPct, Converter={StaticResource AdjMarginBrush}}">
                                     <Run Text="{l:T list.adjMargin}" /><Run Text=" " /><Run Text="{Binding AdjMarginText, Mode=OneWay}" />
                                 </TextBlock>
                             </Border>
@@ -522,6 +522,10 @@
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding Tone}" Value="bad">
                                                 <Setter TargetName="Value" Property="Foreground" Value="{DynamicResource DangerTextBrush}" />
+                                                <Setter TargetName="Value" Property="FontWeight" Value="SemiBold" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding HasToneBrush}" Value="True">
+                                                <Setter TargetName="Value" Property="Foreground" Value="{Binding ToneBrush}" />
                                                 <Setter TargetName="Value" Property="FontWeight" Value="SemiBold" />
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding IsWarn}" Value="True">

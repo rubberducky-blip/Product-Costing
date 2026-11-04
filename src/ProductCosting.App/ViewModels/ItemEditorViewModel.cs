@@ -428,7 +428,7 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         if (salesOverhead != 0)
         {
             Breakdown.Add(new(Loc.F("cost.salesOverhead", Fmt.Pct(salesOverhead)), "−" + Fmt.Money4(price.Price * salesOverhead / 100m), "sub"));
-            Breakdown.Add(new(Loc.T("cost.adjMargin"), Fmt.Pct(Math.Round(adjusted, 2)), "row", MarginBrushConverter.Tone(adjusted)));
+            Breakdown.Add(new(Loc.T("cost.adjMargin"), Fmt.Pct(Math.Round(adjusted, 2)), "row", null, AdjMarginBrushConverter.For(adjusted)));
         }
         if (warn.HasFlag(CostWarning.MissingMaterial)) Breakdown.Add(new(Loc.T("cost.warnMissing"), "", "warn"));
         if (warn.HasFlag(CostWarning.NoConversion)) Breakdown.Add(new(Loc.T("cost.warnConversion"), "", "warn"));

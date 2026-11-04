@@ -163,7 +163,7 @@
                                         <DataGridTextColumn Header="{l:T backup.kind}" Binding="{Binding KindText}" Width="150" ElementStyle="{StaticResource MutedCell}" />
                                         <DataGridTextColumn Header="{l:T backup.size}" Binding="{Binding SizeBytes, Converter={StaticResource FileSize}}" Width="90"
                                                             ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
-                                        <DataGridTextColumn Header="" Binding="{Binding FileName}" Width="*" ElementStyle="{StaticResource MutedCell}" />
+                                        <DataGridTextColumn Header="" Binding="{Binding FileName}" Width="*" MinWidth="200" ElementStyle="{StaticResource MutedCell}" />
                                         <DataGridTemplateColumn Width="130">
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>

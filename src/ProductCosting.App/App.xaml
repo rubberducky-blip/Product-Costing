@@ -28,6 +28,7 @@
             <l:ReasonsConverter x:Key="ReasonNames" />
             <l:BoolToVisibilityConverter x:Key="Visible" />
             <l:SupplierQtyConverter x:Key="SupplierQty" />
+            <l:AdjMarginBrushConverter x:Key="AdjMarginBrush" />
             <l:BoolToDoubleConverter x:Key="QtyWidth" True="226" False="142" />
             <l:BoolToVisibilityConverter x:Key="Hidden" Invert="True" />
             <l:BoolToVisibilityConverter x:Key="VisibleKeepSpace" KeepSpace="True" />
@@ -500,7 +501,8 @@
             <Style TargetType="DataGrid" BasedOn="{StaticResource {x:Type DataGrid}}">
                 <Setter Property="ColumnHeaderStyle" Value="{StaticResource AppHeader}" />
                 <Setter Property="CanUserResizeColumns" Value="False" />
-                <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+                <!-- columns keep their minimum widths: a narrow window scrolls the table sideways instead of squeezing it -->
+                <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
                 <Setter Property="RowStyle" Value="{StaticResource AppRow}" />
                 <Setter Property="CellStyle" Value="{StaticResource AppCell}" />
                 <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />

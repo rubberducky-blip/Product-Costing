@@ -127,7 +127,7 @@
                                   MouseDoubleClick="ItemsGrid_MouseDoubleClick">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="{l:T list.code}" Binding="{Binding Code}" Width="110" ElementStyle="{StaticResource CellText}" />
-                                <DataGridTextColumn Header="{l:T list.name}" Binding="{Binding Name}" Width="*" ElementStyle="{StaticResource CellText}" />
+                                <DataGridTextColumn Header="{l:T list.name}" Binding="{Binding Name}" Width="*" MinWidth="180" ElementStyle="{StaticResource CellText}" />
                                 <DataGridTextColumn Header="{l:T list.supplierCode}" Binding="{Binding SupplierCode}" Width="120" ElementStyle="{StaticResource MutedCell}" />
                                 <DataGridTextColumn Header="{l:T item.purchasePrice}" Binding="{Binding Converter={StaticResource SupplierPrice}}" Width="150"
                                                     ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />

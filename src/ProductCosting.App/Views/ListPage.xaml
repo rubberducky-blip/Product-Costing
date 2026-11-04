@@ -225,11 +225,20 @@
                                             ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" SortMemberPath="Profit" />
                         <DataGridTextColumn Header="{l:T list.markup}" Binding="{Binding EffMarkup, Converter={StaticResource Pct}}" Width="120"
                                             ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" SortMemberPath="EffMarkup" />
-                        <DataGridTemplateColumn Header="{l:T list.margin}" Width="120" SortMemberPath="MarginPct" HeaderStyle="{StaticResource NumHeader}">
+                        <!-- products: the gross margin; merchandise and raw materials: the margin after the sales overhead -->
+                        <DataGridTemplateColumn x:Name="MarginCol" Header="{l:T list.margin}" Width="120" SortMemberPath="MarginPct" HeaderStyle="{StaticResource NumHeader}">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <TextBlock Text="{Binding MarginPct, Converter={StaticResource Pct}}" Style="{StaticResource NumCell}" FontWeight="SemiBold"
                                                Foreground="{Binding MarginPct, Converter={StaticResource MarginBrush}}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn x:Name="AdjMarginCol" Header="{l:T list.margin}" Width="120" SortMemberPath="AdjMarginPct" HeaderStyle="{StaticResource NumHeader}">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding AdjMarginPct, Converter={StaticResource Pct}}" Style="{StaticResource NumCell}" FontWeight="SemiBold"
+                                               Foreground="{Binding AdjMarginPct, Converter={StaticResource AdjMarginBrush}}" />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
@@ -272,8 +281,8 @@
                                             ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
                         <DataGridTextColumn Header="{l:T list.shipping}" Binding="{Binding ShippingPct, Converter={StaticResource Pct}}" Width="120"
                                             ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
-                        <DataGridTextColumn Header="{l:T list.email}" Binding="{Binding Email}" Width="*" ElementStyle="{StaticResource MutedCell}" />
-                        <DataGridTextColumn Header="{l:T list.phone}" Binding="{Binding Phone}" Width="*" ElementStyle="{StaticResource MutedCell}" />
+                        <DataGridTextColumn Header="{l:T list.email}" Binding="{Binding Email}" Width="*" MinWidth="180" ElementStyle="{StaticResource MutedCell}" />
+                        <DataGridTextColumn Header="{l:T list.phone}" Binding="{Binding Phone}" Width="*" MinWidth="140" ElementStyle="{StaticResource MutedCell}" />
                     </DataGrid.Columns>
                 </DataGrid>
 

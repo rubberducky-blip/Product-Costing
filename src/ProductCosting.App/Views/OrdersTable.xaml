@@ -40,8 +40,8 @@
                             </ContextMenu>
                         </DataGrid.ContextMenu>
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="{l:T list.supplier}" Binding="{Binding SupplierName}" Width="1.4*" ElementStyle="{StaticResource CellText}" />
-                            <DataGridTextColumn Header="{l:T order.date}" Binding="{Binding DateText}" Width="*" ElementStyle="{StaticResource CellText}" />
+                            <DataGridTextColumn Header="{l:T list.supplier}" Binding="{Binding SupplierName}" Width="1.4*" MinWidth="160" ElementStyle="{StaticResource CellText}" />
+                            <DataGridTextColumn Header="{l:T order.date}" Binding="{Binding DateText}" Width="*" MinWidth="150" ElementStyle="{StaticResource CellText}" />
                             <DataGridTextColumn Header="{l:T order.linesCol}" Binding="{Binding LineCount}" Width="100"
                                                 ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
                             <DataGridTextColumn Header="{l:T order.totalCol}" Binding="{Binding TotalText}" Width="120"

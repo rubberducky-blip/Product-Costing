@@ -28,8 +28,10 @@ public static class Choices
 }
 
 /// <summary>A line of the live cost breakdown.</summary>
-public sealed record BreakdownLine(string Label, string Value, string Kind = "row", string? Tone = null)
+public sealed record BreakdownLine(string Label, string Value, string Kind = "row", string? Tone = null,
+    System.Windows.Media.Brush? ToneBrush = null)
 {
+    public bool HasToneBrush => ToneBrush is not null;
     public bool IsHeader => Kind == "header";
     public bool IsTotal => Kind == "total";
     public bool IsBig => Kind == "big";

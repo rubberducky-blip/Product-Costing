@@ -53,6 +53,7 @@ public partial class App : Application
             return;
         }
 
+        Scrolling.Register();
         Loc.I.SetLanguage(AppState.Settings.Language);
         ThemeManager.Apply(AppState.Settings.Theme);
         UiScale.Apply(AppState.Settings.UiScale);

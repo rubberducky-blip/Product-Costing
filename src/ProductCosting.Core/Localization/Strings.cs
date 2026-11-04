@@ -405,6 +405,7 @@ public static class Strings
         ["theme.gruvbox"] = ("Gruvbox (ζεστό σκούρο)", "Gruvbox (warm dark)"),
         ["theme.everforest"] = ("Everforest (απαλό πράσινο)", "Everforest (soft green)"),
         ["theme.sepia"] = ("Sepia (χαρτί)", "Sepia (paper)"),
+        ["theme.classic"] = ("Κλασικό ERP", "Classic ERP"),
         ["size.normal"] = ("Κανονικό (100%)", "Normal (100%)"),
         ["size.large"] = ("Μεγάλο (110%)", "Large (110%)"),
         ["size.larger"] = ("Πολύ μεγάλο (120%)", "Larger (120%)"),
