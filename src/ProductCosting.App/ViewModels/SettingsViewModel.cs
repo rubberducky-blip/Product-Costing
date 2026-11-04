@@ -65,27 +65,54 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     public List<Choice<RoundingMode>> RoundingModes { get; } = Choices.RoundingModes();
 
-    public sealed record Shortcut(string Keys, string Description);
+    /// <summary>A shortcut in Settings: the changeable ones are recorded by pressing the keys.</summary>
+    public sealed partial class ShortcutRow(string? id, string keys, string description) : ObservableObject
+    {
+        public string? Id { get; } = id;
+        public string Description { get; } = description;
+        public bool IsEditable => Id is not null;
+        public bool IsFixed => Id is null;
+        [ObservableProperty] private string _keys = keys;
+        public bool IsChanged => Id is not null && Keys != (Hotkeys.All.First(a => a.Id == Id).Default.ToString());
+        public event Action? Edited;
 
-    public List<Shortcut> Shortcuts { get; } =
-    [
-        new("Ctrl + F", Loc.T("keys.search")),
-        new("Ctrl + S", Loc.T("keys.save")),
-        new("Ctrl + Z", Loc.T("keys.undo")),
-        new("Ctrl + 1", Loc.T("list.newProduct")),
-        new("Ctrl + 2", Loc.T("list.newMerchandise")),
-        new("Ctrl + 3", Loc.T("list.newRaw")),
-        new("Ctrl + 4", Loc.T("list.newSupplier")),
-        new("Ctrl + 5", Loc.T("supplier.newOrder")),
-        new("← / →", Loc.T("keys.prevNext")),
-        new("↑ / ↓", Loc.T("keys.sections")),
-        new("Esc", Loc.T("keys.settings")),
-        new("Ctrl + B", Loc.T("keys.backup")),
-        new("Ctrl + D", Loc.T("keys.duplicate")),
-        new("Ctrl + H", Loc.T("keys.history")),
-        new("Ctrl + Q", Loc.T("keys.purchase")),
-        new("Ctrl + W", Loc.T("keys.price")),
-    ];
+        partial void OnKeysChanged(string value)
+        {
+            OnPropertyChanged(nameof(IsChanged));
+            Edited?.Invoke();
+        }
+
+        [CommunityToolkit.Mvvm.Input.RelayCommand]
+        void Reset()
+        {
+            if (Id is not null) Keys = Hotkeys.All.First(a => a.Id == Id).Default.ToString();
+        }
+    }
+
+    public List<ShortcutRow> Shortcuts { get; } = [];
+
+    void LoadShortcuts(string stored)
+    {
+        var map = Hotkeys.Parse(stored);
+        if (Shortcuts.Count == 0)
+        {
+            foreach (var (id, _, label) in Hotkeys.All)
+            {
+                var row = new ShortcutRow(id, map[id]?.ToString() ?? "", Loc.T(label));
+                row.Edited += Edited;
+                Shortcuts.Add(row);
+            }
+            Shortcuts.Add(new ShortcutRow(null, "← / →", Loc.T("keys.prevNext")));
+            Shortcuts.Add(new ShortcutRow(null, "↑ / ↓", Loc.T("keys.sections")));
+            Shortcuts.Add(new ShortcutRow(null, "Esc", Loc.T("keys.settings")));
+        }
+        else
+            foreach (var r in Shortcuts.Where(r => r.Id is not null)) r.Keys = map[r.Id!]?.ToString() ?? "";
+    }
+
+    /// <summary>The shortcuts as stored (only those changed from the defaults).</summary>
+    string HotkeysValue() => Hotkeys.Serialize(Shortcuts.Where(r => r.Id is not null)
+        .ToDictionary(r => r.Id!, r => Hotkeys.FromText(r.Keys)));
     public List<Choice<string>> Languages { get; } = [new("el", "Ελληνικά"), new("en", "English")];
     public List<Choice<string>> Themes { get; } = ThemeManager.Themes.Select(t => new Choice<string>(t.Id, Loc.T(t.LabelKey))).ToList();
     public List<Choice<decimal>> Sizes { get; } = Infrastructure.UiScale.Sizes.Select(s => new Choice<decimal>(s.Scale, Loc.T(s.LabelKey))).ToList();
@@ -111,6 +138,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         RoundingStep.Set(s.RoundingStep);
         UsdPerEur.Set(s.UsdPerEur);
         SalesOverhead.Set(s.SalesOverheadPct);
+        LoadShortcuts(s.Hotkeys);
         RoundingMode = s.RoundingMode;
         CurrencySymbol = s.CurrencySymbol;
         Language = s.Language;
@@ -142,10 +170,10 @@ public sealed partial class SettingsViewModel : PageViewModel
     }
 
     sealed record FormState(string Labor, string Overhead, string Markup, string Step, string Usd, RoundingMode Mode, string Symbol, string Language,
-        string Theme, decimal Scale, string SalesOverhead);
+        string Theme, decimal Scale, string SalesOverhead, string Hotkeys);
 
     protected override object? CaptureState() => new FormState(LaborRate.Text, OverheadRate.Text, DefaultMarkup.Text, RoundingStep.Text,
-        UsdPerEur.Text, RoundingMode, CurrencySymbol, Language, Theme, UiScale, SalesOverhead.Text);
+        UsdPerEur.Text, RoundingMode, CurrencySymbol, Language, Theme, UiScale, SalesOverhead.Text, HotkeysValue());
 
     protected override void RestoreState(object state)
     {
@@ -153,6 +181,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         _loading = true;
         LaborRate.Text = f.Labor; OverheadRate.Text = f.Overhead; DefaultMarkup.Text = f.Markup; RoundingStep.Text = f.Step;
         UsdPerEur.Text = f.Usd; RoundingMode = f.Mode; CurrencySymbol = f.Symbol; Language = f.Language; Theme = f.Theme; UiScale = f.Scale; SalesOverhead.Text = f.SalesOverhead;
+        LoadShortcuts(f.Hotkeys);
         _loading = false;
         Edited();
     }
@@ -163,7 +192,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     {
         string N(NumField f) => f.IsValid ? f.Value?.ToString(CultureInfo.InvariantCulture) ?? "" : "!" + f.Text;
         return string.Join("|", N(LaborRate), N(OverheadRate), N(DefaultMarkup), N(RoundingStep), N(UsdPerEur), RoundingMode, CurrencySymbol.Trim(), Language,
-            Theme, UiScale.ToString(CultureInfo.InvariantCulture), N(SalesOverhead));
+            Theme, UiScale.ToString(CultureInfo.InvariantCulture), N(SalesOverhead), HotkeysValue());
     }
 
     [RelayCommand]
@@ -182,8 +211,17 @@ public sealed partial class SettingsViewModel : PageViewModel
             Dialogs.Error(Loc.T("common.invalidNumber"));
             return false;
         }
+        // one shortcut per action
+        var taken = Shortcuts.Where(r => r.Id is not null && r.Keys.Length > 0).GroupBy(r => r.Keys).FirstOrDefault(g => g.Count() > 1);
+        if (taken is not null)
+        {
+            Dialogs.Error(Loc.F("keys.duplicate.error", taken.Key, string.Join(", ", taken.Select(r => r.Description))));
+            return false;
+        }
         var s = AppState.Store.LoadSettings();
         var langChanged = s.Language != Language;
+        var keysChanged = s.Hotkeys != HotkeysValue();
+        s.Hotkeys = HotkeysValue();
         var looksChanged = s.Theme != Theme || s.UiScale != UiScale;
         s.Theme = Theme;
         s.UiScale = UiScale;
@@ -207,7 +245,8 @@ public sealed partial class SettingsViewModel : PageViewModel
         }
         if (langChanged) Loc.I.SetLanguage(Language);
         // rebuild pages so colours worked out in code (margins, charts) and texts follow
-        if (langChanged || looksChanged || overheadChanged) _main.ResetPages(this);
+        if (keysChanged) Hotkeys.Load(s.Hotkeys);
+        if (langChanged || looksChanged || overheadChanged || keysChanged) _main.ResetPages(this);
         _main.ShowToast(Loc.F("settings.saved", sum.PriceChanges));
         return true;
     }

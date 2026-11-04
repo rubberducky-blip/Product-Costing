@@ -106,6 +106,7 @@ public sealed partial class Store
         s.UiScale = D("ui_scale", s.UiScale);
         s.UsdPerEur = D("usd_per_eur", s.UsdPerEur);
         s.SalesOverheadPct = D("sales_overhead", s.SalesOverheadPct);
+        s.Hotkeys = S("hotkeys", s.Hotkeys);
         s.BackupFolder = S("backup_folder", s.BackupFolder);
         s.AutoBackup = S("auto_backup", "1") == "1";
         s.BackupKeepCount = (int)D("backup_keep", s.BackupKeepCount);
@@ -122,7 +123,7 @@ public sealed partial class Store
             ("default_markup", N(s.DefaultMarkupPct)), ("rounding_step", N(s.RoundingStep)),
             ("rounding_mode", ((int)s.RoundingMode).ToString(CultureInfo.InvariantCulture)),
             ("currency_symbol", s.CurrencySymbol), ("language", s.Language), ("theme", s.Theme), ("ui_scale", N(s.UiScale)), ("usd_per_eur", N(s.UsdPerEur)),
-            ("sales_overhead", N(s.SalesOverheadPct)),
+            ("sales_overhead", N(s.SalesOverheadPct)), ("hotkeys", s.Hotkeys),
             ("backup_folder", s.BackupFolder), ("auto_backup", s.AutoBackup ? "1" : "0"),
             ("backup_keep", s.BackupKeepCount.ToString(CultureInfo.InvariantCulture)), ("last_auto_backup", s.LastAutoBackupDay),
         };
@@ -152,6 +153,7 @@ public sealed partial class Store
         old.Language = s.Language;
         old.Theme = s.Theme;
         old.UiScale = s.UiScale;
+        old.Hotkeys = s.Hotkeys;
         old.BackupFolder = s.BackupFolder;
         old.AutoBackup = s.AutoBackup;
         old.BackupKeepCount = s.BackupKeepCount;

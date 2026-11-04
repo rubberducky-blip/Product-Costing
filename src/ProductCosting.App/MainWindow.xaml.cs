@@ -29,9 +29,6 @@ public partial class MainWindow : Window
         InitializeComponent();
         NativeWindow.UseDarkTitleBar(this);
         DataContext = _vm = new MainViewModel();
-        // Ctrl+F (also Ctrl+Φ: on the Greek layout it is the same key)
-        InputBindings.Add(new KeyBinding(FocusSearchCommand, Key.F, ModifierKeys.Control));
-        InputBindings.Add(new KeyBinding(SaveCommand, Key.S, ModifierKeys.Control));
         PreviewKeyDown += OnShortcut;
         Closing += OnClosing;
     }
@@ -50,28 +47,20 @@ public partial class MainWindow : Window
     {
         var key = e.Key == Key.System ? e.SystemKey : e.Key;
         var focus = Keyboard.FocusedElement as DependencyObject;
-        if (Keyboard.Modifiers == ModifierKeys.Control)
+        // a shortcut being recorded in Settings does nothing else
+        if (focus is HotkeyBox) return;
+        // the keys come from Settings (physical keys: Ctrl+F is also Ctrl+Φ on the Greek layout)
+        if (Hotkeys.Matches("search", e)) { FocusSearchCommand.Execute(null); e.Handled = true; return; }
+        if (Hotkeys.Matches("save", e)) { SaveCommand.Execute(null); e.Handled = true; return; }
+        if (Hotkeys.Matches("undo", e))
         {
-            switch (key)
-            {
-                case Key.Z when focus != SearchBox && _vm.Current is { SupportsUndo: true } page:
-                    e.Handled = page.Undo();
-                    break;
-                case >= Key.D1 and <= Key.D5:
-                    _vm.NewByShortcut(key - Key.D0);
-                    e.Handled = true;
-                    break;
-                case >= Key.NumPad1 and <= Key.NumPad5:
-                    _vm.NewByShortcut(key - Key.NumPad0);
-                    e.Handled = true;
-                    break;
-                case Key.B:
-                    _vm.BackupNow();
-                    e.Handled = true;
-                    break;
-            }
+            if (focus != SearchBox && _vm.Current is { SupportsUndo: true } page) e.Handled = page.Undo();
             return;
         }
+        string[] news = ["newProduct", "newMerchandise", "newRaw", "newSupplier", "newOrder"];
+        for (var i = 0; i < news.Length; i++)
+            if (Hotkeys.Matches(news[i], e)) { _vm.NewByShortcut(i + 1); e.Handled = true; return; }
+        if (Hotkeys.Matches("backup", e)) { _vm.BackupNow(); e.Handled = true; return; }
         if (Keyboard.Modifiers != ModifierKeys.None) return;
         var busy = InPopup(focus) || _vm.Search.IsOpen || _vm.Notifications.IsOpen;
         var typing = focus is TextBoxBase or PasswordBox or ComboBox or ComboBoxItem;

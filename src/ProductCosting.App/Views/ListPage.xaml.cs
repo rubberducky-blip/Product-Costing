@@ -150,29 +150,30 @@ public partial class ListPage : UserControl
             _vm?.DeleteRows(grid.SelectedItems.Cast<object>().ToList());
             e.Handled = true;
         }
-        else if (Keyboard.Modifiers == ModifierKeys.Control && grid.SelectedItems.Count > 0)
-            e.Handled = Shortcut(grid, e.Key);
+        else if (grid.SelectedItems.Count > 0)
+            e.Handled = Shortcut(grid, e);
     }
 
-    /// <summary>Ctrl+D duplicate, Ctrl+H history, Ctrl+Q purchase price, Ctrl+W price (same as the right-click menu).</summary>
-    bool Shortcut(DataGrid grid, Key key)
+    /// <summary>Duplicate, history, purchase price, price (the right-click menu's actions; keys from Settings).</summary>
+    bool Shortcut(DataGrid grid, KeyEventArgs e)
     {
         var single = grid.SelectedItems.Count == 1 ? grid.SelectedItem : null;
-        switch (key)
+        var action = new[] { "duplicate", "history", "purchase", "price" }.FirstOrDefault(id => Hotkeys.Matches(id, e));
+        switch (action)
         {
-            case Key.D:
+            case "duplicate":
                 _vm?.DuplicateRows(grid.SelectedItems.Cast<object>().ToList());
                 return true;
-            case Key.H when single is ItemRow r:
+            case "history" when single is ItemRow r:
                 new PriceHistoryWindow(r.Id, $"{r.Code} · {r.Name}") { Owner = Window.GetWindow(this) }.ShowDialog();
                 return true;
-            case Key.H when single is SupplierRow r && AppState.Store.GetSupplier(r.Id) is { } s:
+            case "history" when single is SupplierRow r && AppState.Store.GetSupplier(r.Id) is { } s:
                 new SupplierHistoryWindow(s) { Owner = Window.GetWindow(this) }.ShowDialog();
                 return true;
-            case Key.Q when single is ItemRow { Kind: not ItemKind.Product, SourceCount: 1 } r:
+            case "purchase" when single is ItemRow { Kind: not ItemKind.Product, SourceCount: 1 } r:
                 _vm?.SetPurchasePrice(r);
                 return true;
-            case Key.W when single is ItemRow r:
+            case "price" when single is ItemRow r:
                 _vm?.SetPrice(r);
                 return true;
         }

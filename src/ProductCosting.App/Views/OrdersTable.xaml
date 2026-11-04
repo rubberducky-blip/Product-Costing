@@ -31,7 +31,7 @@
                             <ContextMenu>
                                 <MenuItem Header="{l:T common.open}" Click="Menu_Open" />
                                 <MenuItem Header="{l:T order.export}" Click="Menu_Export" />
-                                <MenuItem Header="{l:T order.copy}" Click="Menu_Copy" InputGestureText="Ctrl+D" />
+                                <MenuItem Header="{l:T order.copy}" Click="Menu_Copy" l:Hotkeys.Id="duplicate" />
                                 <MenuItem Header="{l:T order.execute}" Click="Menu_Execute" Tag="draft" />
                                 <MenuItem Header="{l:T order.archive}" Click="Menu_Archive" Tag="executed" />
                                 <MenuItem Header="{l:T order.unarchive}" Click="Menu_Unarchive" Tag="archived" />

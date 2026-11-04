@@ -182,20 +182,28 @@
 
                 <Border Style="{StaticResource Card}" Margin="0,16,0,0">
                     <StackPanel>
-                        <TextBlock Text="{l:T keys.title}" Style="{StaticResource H2}" Margin="0,0,0,12" />
+                        <TextBlock Text="{l:T keys.title}" Style="{StaticResource H2}" Margin="0,0,0,4" />
+                        <TextBlock Text="{l:T keys.help}" Style="{StaticResource Caption}" Margin="0,0,0,12" />
                         <ItemsControl ItemsSource="{Binding Shortcuts}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Grid Margin="0,4">
+                                    <Grid Margin="0,3">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="170" />
+                                            <ColumnDefinition Width="40" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
+                                        <!-- click and press the new keys; Backspace switches the shortcut off -->
+                                        <l:HotkeyBox GestureText="{Binding Keys}" FontWeight="SemiBold" ToolTip="{l:T keys.recordHelp}"
+                                                     Visibility="{Binding IsEditable, Converter={StaticResource Visible}}" />
                                         <Border Background="{DynamicResource CardHoverBrush}" BorderBrush="{DynamicResource LineStrongBrush}" BorderThickness="1"
-                                                CornerRadius="5" Padding="8,2" HorizontalAlignment="Left">
+                                                CornerRadius="5" Padding="8,2" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                                Visibility="{Binding IsFixed, Converter={StaticResource Visible}}">
                                             <TextBlock Text="{Binding Keys}" FontSize="12" FontWeight="SemiBold" />
                                         </Border>
-                                        <TextBlock Grid.Column="1" Text="{Binding Description}" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" />
+                                        <Button Grid.Column="1" Style="{StaticResource IconButton}" l:Btn.Icon="&#xE7A7;" Command="{Binding ResetCommand}"
+                                                ToolTip="{l:T keys.reset}" Visibility="{Binding IsChanged, Converter={StaticResource Visible}}" />
+                                        <TextBlock Grid.Column="2" Text="{Binding Description}" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" TextWrapping="Wrap" />
                                     </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>

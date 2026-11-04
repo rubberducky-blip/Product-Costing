@@ -76,7 +76,7 @@ public partial class OrdersTable : UserControl
     void Grid_PreviewKeyDown(object sender, KeyEventArgs e)
     {
         if (((DataGrid)sender).SelectedItem is not SavedOrderRow row) return;
-        if (e.Key == Key.D && Keyboard.Modifiers == ModifierKeys.Control) { OrderActions.Copy(row); e.Handled = true; }
+        if (Hotkeys.Matches("duplicate", e)) { OrderActions.Copy(row); e.Handled = true; }
     }
 
     void Grid_MouseDoubleClick(object sender, MouseButtonEventArgs e)

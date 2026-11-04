@@ -20,6 +20,8 @@ public sealed class AppSettings
     /// raw materials sold as they are; it never changes costs or prices.
     /// </summary>
     public decimal SalesOverheadPct { get; set; }
+    /// <summary>Keyboard shortcuts changed from their defaults, "id=Ctrl+D;…" ("" = all defaults).</summary>
+    public string Hotkeys { get; set; } = "";
     public string BackupFolder { get; set; } = "";
     public bool AutoBackup { get; set; } = true;
     public int BackupKeepCount { get; set; } = 30;
