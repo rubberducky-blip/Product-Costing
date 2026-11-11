@@ -21,7 +21,26 @@ public sealed class OrderRow : CommunityToolkit.Mvvm.ComponentModel.ObservableOb
     {
         OnPropertyChanged(nameof(Warning));
         OnPropertyChanged(nameof(ValueText));
+        OnPropertyChanged(nameof(HasMentions));
     };
+
+    /// <summary>Other open orders (draft or executed) the item is already on; shown once a quantity is typed.</summary>
+    public List<string>? Mentions { get; init; }
+    public bool HasMentions => Mentions is { Count: > 0 } && Qty.Value is > 0;
+    public string MentionsText => Mentions is null ? "" : Loc.T("order.alreadyOn") + "\n" + string.Join("\n", Mentions.Select(m => "• " + m));
+
+    decimal? _wishQty;
+    /// <summary>The quantity wanted on the shopping list, in this row's unit (null when the item isn't on it).</summary>
+    public decimal? WishQty
+    {
+        get => _wishQty;
+        set
+        {
+            if (SetProperty(ref _wishQty, value)) { OnPropertyChanged(nameof(HasWish)); OnPropertyChanged(nameof(WishText)); }
+        }
+    }
+    public bool HasWish => WishQty is not null && !IsReadOnly;
+    public string WishText => WishQty is decimal q ? Loc.F("order.fromWish", Fmt.Num(q), Strings.Measure(Entry)) : "";
 
     public long ItemId { get; init; }
     public string Code { get; init; } = "";
@@ -114,6 +133,8 @@ public partial class OrderWindow : Window
             var items = AppState.Store.GetSupplierItems(supplier.Id);
             var variants = AppState.Store.GetVariants(items.Select(i => i.ItemId));
             var costs = AppState.Store.GetSupplierCosts(items.Select(i => i.ItemId));
+            var mentions = AppState.Store.GetOpenOrderMentions(orderId);
+            var wishes = AppState.Store.GetWishQuantities();
             foreach (var i in items)
             {
                 // ordered in the unit it is bought in (e.g. m²), at the price of one of it
@@ -122,6 +143,8 @@ public partial class OrderWindow : Window
                     ItemId = i.ItemId, Code = i.Code, SupplierCode = code, Name = i.Name, Variant = variant, Unit = i.Unit, Entry = i.EntryUnit,
                     Moq = i.EntryMoq, Pack = i.EntryPack, UnitPrice = i.EntryUnitPrice, Currency = i.Currency, DiscountPct = i.DiscountPct, ShippingPct = i.ShippingPct,
                     Cheaper = CheaperFrom(costs.GetValueOrDefault(i.ItemId), supplier.Id, i.EntryUnit),
+                    Mentions = mentions.GetValueOrDefault(i.ItemId),
+                    WishQty = wishes.TryGetValue(i.ItemId, out var w) ? i.EntryUnit.FromBase(w) : null,
                 };
                 var vs = variants.TryGetValue(i.ItemId, out var all) ? all.Where(v => v.SupplierId is null || v.SupplierId == supplier.Id).ToList() : [];
                 if (vs.Count > 0) foreach (var v in vs) _rows.Add(Row(v.Name, v.Code ?? i.SupplierCode));
@@ -181,6 +204,46 @@ public partial class OrderWindow : Window
             .Select(c => new CheaperLine(c.SupplierName, Fmt.Money4(c.UnitCostEur * f), "−" + Fmt.Money4((own.UnitCostEur - c.UnitCostEur) * f)))
             .ToList();
         return cheaper.Count > 0 ? cheaper : null;
+    }
+
+    /// <summary>The shopping-list button of a row: its quantity goes into the order and the item leaves the list.</summary>
+    void TakeWish_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: OrderRow { WishQty: decimal q } row }) return;
+        row.Qty.Set(q);
+        AppState.Store.SetWish(row.ItemId, 0);
+        // the same item in its other rows (variations) no longer offers it
+        foreach (var r in _rows.Where(r => r.ItemId == row.ItemId)) r.WishQty = null;
+    }
+
+    /// <summary>Enter in a quantity: on to the next row's quantity, ready to type (Shift+Enter: back).</summary>
+    void Qty_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key != System.Windows.Input.Key.Enter || sender is not FrameworkElement { DataContext: OrderRow row }) return;
+        e.Handled = true;
+        var shown = Grid.Items.Cast<object>().ToList();
+        var i = shown.IndexOf(row) + (System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Shift) ? -1 : 1);
+        if (i < 0 || i >= shown.Count) return;
+        var next = shown[i];
+        Grid.SelectedItem = next;
+        Grid.ScrollIntoView(next);
+        Grid.UpdateLayout();
+        if (Grid.ItemContainerGenerator.ContainerFromItem(next) is DataGridRow container && FindChild<NumBox>(container) is { } box)
+        {
+            box.Focus();
+            box.SelectAll();
+        }
+    }
+
+    static T? FindChild<T>(DependencyObject root) where T : DependencyObject
+    {
+        for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(root, i);
+            if (child is T t) return t;
+            if (FindChild<T>(child) is { } found) return found;
+        }
+        return null;
     }
 
     List<OrderRow> Filled => _rows.Where(r => r.Qty.Value is > 0).ToList();

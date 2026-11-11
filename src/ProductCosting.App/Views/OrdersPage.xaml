@@ -8,7 +8,11 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <TextBlock Text="{l:T nav.orders}" Style="{StaticResource H1}" Margin="0,24,0,18" />
+        <DockPanel Margin="0,24,0,18">
+            <Button DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}" l:Btn.Icon="&#xE8FD;" Content="{l:T wish.open}"
+                    Command="{Binding WishListCommand}" VerticalAlignment="Center" />
+            <TextBlock Text="{l:T nav.orders}" Style="{StaticResource H1}" />
+        </DockPanel>
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <v:OrdersTable Drafts="{Binding Drafts}" Executed="{Binding Executed}" NewOrderCommand="{Binding NewCommand}"
                           ShowSupplier="True" SideBySide="True" />

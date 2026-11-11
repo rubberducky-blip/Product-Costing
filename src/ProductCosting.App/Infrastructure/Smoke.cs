@@ -383,6 +383,16 @@ internal static class Smoke
             await Settle(500);
             Check("orders page", vm.Current is OrdersPageViewModel { Drafts.Count: 1, Executed.Count: 1 });
             Shot(root, "23-orders-page");
+            // the shopping list: two items, then orders from it
+            store.SetWish(Id("M-100"), 10);
+            store.SetWish(Id("R-002"), 30000);
+            var wish = new WishListWindow { Owner = w };
+            wish.Show();
+            await Settle(500);
+            Shot((FrameworkElement)wish.Content, "23b-wish-list");
+            wish.Close();
+            var made = store.OrderWishes([Id("M-100"), Id("R-002")], Core.Calc.PlanMode.FewestOrders, Core.Data.SupplierRegion.Any);
+            Check("shopping list made orders", made.Items == 2 && store.GetWishList().Count == 0);
             var hist = new SupplierHistoryWindow(store.GetSuppliers().First(x => x.Name.StartsWith("Δερμάτινα"))) { Owner = w };
             hist.Show();
             await Settle(500);

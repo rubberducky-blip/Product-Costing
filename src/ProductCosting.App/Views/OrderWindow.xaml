@@ -79,19 +79,39 @@
                     <DataGridTextColumn x:Name="MoqCol" Header="{l:T item.moq}" Binding="{Binding MoqText}" Width="130" ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
                     <DataGridTextColumn x:Name="PackCol" Header="{l:T item.pack}" Binding="{Binding PackText}" Width="130" ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
                     <DataGridTextColumn Header="{l:T order.unitPrice}" Binding="{Binding UnitPriceText}" Width="120" ElementStyle="{StaticResource NumCell}" HeaderStyle="{StaticResource NumHeader}" />
-                    <DataGridTemplateColumn Header="{l:T order.qty}" Width="150" HeaderStyle="{StaticResource NumHeader}">
+                    <DataGridTemplateColumn Header="{l:T order.qty}" Width="190" HeaderStyle="{StaticResource NumHeader}">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <Grid Margin="4,3">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="24" />
-                                    </Grid.ColumnDefinitions>
-                                    <l:NumBox Field="{Binding Qty}" MinHeight="30" IsReadOnly="{Binding IsReadOnly}" />
-                                    <TextBlock Grid.Column="1" Style="{StaticResource Icon}" Text="&#xE7BA;" FontSize="13" HorizontalAlignment="Right"
-                                               Foreground="{DynamicResource WarningTextBrush}" ToolTip="{Binding Warning}"
-                                               Visibility="{Binding Warning, Converter={StaticResource Visible}}" />
-                                </Grid>
+                                <!-- the quantity, then marks: below the minimum / not whole packs, already on another order, on the shopping list -->
+                                <DockPanel Margin="4,3">
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="4,0,0,0">
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE7BA;" FontSize="13" Margin="3,0" VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource WarningTextBrush}" ToolTip="{Binding Warning}"
+                                                   Visibility="{Binding Warning, Converter={StaticResource Visible}}" />
+                                        <Border Background="Transparent" ToolTip="{Binding MentionsText}" ToolTipService.InitialShowDelay="150" Margin="3,0"
+                                                Visibility="{Binding HasMentions, Converter={StaticResource Visible}}">
+                                            <TextBlock Style="{StaticResource Icon}" Text="&#xE946;" FontSize="13" VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource AccentTextBrush}" />
+                                        </Border>
+                                        <Button Click="TakeWish_Click" ToolTip="{Binding WishText}" Width="24" Height="24" Padding="0" MinWidth="0" MinHeight="0"
+                                                Cursor="Hand" Visibility="{Binding HasWish, Converter={StaticResource Visible}}">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border x:Name="Bd" Background="{DynamicResource AccentSoftBrush}" CornerRadius="5">
+                                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE8FD;" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                   Foreground="{DynamicResource AccentTextBrush}" />
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentBrush}" />
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                        </Button>
+                                    </StackPanel>
+                                    <l:NumBox Field="{Binding Qty}" MinHeight="30" IsReadOnly="{Binding IsReadOnly}" PreviewKeyDown="Qty_PreviewKeyDown" />
+                                </DockPanel>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>

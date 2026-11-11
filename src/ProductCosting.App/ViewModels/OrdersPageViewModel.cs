@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ProductCosting.App.Infrastructure;
+using ProductCosting.App.Views;
 using ProductCosting.Core.Data;
 
 namespace ProductCosting.App.ViewModels;
@@ -24,4 +25,12 @@ public sealed partial class OrdersPageViewModel : PageViewModel
 
     [RelayCommand]
     void New() => OrderActions.New();
+
+    /// <summary>The shopping list; orders made from it show up here when it closes.</summary>
+    [RelayCommand]
+    void WishList()
+    {
+        new WishListWindow { Owner = System.Windows.Application.Current.MainWindow }.ShowDialog();
+        Refresh();
+    }
 }
