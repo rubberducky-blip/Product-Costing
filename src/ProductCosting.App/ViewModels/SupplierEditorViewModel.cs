@@ -37,9 +37,36 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
 
     public override string Section => "suppliers";
 
-    /// <summary>This supplier's own order PDF options (otherwise those of Settings).</summary>
+    /// <summary>This supplier's own order PDF options (otherwise those of Settings) and the note on its PDFs.</summary>
     [ObservableProperty] private bool _ownPdf;
     public OrderPdfForm Pdf { get; } = new();
+    [ObservableProperty] private string _orderNote = "";
+
+    /// <summary>Options other than those of Settings, or a note: the button says "Custom".</summary>
+    public bool IsCustomPdf => (OwnPdf && Pdf.ToOptions() != AppState.Settings.OrderPdf) || OrderNote.Trim().Length > 0;
+    public string PdfButtonText => IsCustomPdf ? "Custom" : "Default";
+    public string PdfSummary => IsCustomPdf ? Loc.T("pdfopt.customHelp") : Loc.T("pdfopt.defaultHelp");
+
+    [RelayCommand]
+    void EditPdf()
+    {
+        var win = new SupplierPdfWindow(Title, Pdf.ToOptions(), OrderNote) { Owner = System.Windows.Application.Current.MainWindow };
+        if (win.ShowDialog() != true) return;
+        // options the same as Settings are not kept: the supplier then follows any later change of Settings
+        var options = win.Result;
+        OwnPdf = options != AppState.Settings.OrderPdf;
+        Pdf.Load(options);
+        OrderNote = win.Note;
+        Edited();
+        RaisePdf();
+    }
+
+    void RaisePdf()
+    {
+        OnPropertyChanged(nameof(IsCustomPdf));
+        OnPropertyChanged(nameof(PdfButtonText));
+        OnPropertyChanged(nameof(PdfSummary));
+    }
     public IReadOnlyList<long>? Trail { get; }
     public long Id => _model.Id;
 
@@ -107,6 +134,8 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
         OnPropertyChanged(nameof(VatHint));
         OwnPdf = s.OrderPdf is not null;
         Pdf.Load(OrderPdfOptions.Parse(s.OrderPdf) ?? AppState.Settings.OrderPdf);
+        OrderNote = s.OrderNote ?? "";
+        RaisePdf();
         Items.Clear();
         if (!IsNew) foreach (var i in AppState.Store.GetSupplierItems(s.Id)) Items.Add(i);
         LoadOrders();
@@ -144,10 +173,10 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
     }
 
     sealed record FormState(string Name, long? FolderId, long? CountryId, Currency Currency, string Email, string Phone, string Notes,
-        string Discount, string Shipping, string Vat, bool OwnPdf, OrderPdfOptions Pdf);
+        string Discount, string Shipping, string Vat, bool OwnPdf, OrderPdfOptions Pdf, string Note);
 
     protected override object? CaptureState() =>
-        new FormState(Name, FolderId, CountryId, Currency, Email, Phone, Notes, Discount.Text, Shipping.Text, Vat.Text, OwnPdf, Pdf.ToOptions());
+        new FormState(Name, FolderId, CountryId, Currency, Email, Phone, Notes, Discount.Text, Shipping.Text, Vat.Text, OwnPdf, Pdf.ToOptions(), OrderNote);
 
     protected override void RestoreState(object state)
     {
@@ -155,7 +184,8 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
         _loading = true;
         Name = f.Name; FolderId = f.FolderId; CountryId = f.CountryId; Currency = f.Currency;
         Email = f.Email; Phone = f.Phone; Notes = f.Notes; Discount.Text = f.Discount; Shipping.Text = f.Shipping; Vat.Text = f.Vat;
-        OwnPdf = f.OwnPdf; Pdf.Load(f.Pdf);
+        OwnPdf = f.OwnPdf; Pdf.Load(f.Pdf); OrderNote = f.Note;
+        RaisePdf();
         _loading = false;
         Edited();
     }
@@ -170,7 +200,7 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
     {
         string N(NumField f) => f.IsValid ? (f.Value ?? 0).ToString(CultureInfo.InvariantCulture) : "!" + f.Text;
         return string.Join("|", Name.Trim(), FolderId, CountryCode, Currency, Email.Trim(), Phone.Trim(), Notes.Trim(), N(Discount), N(Shipping), N(Vat),
-            OwnPdf ? Pdf.ToOptions().Serialize() : "");
+            OwnPdf ? Pdf.ToOptions().Serialize() : "", OrderNote.Trim());
     }
 
     [RelayCommand]
@@ -205,7 +235,8 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
         {
             Id = _model.Id, Name = Name.Trim(), FolderId = FolderId, Country = CountryCode, Currency = Currency,
             Email = Opt(Email), Phone = Opt(Phone), Notes = Opt(Notes), DiscountPct = Discount.Or0, ShippingPct = Shipping.Or0, VatPct = Vat.Value ?? DefaultVat,
-            OrderPdf = OwnPdf ? Pdf.ToOptions().Serialize() : null,
+            OrderPdf = OwnPdf && Pdf.ToOptions() != AppState.Settings.OrderPdf ? Pdf.ToOptions().Serialize() : null,
+            OrderNote = OrderNote.Trim().Length > 0 ? OrderNote.Trim() : null,
         };
         var id = AppState.Store.SaveSupplier(s);
         Load(AppState.Store.GetSupplier(id)!);

@@ -6,7 +6,7 @@ namespace ProductCosting.Core.Data;
 /// <summary>Opens connections to the local SQLite database and keeps its schema up to date.</summary>
 public sealed class Db
 {
-    public const int SchemaVersion = 8;
+    public const int SchemaVersion = 9;
 
     static int _initialized;
 
@@ -103,6 +103,13 @@ public sealed class Db
             using var t = c.BeginTransaction();
             c.Execute(Schema.V8, transaction: t);
             c.Execute("PRAGMA user_version = 8", transaction: t);
+            t.Commit();
+        }
+        if (version < 9)
+        {
+            using var t = c.BeginTransaction();
+            c.Execute(Schema.V9, transaction: t);
+            c.Execute("PRAGMA user_version = 9", transaction: t);
             t.Commit();
         }
         return reprice;
@@ -373,5 +380,15 @@ static class Schema
             key  TEXT PRIMARY KEY,
             data BLOB NOT NULL
         ) WITHOUT ROWID;
+        """;
+
+    // a note on a supplier's order PDFs; the shopping list of items to order (with the quantity wanted)
+    public const string V9 = """
+        ALTER TABLE suppliers ADD COLUMN order_note TEXT;
+        CREATE TABLE wish_list(
+            item_id  INTEGER PRIMARY KEY REFERENCES items(id) ON DELETE CASCADE,
+            quantity REAL NOT NULL,
+            added_at TEXT NOT NULL
+        );
         """;
 }

@@ -310,7 +310,7 @@ public partial class OrderWindow : Window
     {
         var options = OrderPdfOptions.Parse(supplier.OrderPdf) ?? AppState.Settings.OrderPdf;
         var ours = options.Header is OrderPdfHeader.Company or OrderPdfHeader.Both;
-        return PdfReports.SupplierOrder(supplier, lines, date, options, AppState.Settings.Company, ours ? AppState.Store.GetLogo() : null);
+        return PdfReports.SupplierOrder(supplier, lines, date, options, AppState.Settings.Company, ours ? AppState.Store.GetLogo() : null, supplier.OrderNote);
     }
 
     static string Sanitize(string s) => string.Concat(s.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));

@@ -358,10 +358,12 @@ public class StoreTests
         Assert.Equal(("Leather Co", "1 Street, Athens", ""), (english.Name, english.Address, english.TaxOffice));
         var supplier = f.Store.GetSupplier(sup)!;
         supplier.OrderPdf = (options with { Header = OrderPdfHeader.None }).Serialize();
+        supplier.OrderNote = "Delivery Monday–Friday";
         f.Store.SaveSupplier(supplier);
+        Assert.Equal("Delivery Monday–Friday", f.Store.GetSupplier(sup)!.OrderNote);
         Assert.Equal(OrderPdfHeader.None, OrderPdfOptions.Parse(f.Store.GetSupplier(sup)!.OrderPdf)!.Header);
         var full = PdfReports.SupplierOrder(supplier, [new OrderLine("M1", "S1-R", "Κούπα", "Κόκκινο", 12, MeasureUnit.Pcs, 3.1m, Currency.Usd)],
-            f.Now, options, f.Store.LoadSettings().Company, png);
+            f.Now, options, f.Store.LoadSettings().Company, png, supplier.OrderNote);
         Assert.True(full.Length > 1000);
         f.Store.SetLogo(null);
         Assert.Null(f.Store.GetLogo());

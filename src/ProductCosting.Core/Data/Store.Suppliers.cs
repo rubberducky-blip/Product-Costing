@@ -7,7 +7,7 @@ namespace ProductCosting.Core.Data;
 
 public sealed partial class Store
 {
-    const string SupplierColumns = "id, name, folder_id, country, discount_pct, shipping_pct, vat_pct, currency, email, phone, notes, order_pdf";
+    const string SupplierColumns = "id, name, folder_id, country, discount_pct, shipping_pct, vat_pct, currency, email, phone, notes, order_pdf, order_note";
 
     public Supplier? GetSupplier(long id) => Read(c => c.QuerySingleOrDefault<Supplier>($"SELECT {SupplierColumns} FROM suppliers WHERE id=@id", new { id }));
 
@@ -41,8 +41,8 @@ public sealed partial class Store
         {
             var pos = NextPosition(c, t, "SELECT max(position) FROM suppliers WHERE folder_id IS @FolderId", s);
             s.Id = c.ExecuteScalar<long>("""
-                INSERT INTO suppliers(name, folder_id, position, country, discount_pct, shipping_pct, vat_pct, currency, email, phone, notes, order_pdf, created_at, updated_at)
-                VALUES(@Name, @FolderId, @pos, @Country, @DiscountPct, @ShippingPct, @VatPct, @Currency, @Email, @Phone, @Notes, @OrderPdf, @now, @now) RETURNING id
+                INSERT INTO suppliers(name, folder_id, position, country, discount_pct, shipping_pct, vat_pct, currency, email, phone, notes, order_pdf, order_note, created_at, updated_at)
+                VALUES(@Name, @FolderId, @pos, @Country, @DiscountPct, @ShippingPct, @VatPct, @Currency, @Email, @Phone, @Notes, @OrderPdf, @OrderNote, @now, @now) RETURNING id
                 """, new DynamicParameters(s).Also(p => { p.Add("pos", pos); p.Add("now", now); }), t);
         }
         else
@@ -50,7 +50,7 @@ public sealed partial class Store
             old = c.QuerySingle<Supplier>($"SELECT {SupplierColumns} FROM suppliers WHERE id=@Id", s, t);
             c.Execute("""
                 UPDATE suppliers SET name=@Name, folder_id=@FolderId, country=@Country, discount_pct=@DiscountPct, shipping_pct=@ShippingPct,
-                    vat_pct=@VatPct, currency=@Currency, email=@Email, phone=@Phone, notes=@Notes, order_pdf=@OrderPdf, updated_at=@now WHERE id=@Id
+                    vat_pct=@VatPct, currency=@Currency, email=@Email, phone=@Phone, notes=@Notes, order_pdf=@OrderPdf, order_note=@OrderNote, updated_at=@now WHERE id=@Id
                 """, new DynamicParameters(s).Also(p => p.Add("now", now)), t);
             if (old.FolderId != s.FolderId)
                 c.Execute("UPDATE suppliers SET position=@p WHERE id=@Id", new { p = NextPosition(c, t, "SELECT max(position) FROM suppliers WHERE folder_id IS @FolderId AND id<>@Id", s), s.Id }, t);

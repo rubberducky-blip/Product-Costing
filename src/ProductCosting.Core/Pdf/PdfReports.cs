@@ -127,7 +127,7 @@ public static class PdfReports
     /// supplier's details, ours with the logo, both or neither go at the top).
     /// </summary>
     public static byte[] SupplierOrder(Supplier supplier, IReadOnlyList<OrderLine> lines, DateTime now,
-        OrderPdfOptions? options = null, CompanyInfo? company = null, byte[]? logo = null)
+        OrderPdfOptions? options = null, CompanyInfo? company = null, byte[]? logo = null, string? note = null)
     {
         var o = options ?? OrderPdfOptions.Default;
         var lang = o.Language;
@@ -198,6 +198,9 @@ public static class PdfReports
                         row.ConstantItem(160).Column(info => Date(info, gap: false));
                     }
                 });
+                // the supplier's note, when there is one
+                if (!string.IsNullOrWhiteSpace(note))
+                    col.Item().PaddingBottom(12).Background("#F3F4F6").Padding(8).Text(note.Trim());
                 col.Item().Table(table =>
                 {
                     table.ColumnsDefinition(c =>

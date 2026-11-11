@@ -59,6 +59,8 @@ public sealed class Supplier
     public string? Notes { get; set; }
     /// <summary>This supplier's own order PDF options (<see cref="OrderPdfOptions.Serialize"/>); null = those of the settings.</summary>
     public string? OrderPdf { get; set; }
+    /// <summary>A note printed on this supplier's order PDFs, under the details at the top (none when empty).</summary>
+    public string? OrderNote { get; set; }
 }
 
 public sealed class Item
