@@ -37,7 +37,7 @@ public static class Reorder
     static void OnGripChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is not FrameworkElement grip || e.NewValue is not true) return;
-        grip.Cursor = Cursors.SizeNS;
+        grip.Cursor = Cursors.Hand;
         grip.PreviewMouseLeftButtonDown += (_, a) =>
         {
             _start = a.GetPosition(null);

@@ -206,12 +206,15 @@ public partial class OrderWindow : Window
         return cheaper.Count > 0 ? cheaper : null;
     }
 
-    /// <summary>The shopping-list button of a row: its quantity goes into the order and the item leaves the list.</summary>
+    /// <summary>Items taken from the shopping list: they leave it once the order is saved (closing without saving keeps them).</summary>
+    readonly HashSet<long> _takenWishes = [];
+
+    /// <summary>The shopping-list button of a row: its quantity goes into the order (the item leaves the list on save).</summary>
     void TakeWish_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not FrameworkElement { DataContext: OrderRow { WishQty: decimal q } row }) return;
         row.Qty.Set(q);
-        AppState.Store.SetWish(row.ItemId, 0);
+        _takenWishes.Add(row.ItemId);
         // the same item in its other rows (variations) no longer offers it
         foreach (var r in _rows.Where(r => r.ItemId == row.ItemId)) r.WishQty = null;
     }
@@ -305,6 +308,10 @@ public partial class OrderWindow : Window
         }
         var isNew = _orderId is null;
         _orderId = AppState.Store.SaveOrder(_orderId, _supplier.Id, lines);
+        // taken from the shopping list and still on the order: now off the list
+        var ordered = lines.Select(l => l.ItemId).OfType<long>().ToHashSet();
+        AppState.Store.RemoveWish(_takenWishes.Where(ordered.Contains));
+        _takenWishes.Clear();
         if (isNew) Drafts.Remove(_supplier.Id);
         _savedKey = Key();
         return true;

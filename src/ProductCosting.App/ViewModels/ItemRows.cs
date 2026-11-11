@@ -72,6 +72,23 @@ public sealed partial class SourceRow : EditRow
     [ObservableProperty] private System.Windows.Media.Brush? _marginBrush;
     [ObservableProperty] private System.Windows.Media.Brush? _marginSoftBrush;
 
+    /// <summary>Display only (worked out by the form): must not count as an edit, which would recalculate mid-way.</summary>
+    public void ShowAlone(string finalCost, decimal netMargin)
+    {
+        Quiet = true;
+        try
+        {
+            FinalCostText = finalCost;
+            MarginText = Fmt.Pct(Math.Round(netMargin, 1));
+            MarginBrush = AdjMarginBrushConverter.For(netMargin);
+            MarginSoftBrush = AdjMarginBrushConverter.For(netMargin, soft: true);
+        }
+        finally
+        {
+            Quiet = false;
+        }
+    }
+
     public bool IsValid => Price.IsValid && Qty.IsValid && Discount.IsValid && Shipping.IsValid && Weight.IsValid && Moq.IsValid && Pack.IsValid;
 
     public void UpdateHints(Supplier? s)

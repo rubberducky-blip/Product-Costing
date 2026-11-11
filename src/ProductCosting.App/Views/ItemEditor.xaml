@@ -164,7 +164,7 @@
                                     <DataTemplate>
                                         <!-- with several suppliers: a handle to reorder them, and each one's final cost and net margin -->
                                         <DockPanel>
-                                        <ContentControl Style="{StaticResource ReorderGrip}"
+                                        <ContentControl Style="{StaticResource ReorderGripTall}"
                                                         Visibility="{Binding DataContext.MultipleSources, ElementName=Root, Converter={StaticResource Visible}}" />
                                         <Border Style="{StaticResource Inset}">
                                             <StackPanel>

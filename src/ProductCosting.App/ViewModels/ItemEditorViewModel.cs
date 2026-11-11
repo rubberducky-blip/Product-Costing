@@ -326,7 +326,18 @@ public sealed partial class ItemEditorViewModel : PageViewModel, IReorderable
 
     // ---------- live calculation ----------
 
+    bool _recalculating;
+
+    /// <summary>The live breakdown; a change made while it runs (a row's display value) never starts a second pass.</summary>
     void Recalc()
+    {
+        if (_recalculating) return;
+        _recalculating = true;
+        try { RecalcCore(); }
+        finally { _recalculating = false; }
+    }
+
+    void RecalcCore()
     {
         var s = AppState.Settings;
         Breakdown.Clear();
@@ -447,18 +458,14 @@ public sealed partial class ItemEditorViewModel : PageViewModel, IReorderable
         var step = Step.Value ?? s.RoundingStep;
         var saleCost = cost * f;
         var price = Costing.Price(saleCost, markup, step, s.RoundingMode);
-        // each supplier on its own: its final cost, and the net margin if it had all of the weight
+        // each supplier on its own: its final cost, and the net margin at the current price if it had all of the weight
         if (IsBought && _sourceCosts is { Count: > 1 } each)
             for (var i = 0; i < each.Count && i < Sources.Count; i++)
             {
                 var own = Costing.WithWaste(each[i], IsRaw && HasWaste ? WastePct.Value : null) * f;
-                var p = Costing.Price(own, markup, step, s.RoundingMode);
-                var net = Costing.AdjustedMargin(p.MarginPct, Kind, p.Price > 0 ? s.SalesOverheadPct : 0);
-                var row = Sources[i];
-                row.FinalCostText = Fmt.Money4(own) + PerUnit(saleUnit);
-                row.MarginText = Fmt.Pct(Math.Round(net, 1));
-                row.MarginBrush = AdjMarginBrushConverter.For(net);
-                row.MarginSoftBrush = AdjMarginBrushConverter.For(net, soft: true);
+                var gross = price.Price > 0 ? (price.Price - own) / price.Price * 100m : 0;
+                var net = Costing.AdjustedMargin(gross, Kind, price.Price > 0 ? s.SalesOverheadPct : 0);
+                Sources[i].ShowAlone(Fmt.Money4(own) + PerUnit(saleUnit), net);
             }
         _saleCost = saleCost;
         _priceNow = price.Price;
