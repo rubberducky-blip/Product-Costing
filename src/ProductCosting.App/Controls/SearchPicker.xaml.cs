@@ -65,6 +65,16 @@ public partial class SearchPicker : UserControl
         }
     }
 
+    /// <summary>Opens the list with its filter focused (e.g. on a recipe line just added).</summary>
+    public void OpenDropDown()
+    {
+        if (!IsVisible || Pop.IsOpen) return;
+        PopBorder.MinWidth = Math.Max(ActualWidth, 340);
+        FilterBox.Text = "";
+        Apply();
+        Pop.IsOpen = true;
+    }
+
     void Opener_Click(object sender, RoutedEventArgs e)
     {
         // the click that closed the popup must not reopen it

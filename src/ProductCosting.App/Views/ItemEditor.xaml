@@ -159,9 +159,13 @@
                             <TextBlock Text="{l:T item.sourcesHelp}" Style="{StaticResource Caption}" Margin="0,0,0,12"
                                        Visibility="{Binding MultipleSources, Converter={StaticResource Visible}}" />
 
-                            <ItemsControl ItemsSource="{Binding Sources}">
+                            <ItemsControl ItemsSource="{Binding Sources}" l:Reorder.Target="True">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
+                                        <!-- with several suppliers: a handle to reorder them, and each one's final cost and net margin -->
+                                        <DockPanel>
+                                        <ContentControl Style="{StaticResource ReorderGrip}"
+                                                        Visibility="{Binding DataContext.MultipleSources, ElementName=Root, Converter={StaticResource Visible}}" />
                                         <Border Style="{StaticResource Inset}">
                                             <StackPanel>
                                                 <DockPanel>
@@ -229,8 +233,20 @@
                                                         <l:NumBox Field="{Binding Weight}" />
                                                     </StackPanel>
                                                 </WrapPanel>
+                                                <DockPanel Margin="0,4,0,0" Visibility="{Binding DataContext.MultipleSources, ElementName=Root, Converter={StaticResource Visible}}">
+                                                    <Border DockPanel.Dock="Right" Style="{StaticResource Badge}" Background="{Binding MarginSoftBrush}"
+                                                            ToolTip="{l:T item.sourceMarginHelp}">
+                                                        <TextBlock Foreground="{Binding MarginBrush}">
+                                                            <Run Text="{l:T list.adjMargin}" /><Run Text=" " /><Run Text="{Binding MarginText, Mode=OneWay}" />
+                                                        </TextBlock>
+                                                    </Border>
+                                                    <TextBlock VerticalAlignment="Center">
+                                                        <Run Text="{l:T item.finalCost}" Foreground="{DynamicResource TextMutedBrush}" /><Run Text=" " /><Run Text="{Binding FinalCostText, Mode=OneWay}" FontWeight="SemiBold" />
+                                                    </TextBlock>
+                                                </DockPanel>
                                             </StackPanel>
                                         </Border>
+                                        </DockPanel>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
@@ -310,7 +326,7 @@
                                 <TextBlock DockPanel.Dock="Right" Text="{Binding MaterialsTotalText}" FontWeight="SemiBold" VerticalAlignment="Center" />
                                 <TextBlock Text="{l:T item.recipe}" Style="{StaticResource H2}" />
                             </DockPanel>
-                            <Grid Margin="0,0,40,0">
+                            <Grid Margin="16,0,40,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="2.2*" MinWidth="220" />
                                     <ColumnDefinition Width="96" />
@@ -328,10 +344,12 @@
                                 <TextBlock Grid.Column="4" Text="{l:T common.comment}" Style="{StaticResource ColHead}" Margin="10,0,0,6" />
                                 <TextBlock Grid.Column="5" Text="{l:T list.cost}" Style="{StaticResource ColHead}" HorizontalAlignment="Right" />
                             </Grid>
-                            <ItemsControl ItemsSource="{Binding Lines}">
+                            <ItemsControl x:Name="RecipeList" ItemsSource="{Binding Lines}" l:Reorder.Target="True">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <StackPanel Margin="0,0,0,8">
+                                        <DockPanel Margin="0,0,0,8">
+                                            <ContentControl Style="{StaticResource ReorderGrip}" />
+                                        <StackPanel>
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="2.2*" MinWidth="220" />
@@ -371,6 +389,7 @@
                                                 <TextBlock Text="{Binding WarningText}" Foreground="{DynamicResource WarningTextBrush}" FontSize="12" TextWrapping="Wrap" />
                                             </StackPanel>
                                         </StackPanel>
+                                        </DockPanel>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
@@ -390,10 +409,12 @@
                                 <TextBlock DockPanel.Dock="Right" Text="{Binding LaborTotalText}" FontWeight="SemiBold" VerticalAlignment="Center" />
                                 <TextBlock Text="{l:T item.labor}" Style="{StaticResource H2}" />
                             </DockPanel>
-                            <ItemsControl ItemsSource="{Binding Labor}">
+                            <ItemsControl ItemsSource="{Binding Labor}" l:Reorder.Target="True">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Grid Margin="0,0,0,8">
+                                        <DockPanel Margin="0,0,0,8">
+                                        <ContentControl Style="{StaticResource ReorderGrip}" />
+                                        <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="120" />
                                                 <ColumnDefinition Width="90" />
@@ -406,6 +427,7 @@
                                             <Button Grid.Column="3" Style="{StaticResource IconButton}" l:Btn.Icon="&#xE711;" HorizontalAlignment="Right"
                                                     ToolTip="{l:T common.remove}" Command="{Binding DataContext.RemoveLaborCommand, ElementName=Root}" CommandParameter="{Binding}" />
                                         </Grid>
+                                        </DockPanel>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>

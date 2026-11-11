@@ -66,6 +66,11 @@ public sealed partial class SourceRow : EditRow
     [ObservableProperty] private string _shippingHint = "";
     [ObservableProperty] private List<Choice<int>> _currencyChoices = [];
     [ObservableProperty] private string _shareText = "";
+    /// <summary>With several suppliers: this one's cost per unit, and the net margin if it supplied everything.</summary>
+    [ObservableProperty] private string _finalCostText = "";
+    [ObservableProperty] private string _marginText = "";
+    [ObservableProperty] private System.Windows.Media.Brush? _marginBrush;
+    [ObservableProperty] private System.Windows.Media.Brush? _marginSoftBrush;
 
     public bool IsValid => Price.IsValid && Qty.IsValid && Discount.IsValid && Shipping.IsValid && Weight.IsValid && Moq.IsValid && Pack.IsValid;
 
@@ -142,6 +147,8 @@ public sealed partial class LineRow : EditRow
     public NumField Waste { get; }
     [ObservableProperty] private bool _isWasteMaterial;
     public bool IsProductLine { get; }
+    /// <summary>Just added with "add material / product": the form opens its list at once.</summary>
+    public bool OpenPicker { get; set; }
     /// <summary>Width of the waste column: zero when no line of the recipe uses a material with waste.</summary>
     [ObservableProperty] private System.Windows.GridLength _wasteWidth = new(0);
 

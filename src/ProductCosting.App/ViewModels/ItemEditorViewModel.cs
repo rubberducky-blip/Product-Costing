@@ -14,7 +14,7 @@ using ProductCosting.Core.Model;
 namespace ProductCosting.App.ViewModels;
 
 /// <summary>Form for a product, merchandise or raw material with a live cost breakdown.</summary>
-public sealed partial class ItemEditorViewModel : PageViewModel
+public sealed partial class ItemEditorViewModel : PageViewModel, IReorderable
 {
     readonly MainViewModel _main;
     readonly ListScope _from;
@@ -185,6 +185,7 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         && (m.Kind == ItemKind.Product || (m.Kind == ItemKind.Merchandise && !m.UsableAsMaterial));
 
     decimal _saleCost, _priceNow;
+    List<decimal>? _sourceCosts;
 
     /// <summary>Pricing → "Set price": the markup that sells at the typed price (rounded to the step), as an edit to save.</summary>
     [RelayCommand]
@@ -200,6 +201,9 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         if (Costing.MarkupForPrice(_saleCost, rounded, step, s.RoundingMode) is not decimal markup) { Dialogs.Error(Loc.T("menu.noCost")); return; }
         Markup.Set(markup);
     }
+
+    /// <summary>A supplier row, recipe line or labour row was dragged to another place.</summary>
+    public void Reordered() => OnEdited();
 
     /// <summary>Breadcrumbs: the list the record was opened from, its folders there, and the record.</summary>
     [ObservableProperty] private List<Crumb> _crumbs = [];
@@ -392,6 +396,7 @@ public sealed partial class ItemEditorViewModel : PageViewModel
                 VariantSupplierChoices = choices;
             foreach (var r in Sources) r.UpdateHints(r.SupplierId is long sid ? _suppliers.GetValueOrDefault(sid) : null);
             var bc = Costing.ComputeBought(models, id => _suppliers.GetValueOrDefault(id), s.UsdPerEur);
+            _sourceCosts = bc.Sources.Select(x => x.UnitCost).ToList();
             warn |= bc.Warnings;
             var waste = IsRaw && HasWaste ? WastePct.Value : null;
             cost = Costing.WithWaste(bc.UnitCost, waste);
@@ -442,6 +447,19 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         var step = Step.Value ?? s.RoundingStep;
         var saleCost = cost * f;
         var price = Costing.Price(saleCost, markup, step, s.RoundingMode);
+        // each supplier on its own: its final cost, and the net margin if it had all of the weight
+        if (IsBought && _sourceCosts is { Count: > 1 } each)
+            for (var i = 0; i < each.Count && i < Sources.Count; i++)
+            {
+                var own = Costing.WithWaste(each[i], IsRaw && HasWaste ? WastePct.Value : null) * f;
+                var p = Costing.Price(own, markup, step, s.RoundingMode);
+                var net = Costing.AdjustedMargin(p.MarginPct, Kind, p.Price > 0 ? s.SalesOverheadPct : 0);
+                var row = Sources[i];
+                row.FinalCostText = Fmt.Money4(own) + PerUnit(saleUnit);
+                row.MarginText = Fmt.Pct(Math.Round(net, 1));
+                row.MarginBrush = AdjMarginBrushConverter.For(net);
+                row.MarginSoftBrush = AdjMarginBrushConverter.For(net, soft: true);
+            }
         _saleCost = saleCost;
         _priceNow = price.Price;
         MarkupHint = Loc.F("common.default", Fmt.Pct(s.DefaultMarkupPct));
@@ -528,14 +546,14 @@ public sealed partial class ItemEditorViewModel : PageViewModel
     [RelayCommand]
     void AddLine()
     {
-        Attach(Lines, new LineRow(new RecipeLine { Quantity = 1 }));
+        Attach(Lines, new LineRow(new RecipeLine { Quantity = 1 }) { OpenPicker = true });
         OnEdited();
     }
 
     [RelayCommand]
     void AddProduct()
     {
-        Attach(Lines, new LineRow(new RecipeLine { Quantity = 1, Unit = QtyUnit.Pcs }, isProduct: true));
+        Attach(Lines, new LineRow(new RecipeLine { Quantity = 1, Unit = QtyUnit.Pcs }, isProduct: true) { OpenPicker = true });
         OnEdited();
     }
 

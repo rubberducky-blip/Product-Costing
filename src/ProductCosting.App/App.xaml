@@ -190,6 +190,29 @@
                     </Trigger>
                 </Style.Triggers>
             </Style>
+            <!-- the handle at the left of a row that can be dragged to reorder it -->
+            <Style x:Key="ReorderGrip" TargetType="ContentControl">
+                <Setter Property="DockPanel.Dock" Value="Left" />
+                <Setter Property="Width" Value="16" />
+                <Setter Property="Focusable" Value="False" />
+                <Setter Property="ToolTip" Value="{l:T common.dragToReorder}" />
+                <Setter Property="l:Reorder.Grip" Value="True" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ContentControl">
+                            <Border Background="Transparent">
+                                <Border x:Name="Bar" Width="4" Height="22" CornerRadius="2" Background="{DynamicResource LineStrongBrush}" HorizontalAlignment="Left"
+                                        VerticalAlignment="Top" Margin="2,6,0,0" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bar" Property="Background" Value="{DynamicResource AccentBrush}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
             <!-- breadcrumb links at the top of forms -->
             <Style x:Key="FormCrumb" TargetType="Button" BasedOn="{StaticResource GhostButton}">
                 <Setter Property="Padding" Value="6,2" />
