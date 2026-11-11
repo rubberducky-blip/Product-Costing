@@ -30,7 +30,20 @@ public partial class MainWindow : Window
         NativeWindow.UseDarkTitleBar(this);
         DataContext = _vm = new MainViewModel();
         PreviewKeyDown += OnShortcut;
+        // the sidebar draws its text with the sidebar colours (a dark sidebar on a light theme)
+        ThemeManager.Applied += PaintSidebar;
+        PaintSidebar();
         Closing += OnClosing;
+    }
+
+    void PaintSidebar()
+    {
+        foreach (var (key, source) in new[]
+        {
+            ("TextBrush", "SidebarTextBrush"), ("TextMutedBrush", "SidebarMutedBrush"), ("TextFaintBrush", "SidebarFaintBrush"),
+            ("HoverBrush", "SidebarHoverBrush"), ("SelectedBrush", "SidebarSelectedBrush"),
+        })
+            if (TryFindResource(source) is { } brush) Sidebar.Resources[key] = brush;
     }
 
     void OnClosing(object? sender, CancelEventArgs e)

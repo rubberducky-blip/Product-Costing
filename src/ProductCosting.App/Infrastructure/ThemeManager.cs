@@ -22,6 +22,8 @@ public static class ThemeManager
     {
         /// <summary>Brushes painted as top-to-bottom gradients instead of flat colours (key → top, bottom).</summary>
         public IReadOnlyDictionary<string, (string Top, string Bottom)>? Gradients { get; init; }
+        /// <summary>Other brushes with their own colour (e.g. the top bar, or the text of a dark sidebar).</summary>
+        public IReadOnlyDictionary<string, string>? Extra { get; init; }
     }
 
     static readonly Palette Dark = new(true,
@@ -126,14 +128,32 @@ public static class ThemeManager
         "#9D5D00", "#835000", "#FFFFCC",
         "#1F1E5BB5", "#141E5BB5", "#B0A3C2F5")
     {
-        Gradients = new Dictionary<string, (string, string)>
+        Extra = new Dictionary<string, string>
         {
-            ["WindowBrush"] = ("#EEF3FA", "#D2DEEF"),
-            ["SidebarBrush"] = ("#DCE8FA", "#9EBFEC"),
-            ["TopBarBrush"] = ("#E8F0FC", "#B3CDF1"),
-            ["HeaderRowBrush"] = ("#F7FAFE", "#D3E2F6"),
-            ["AccentFillBrush"] = ("#4E8EE0", "#1E5BB5"),
-            ["AccentFillHoverBrush"] = ("#62A0EC", "#2A69C4"),
+            ["TopBarBrush"] = "#D6E4F8",
+            ["HeaderRowBrush"] = "#E2ECF9",
+        },
+    };
+
+    // Windows-like light theme with a dark sidebar and cool blue accents
+    static readonly Palette WindowsDarkSidebar = new(false,
+        "#F3F3F3", "#1F2430", "#FFFFFF", "#F5F7FA", "#FAFAFA", "#FFFFFF", "#E5E5E5", "#CCCCCC",
+        "#1B1B1B", "#5F6368", "#8A8F98", "#FFFFFF",
+        "#2F6FDB", "#4682E6", "#2459B8", "#E4EEFC", "#1F5BB8",
+        "#C42B1C", "#A4262C", "#FDE7E9", "#F1B9BE",
+        "#107C10", "#0E6A0E", "#DFF6DD",
+        "#9D5D00", "#835000", "#FFF4CE",
+        "#0F000000", "#08000000", "#262F6FDB")
+    {
+        Extra = new Dictionary<string, string>
+        {
+            ["TopBarBrush"] = "#FBFBFB",
+            ["SidebarTextBrush"] = "#ECEFF4",
+            ["SidebarMutedBrush"] = "#A8B1C0",
+            ["SidebarFaintBrush"] = "#788293",
+            ["SidebarHoverBrush"] = "#1AFFFFFF",
+            ["SidebarSelectedBrush"] = "#5C2F6FDB",
+            ["SidebarLineBrush"] = "#1F2430",
         },
     };
 
@@ -142,10 +162,13 @@ public static class ThemeManager
     [
         ("system", "theme.system"), ("dark", "theme.dark"), ("light", "theme.light"), ("contrast", "theme.contrast"),
         ("slate", "theme.slate"), ("nord", "theme.nord"), ("dracula", "theme.dracula"), ("solarized", "theme.solarized"),
-        ("gruvbox", "theme.gruvbox"), ("everforest", "theme.everforest"), ("sepia", "theme.sepia"), ("classic", "theme.classic"),
+        ("gruvbox", "theme.gruvbox"), ("everforest", "theme.everforest"), ("sepia", "theme.sepia"), ("classic", "theme.classic"), ("windows", "theme.windows"),
     ];
 
     public static Palette Current { get; private set; } = Dark;
+
+    /// <summary>After a theme is applied (the main window points its sidebar at the sidebar colours).</summary>
+    public static event Action? Applied;
     static string _theme = "system";
     static bool _listening;
     static ResourceDictionary? _palette;
@@ -183,6 +206,7 @@ public static class ThemeManager
         merged.Add(_palette);
         Current = p;
         foreach (Window w in app.Windows) NativeWindow.UseDarkTitleBar(w);
+        Applied?.Invoke();
 
         if (!_listening)
         {
@@ -209,6 +233,7 @@ public static class ThemeManager
         "everforest" => Everforest,
         "sepia" => Sepia,
         "classic" => ClassicErp,
+        "windows" => WindowsDarkSidebar,
         _ => SystemParameters.HighContrast ? Contrast : SystemUsesLight() ? Light : Dark,
     };
 
@@ -246,6 +271,10 @@ public static class ThemeManager
         B("HoverBrush", p.Hover); B("PressedBrush", p.Pressed); B("SelectedBrush", p.Selected);
         // areas that themes may paint with gradients: flat by default
         B("TopBarBrush", p.Sidebar); B("HeaderRowBrush", p.Card); B("AccentFillBrush", p.Accent); B("AccentFillHoverBrush", p.AccentHover);
+        // the sidebar's own text and highlight colours (the same as the page's, unless the sidebar is dark on a light theme)
+        B("SidebarTextBrush", p.Text); B("SidebarMutedBrush", p.TextMuted); B("SidebarFaintBrush", p.TextFaint);
+        B("SidebarHoverBrush", p.Hover); B("SidebarSelectedBrush", p.Selected); B("SidebarLineBrush", p.Line);
+        foreach (var (key, hex) in p.Extra ?? new Dictionary<string, string>()) B(key, hex);
         foreach (var (key, (top, bottom)) in p.Gradients ?? new Dictionary<string, (string Top, string Bottom)>())
         {
             var g = new LinearGradientBrush(C(top), C(bottom), 90);

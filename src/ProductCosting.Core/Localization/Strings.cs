@@ -480,6 +480,7 @@ public static class Strings
         ["theme.everforest"] = ("Everforest (απαλό πράσινο)", "Everforest (soft green)"),
         ["theme.sepia"] = ("Sepia (χαρτί)", "Sepia (paper)"),
         ["theme.classic"] = ("Κλασικό ERP", "Classic ERP"),
+        ["theme.windows"] = ("Windows με σκούρη πλαϊνή στήλη", "Windows with dark sidebar"),
         ["size.normal"] = ("Κανονικό (100%)", "Normal (100%)"),
         ["size.large"] = ("Μεγάλο (110%)", "Large (110%)"),
         ["size.larger"] = ("Πολύ μεγάλο (120%)", "Larger (120%)"),

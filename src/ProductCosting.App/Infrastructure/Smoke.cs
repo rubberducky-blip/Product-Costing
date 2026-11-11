@@ -523,7 +523,7 @@ internal static class Smoke
         await Step("themes", async () =>
         {
             vm.GoCommand.Execute("products");
-            foreach (var theme in new[] { "light", "slate", "contrast", "nord", "dracula", "gruvbox", "everforest", "sepia", "classic", "solarized" })
+            foreach (var theme in new[] { "light", "slate", "contrast", "nord", "dracula", "gruvbox", "everforest", "sepia", "classic", "windows", "solarized" })
             {
                 ThemeManager.Apply(theme);
                 vm.ResetPages();
