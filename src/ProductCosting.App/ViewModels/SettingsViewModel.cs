@@ -63,6 +63,8 @@ public sealed partial class SettingsViewModel : PageViewModel
     public OrderPdfForm Pdf { get; } = new();
     [ObservableProperty] private string _companyName = "";
     [ObservableProperty] private string _companyAddress = "";
+    [ObservableProperty] private string _companyNameEn = "";
+    [ObservableProperty] private string _companyAddressEn = "";
     [ObservableProperty] private string _companyVat = "";
     [ObservableProperty] private string _companyTaxOffice = "";
     [ObservableProperty] private string _companyPhone = "";
@@ -72,7 +74,8 @@ public sealed partial class SettingsViewModel : PageViewModel
     public bool HasLogo => Logo is not null;
     partial void OnLogoChanged(System.Windows.Media.ImageSource? value) => OnPropertyChanged(nameof(HasLogo));
 
-    CompanyInfo Company => new(CompanyName.Trim(), CompanyAddress.Trim(), CompanyVat.Trim(), CompanyTaxOffice.Trim(), CompanyPhone.Trim(), CompanyEmail.Trim());
+    CompanyInfo Company => new(CompanyName.Trim(), CompanyAddress.Trim(), CompanyVat.Trim(), CompanyTaxOffice.Trim(), CompanyPhone.Trim(), CompanyEmail.Trim(),
+        CompanyNameEn.Trim(), CompanyAddressEn.Trim());
 
     [ObservableProperty] private string _backupFolder = "";
     [ObservableProperty] private bool _autoBackup;
@@ -204,6 +207,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         Pdf.Load(s.OrderPdf);
         CompanyName = s.Company.Name; CompanyAddress = s.Company.Address; CompanyVat = s.Company.VatNumber;
         CompanyTaxOffice = s.Company.TaxOffice; CompanyPhone = s.Company.Phone; CompanyEmail = s.Company.Email;
+        CompanyNameEn = s.Company.NameEn; CompanyAddressEn = s.Company.AddressEn;
         Logo = LoadImage(AppState.Store.GetLogo());
         RoundingMode = s.RoundingMode;
         CurrencySymbol = s.CurrencySymbol;
@@ -226,7 +230,8 @@ public sealed partial class SettingsViewModel : PageViewModel
     {
         base.OnPropertyChanged(e);
         if (e.PropertyName is nameof(RoundingMode) or nameof(CurrencySymbol) or nameof(Language) or nameof(Theme) or nameof(UiScale)
-            or nameof(CompanyName) or nameof(CompanyAddress) or nameof(CompanyVat) or nameof(CompanyTaxOffice) or nameof(CompanyPhone) or nameof(CompanyEmail))
+            or nameof(CompanyName) or nameof(CompanyAddress) or nameof(CompanyVat) or nameof(CompanyTaxOffice) or nameof(CompanyPhone) or nameof(CompanyEmail)
+            or nameof(CompanyNameEn) or nameof(CompanyAddressEn))
             Edited();
     }
 
@@ -253,6 +258,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         Pdf.Load(f.Pdf);
         CompanyName = f.Company.Name; CompanyAddress = f.Company.Address; CompanyVat = f.Company.VatNumber;
         CompanyTaxOffice = f.Company.TaxOffice; CompanyPhone = f.Company.Phone; CompanyEmail = f.Company.Email;
+        CompanyNameEn = f.Company.NameEn; CompanyAddressEn = f.Company.AddressEn;
         _loading = false;
         Edited();
     }

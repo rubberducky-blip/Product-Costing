@@ -150,6 +150,7 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <StackPanel>
                                 <TextBlock Text="{l:T company.name}" Style="{StaticResource FieldLabel}" />
@@ -159,7 +160,16 @@
                                 <TextBlock Text="{l:T company.address}" Style="{StaticResource FieldLabel}" />
                                 <TextBox Text="{Binding CompanyAddress, UpdateSourceTrigger=PropertyChanged}" />
                             </StackPanel>
-                            <UniformGrid Grid.Row="1" Grid.ColumnSpan="5" Rows="1" Margin="-8,12,-8,0">
+                            <!-- English PDFs use these (and leave out the tax office) -->
+                            <StackPanel Grid.Row="1" Margin="0,12,0,0">
+                                <TextBlock Text="{l:T company.nameEn}" Style="{StaticResource FieldLabel}" />
+                                <TextBox Text="{Binding CompanyNameEn, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="3" Margin="0,12,0,0">
+                                <TextBlock Text="{l:T company.addressEn}" Style="{StaticResource FieldLabel}" />
+                                <TextBox Text="{Binding CompanyAddressEn, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+                            <UniformGrid Grid.Row="2" Grid.ColumnSpan="5" Rows="1" Margin="-8,12,-8,0">
                                 <UniformGrid.Resources>
                                     <Style TargetType="StackPanel">
                                         <Setter Property="Margin" Value="8,0" />

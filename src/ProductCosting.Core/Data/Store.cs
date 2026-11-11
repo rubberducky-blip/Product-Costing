@@ -109,7 +109,7 @@ public sealed partial class Store
         s.Hotkeys = S("hotkeys", s.Hotkeys);
         s.OrderPdf = OrderPdfOptions.Parse(S("order_pdf", "")) ?? OrderPdfOptions.Default;
         s.Company = new CompanyInfo(S("company_name", ""), S("company_address", ""), S("company_vat", ""), S("company_tax_office", ""),
-            S("company_phone", ""), S("company_email", ""));
+            S("company_phone", ""), S("company_email", ""), S("company_name_en", ""), S("company_address_en", ""));
         s.BackupFolder = S("backup_folder", s.BackupFolder);
         s.AutoBackup = S("auto_backup", "1") == "1";
         s.BackupKeepCount = (int)D("backup_keep", s.BackupKeepCount);
@@ -129,6 +129,7 @@ public sealed partial class Store
             ("sales_overhead", N(s.SalesOverheadPct)), ("hotkeys", s.Hotkeys), ("order_pdf", s.OrderPdf.Serialize()),
             ("company_name", s.Company.Name), ("company_address", s.Company.Address), ("company_vat", s.Company.VatNumber),
             ("company_tax_office", s.Company.TaxOffice), ("company_phone", s.Company.Phone), ("company_email", s.Company.Email),
+            ("company_name_en", s.Company.NameEn), ("company_address_en", s.Company.AddressEn),
             ("backup_folder", s.BackupFolder), ("auto_backup", s.AutoBackup ? "1" : "0"),
             ("backup_keep", s.BackupKeepCount.ToString(CultureInfo.InvariantCulture)), ("last_auto_backup", s.LastAutoBackupDay),
         };

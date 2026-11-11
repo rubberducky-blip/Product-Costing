@@ -57,8 +57,18 @@ public sealed record OrderPdfOptions(OrderPdfColumns Columns, string Language, i
 }
 
 /// <summary>Our company, for the top of order PDFs.</summary>
-public sealed record CompanyInfo(string Name, string Address, string VatNumber, string TaxOffice, string Phone, string Email)
+/// <remarks>English PDFs use <see cref="NameEn"/> and <see cref="AddressEn"/> (when filled in) and leave out the tax office.</remarks>
+public sealed record CompanyInfo(string Name, string Address, string VatNumber, string TaxOffice, string Phone, string Email,
+    string NameEn = "", string AddressEn = "")
 {
     public static CompanyInfo Empty { get; } = new("", "", "", "", "", "");
-    public bool IsEmpty => string.IsNullOrWhiteSpace(Name + Address + VatNumber + TaxOffice + Phone + Email);
+    public bool IsEmpty => string.IsNullOrWhiteSpace(Name + Address + VatNumber + TaxOffice + Phone + Email + NameEn + AddressEn);
+
+    /// <summary>The details as an order PDF in that language shows them.</summary>
+    public CompanyInfo For(string lang) => lang != "en" ? this : this with
+    {
+        Name = string.IsNullOrWhiteSpace(NameEn) ? Name : NameEn,
+        Address = string.IsNullOrWhiteSpace(AddressEn) ? Address : AddressEn,
+        TaxOffice = "",
+    };
 }

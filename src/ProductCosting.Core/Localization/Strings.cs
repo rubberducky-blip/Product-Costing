@@ -313,6 +313,8 @@ public static class Strings
         ["company.help"] = ("Εμφανίζονται στο πάνω μέρος των PDF παραγγελιών, όταν έχει επιλεγεί.", "Shown at the top of order PDFs, when chosen."),
         ["company.name"] = ("Επωνυμία", "Name"),
         ["company.address"] = ("Διεύθυνση", "Address"),
+        ["company.nameEn"] = ("Επωνυμία στα αγγλικά (για PDF στα αγγλικά)", "Name in English (for English PDFs)"),
+        ["company.addressEn"] = ("Διεύθυνση στα αγγλικά", "Address in English"),
         ["company.phone"] = ("Τηλέφωνο", "Phone"),
         ["company.email"] = ("Email", "Email"),
         ["company.logo"] = ("Λογότυπο", "Logo"),

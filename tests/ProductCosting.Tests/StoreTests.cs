@@ -350,10 +350,12 @@ public class StoreTests
         Assert.Equal(options, OrderPdfOptions.Parse(options.Serialize()));
         var s = f.Store.LoadSettings();
         s.OrderPdf = options;
-        s.Company = new CompanyInfo("Leather Co", "1 Street, Athens", "123456789", "A' Athens", "210 0000000", "info@example.com");
+        s.Company = new CompanyInfo("Δερμάτινα ΑΕ", "Οδός 1, Αθήνα", "123456789", "Α' Αθηνών", "210 0000000", "info@example.com", "Leather Co", "1 Street, Athens");
         f.Store.SaveSettings(s);
         Assert.Equal(options, f.Store.LoadSettings().OrderPdf);
-        Assert.Equal("Leather Co", f.Store.LoadSettings().Company.Name);
+        Assert.Equal("Δερμάτινα ΑΕ", f.Store.LoadSettings().Company.Name);
+        var english = f.Store.LoadSettings().Company.For("en");
+        Assert.Equal(("Leather Co", "1 Street, Athens", ""), (english.Name, english.Address, english.TaxOffice));
         var supplier = f.Store.GetSupplier(sup)!;
         supplier.OrderPdf = (options with { Header = OrderPdfHeader.None }).Serialize();
         f.Store.SaveSupplier(supplier);

@@ -131,6 +131,7 @@ public static class PdfReports
     {
         var o = options ?? OrderPdfOptions.Default;
         var lang = o.Language;
+        company = company?.For(lang);
         var culture = CultureOf(lang);
         string T(string key) => S.Get(key, lang);
         string Unit(MeasureUnit u) => S.Get("mu." + u.ToString().ToLowerInvariant(), lang);
