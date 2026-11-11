@@ -146,6 +146,73 @@ public sealed partial class MainViewModel : ObservableObject
 
     public void GoToList(ListScope scope) => Navigate(List(scope), remember: false);
 
+    /// <summary>A breadcrumb of a form: its list, opened at that folder (null = the top level).</summary>
+    public void OpenListAt(ListScope scope, long? folderId)
+    {
+        var list = List(scope);
+        if (!Navigate(list, remember: false)) return;
+        _history.Clear();
+        list.OpenFolder(folderId);
+    }
+
+    /// <summary>Breadcrumbs of a record: its list, the folders down to its own, then the record itself.</summary>
+    public static List<Crumb> CrumbsFor(ListScope scope, long? folderId, string record)
+    {
+        var folders = AppState.Store.GetFolders(scope).ToDictionary(f => f.Id);
+        var chain = new List<Folder>();
+        for (var f = folderId is long id ? folders.GetValueOrDefault(id) : null; f is not null; f = f.ParentId is long p ? folders.GetValueOrDefault(p) : null)
+            chain.Insert(0, f);
+        var title = Loc.T(scope switch
+        {
+            ListScope.Merchandise => "nav.merchandise",
+            ListScope.RawMaterials => "nav.raw",
+            ListScope.Suppliers => "nav.suppliers",
+            _ => "nav.products",
+        });
+        return [new(null, title, false), .. chain.Select(f => new Crumb(f.Id, f.Name, false)), new(-1, record, true)];
+    }
+
+    /// <summary>
+    /// A record opened from the search: its neighbours for ← / → are those of its own folder in its list (merchandise
+    /// that is also a raw material counts as merchandise).
+    /// </summary>
+    public void OpenFromSearch(long id, bool supplier)
+    {
+        var store = AppState.Store;
+        if (supplier)
+        {
+            if (store.GetSupplier(id) is { } s) OpenSupplier(id, store.GetSupplierRows(s.FolderId).Select(r => r.Id).ToList());
+            return;
+        }
+        if (store.GetItem(id) is not { } item) return;
+        var scope = item.Kind.ToScope();
+        OpenItem(id, scope, store.GetItemRows(scope, item.FolderId).Select(r => r.Id).ToList());
+    }
+
+    /// <summary>Ctrl+D in a form: saves or drops its edits first (as when leaving), then opens a copy of the record.</summary>
+    public void DuplicateCurrent()
+    {
+        switch (Current)
+        {
+            case ItemEditorViewModel { IsNew: false } ed:
+            {
+                if (!CanLeave()) return;
+                var copy = AppState.Store.DuplicateItem(ed.Id);
+                ShowToast(Loc.F("common.duplicated", AppState.Store.GetItem(copy)?.Code ?? ""));
+                OpenItem(copy, ed.From);
+                break;
+            }
+            case SupplierEditorViewModel { IsNew: false } se:
+            {
+                if (!CanLeave()) return;
+                var copy = AppState.Store.DuplicateSupplier(se.Id);
+                ShowToast(Loc.F("common.duplicated", AppState.Store.GetSupplier(copy)?.Name ?? ""));
+                OpenSupplier(copy);
+                break;
+            }
+        }
+    }
+
     public void OpenItem(long id, ListScope? from = null, IReadOnlyList<long>? trail = null)
     {
         var doc = AppState.Store.LoadItem(id);

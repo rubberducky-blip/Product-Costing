@@ -256,17 +256,35 @@ public sealed partial class ListPageViewModel : PageViewModel
         if (AppState.Store.SetPurchasePrice(row.Id, price)) _main.ShowToast(Loc.F("menu.purchaseSet", row.Code, Fmt.Exact(price, row.PurchaseCurrency)));
     }
 
+    /// <summary>The rows to select once the table reloads (the copies just made), then cleared.</summary>
+    public HashSet<long>? PendingSelection { get; set; }
+
     public void DuplicateRows(IReadOnlyList<object> rows)
     {
         string? last = null;
+        var copies = new HashSet<long>();
         foreach (var r in rows)
         {
             switch (r)
             {
-                case ItemRow i: last = AppState.Store.GetItem(AppState.Store.DuplicateItem(i.Id))?.Code; break;
-                case SupplierRow s: last = AppState.Store.GetSupplier(AppState.Store.DuplicateSupplier(s.Id))?.Name; break;
+                case ItemRow i:
+                {
+                    var id = AppState.Store.DuplicateItem(i.Id);
+                    copies.Add(id);
+                    last = AppState.Store.GetItem(id)?.Code;
+                    break;
+                }
+                case SupplierRow s:
+                {
+                    var id = AppState.Store.DuplicateSupplier(s.Id);
+                    copies.Add(id);
+                    last = AppState.Store.GetSupplier(id)?.Name;
+                    break;
+                }
             }
         }
+        // the copies are selected, ready for the next action
+        if (copies.Count > 0) PendingSelection = copies;
         if (last is not null) _main.ShowToast(Loc.F("common.duplicated", last));
     }
 

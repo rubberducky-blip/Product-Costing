@@ -24,14 +24,38 @@
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" ClipToBounds="True">
                     <Button Style="{StaticResource IconButton}" l:Btn.Icon="&#xE72B;" Command="{Binding BackCommand}" ToolTip="{l:T common.back}" Margin="0,0,10,0" />
-                    <TextBlock Text="{Binding Title}" Style="{StaticResource H1}" FontSize="21" VerticalAlignment="Center" MaxWidth="520" />
-                    <Border Style="{StaticResource Badge}" Margin="12,2,0,0">
-                        <TextBlock Text="{l:T kind.supplier}" />
-                    </Border>
-                    <Border Style="{StaticResource Badge}" Margin="8,2,0,0" Background="{DynamicResource WarningSoftBrush}"
-                            Visibility="{Binding Dirty, Converter={StaticResource Visible}}">
-                        <TextBlock Text="{l:T common.unsaved}" Foreground="{DynamicResource WarningTextBrush}" />
-                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <!-- breadcrumbs: the list and folders the record is in -->
+                        <ItemsControl ItemsSource="{Binding Crumbs}" Margin="-6,0,0,2">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Style="{StaticResource FormCrumb}" Content="{Binding Name}" Click="Crumb_Click"
+                                                Visibility="{Binding IsLast, Converter={StaticResource Hidden}}" />
+                                        <TextBlock Text="{Binding Name}" FontSize="12" Foreground="{DynamicResource TextFaintBrush}" VerticalAlignment="Center" Margin="6,0,0,0"
+                                                   Visibility="{Binding IsLast, Converter={StaticResource Visible}}" />
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE76C;" FontSize="9" Foreground="{DynamicResource TextFaintBrush}" Margin="1,0"
+                                                   VerticalAlignment="Center" Visibility="{Binding IsLast, Converter={StaticResource Hidden}}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Title}" Style="{StaticResource H1}" FontSize="21" VerticalAlignment="Center" MaxWidth="520" />
+                            <Border Style="{StaticResource Badge}" Margin="12,2,0,0">
+                                <TextBlock Text="{l:T kind.supplier}" />
+                            </Border>
+                            <Border Style="{StaticResource Badge}" Margin="8,2,0,0" Background="{DynamicResource WarningSoftBrush}"
+                                    Visibility="{Binding Dirty, Converter={StaticResource Visible}}">
+                                <TextBlock Text="{l:T common.unsaved}" Foreground="{DynamicResource WarningTextBrush}" />
+                            </Border>
+                        </StackPanel>
+                    </StackPanel>
                 </StackPanel>
             </DockPanel>
         </Border>

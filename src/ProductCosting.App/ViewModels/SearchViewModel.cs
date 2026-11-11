@@ -81,8 +81,7 @@ public sealed partial class SearchViewModel : ObservableObject
         r ??= Selected;
         if (r is null) return;
         IsOpen = false;
-        if (r.Hit.IsSupplier) _main.OpenSupplier(r.Hit.Id);
-        else _main.OpenItem(r.Hit.Id);
+        _main.OpenFromSearch(r.Hit.Id, r.Hit.IsSupplier);
     }
 
     public void Clear()

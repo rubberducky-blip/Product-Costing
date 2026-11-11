@@ -75,6 +75,12 @@ public partial class ListPage : UserControl
         // the selected rows stay selected after an action reloads the table (duplicate, set price…)
         _selected = ActiveGrid.SelectedItems.Cast<object>().Select(ListPageViewModel.IdOf).ToHashSet();
         _current = ActiveGrid.SelectedItem is { } cur ? ListPageViewModel.IdOf(cur) : null;
+        if (_vm.PendingSelection is { } copies)
+        {
+            _selected = copies;
+            _current = null;
+            _vm.PendingSelection = null;
+        }
     }
 
     HashSet<long> _selected = [];

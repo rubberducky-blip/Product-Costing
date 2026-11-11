@@ -1,3 +1,4 @@
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using ProductCosting.App.ViewModels;
@@ -19,5 +20,10 @@ public partial class SupplierEditor : UserControl
     void ItemsGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (ItemsGrid.SelectedItem is SupplierItemRow row && DataContext is SupplierEditorViewModel vm) vm.OpenItemCommand.Execute(row);
+    }
+
+    void Crumb_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: Crumb c } && DataContext is SupplierEditorViewModel vm) vm.OpenCrumb(c);
     }
 }

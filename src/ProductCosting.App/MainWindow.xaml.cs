@@ -61,6 +61,14 @@ public partial class MainWindow : Window
         for (var i = 0; i < news.Length; i++)
             if (Hotkeys.Matches(news[i], e)) { _vm.NewByShortcut(i + 1); e.Handled = true; return; }
         if (Hotkeys.Matches("backup", e)) { _vm.BackupNow(); e.Handled = true; return; }
+        // Ctrl+D in a form (tables of the form keep their own Ctrl+D, e.g. copying an order)
+        if (Hotkeys.Matches("duplicate", e) && _vm.Current is ItemEditorViewModel or SupplierEditorViewModel
+            && focus is not (DataGrid or DataGridCell or DataGridRow))
+        {
+            _vm.DuplicateCurrent();
+            e.Handled = true;
+            return;
+        }
         if (Keyboard.Modifiers != ModifierKeys.None) return;
         var busy = InPopup(focus) || _vm.Search.IsOpen || _vm.Notifications.IsOpen;
         var typing = focus is TextBoxBase or PasswordBox or ComboBox or ComboBoxItem;

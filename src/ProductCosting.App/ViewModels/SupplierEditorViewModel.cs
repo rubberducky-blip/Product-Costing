@@ -69,10 +69,19 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
     public string Title => IsNew && string.IsNullOrWhiteSpace(Name) ? Loc.T("list.newSupplier") : Name;
     public override bool IsDirty => Dirty;
 
+    /// <summary>Breadcrumbs: Suppliers, the supplier's folders, the supplier.</summary>
+    [ObservableProperty] private List<Crumb> _crumbs = [];
+
+    public void OpenCrumb(Crumb c)
+    {
+        if (!c.IsLast) _main.OpenListAt(ListScope.Suppliers, c.Id);
+    }
+
     void Load(Supplier s)
     {
         _loading = true;
         _model = s;
+        Crumbs = MainViewModel.CrumbsFor(ListScope.Suppliers, s.FolderId, s.Id == 0 ? Loc.T("list.newSupplier") : s.Name);
         Name = s.Name;
         FolderId = s.FolderId;
         // countries are stored by ISO code; anything else (older free text) is kept as an extra choice

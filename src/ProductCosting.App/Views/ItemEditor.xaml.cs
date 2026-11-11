@@ -25,4 +25,9 @@ public partial class ItemEditor : UserControl
     {
         if (sender is FrameworkElement { DataContext: SourceRow row } && DataContext is ItemEditorViewModel vm) vm.SupplierPicked(row);
     }
+
+    void Crumb_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: Crumb c } && DataContext is ItemEditorViewModel vm) vm.OpenCrumb(c);
+    }
 }

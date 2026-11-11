@@ -184,9 +184,40 @@ public sealed partial class ItemEditorViewModel : PageViewModel
     bool IsProductComponent(long? id) => id is long i && _materials.TryGetValue(i, out var m)
         && (m.Kind == ItemKind.Product || (m.Kind == ItemKind.Merchandise && !m.UsableAsMaterial));
 
+    decimal _saleCost, _priceNow;
+
+    /// <summary>Pricing → "Set price": the markup that sells at the typed price (rounded to the step), as an edit to save.</summary>
+    [RelayCommand]
+    void SetPrice()
+    {
+        var text = Dialogs.Prompt(Loc.F("menu.setPriceTitle", Code, Name), Fmt.Num(_priceNow));
+        if (text is null) return;
+        var field = new NumField(null) { Text = text };
+        if (field.Value is not decimal target || target <= 0) { Dialogs.Error(Loc.T("common.invalidNumber")); return; }
+        var s = AppState.Settings;
+        var step = Step.Value ?? s.RoundingStep;
+        var rounded = Costing.RoundPrice(target, step, s.RoundingMode);
+        if (Costing.MarkupForPrice(_saleCost, rounded, step, s.RoundingMode) is not decimal markup) { Dialogs.Error(Loc.T("menu.noCost")); return; }
+        Markup.Set(markup);
+    }
+
+    /// <summary>Breadcrumbs: the list the record was opened from, its folders there, and the record.</summary>
+    [ObservableProperty] private List<Crumb> _crumbs = [];
+
+    long? CrumbFolder => _from == ListScope.RawMaterials && IsMerchandise ? _doc.Item.MaterialFolderId : _doc.Item.FolderId;
+
+    void UpdateCrumbs() =>
+        Crumbs = MainViewModel.CrumbsFor(_from, CrumbFolder, IsNew ? Loc.F("item.newTitle", KindText.ToLower(Loc.Culture)) : _doc.Item.Code);
+
+    public void OpenCrumb(Crumb c)
+    {
+        if (!c.IsLast) _main.OpenListAt(_from, c.Id);
+    }
+
     void Load(ItemDocument doc)
     {
         _doc = doc;
+        UpdateCrumbs();
         Fill(doc, fresh: true);
         _original = Snapshot();
         Recalc();
@@ -411,6 +442,8 @@ public sealed partial class ItemEditorViewModel : PageViewModel
         var step = Step.Value ?? s.RoundingStep;
         var saleCost = cost * f;
         var price = Costing.Price(saleCost, markup, step, s.RoundingMode);
+        _saleCost = saleCost;
+        _priceNow = price.Price;
         MarkupHint = Loc.F("common.default", Fmt.Pct(s.DefaultMarkupPct));
         StepHint = Loc.F("common.default", Fmt.Num(s.RoundingStep));
 
