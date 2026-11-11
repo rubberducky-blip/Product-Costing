@@ -63,7 +63,8 @@ public static class ImportFlow
             else create.Add((u.Key, u.Name));
         }
 
-        var existing = file.Rows.Count(r => store.CodeExists(r.Code, 0));
+        var codes = store.GetCodes();
+        var existing = file.Rows.Count(r => codes.Contains(r.Code.Trim()));
         if (!Dialogs.Confirm(Loc.F("import.confirm", file.Rows.Count, file.Rows.Count - existing, existing) + Problems(file.Problems),
                 Loc.T("import.run"))) return;
 

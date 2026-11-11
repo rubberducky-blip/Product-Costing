@@ -10,6 +10,8 @@ namespace ProductCosting.App.Controls;
 /// <summary>Bars of a supplier's average purchase-price change per day (up red, down green); hover for details.</summary>
 public sealed class ChangeChart : FrameworkElement
 {
+    static readonly Typeface Face = new("Segoe UI");
+
     public static readonly DependencyProperty DaysProperty = DependencyProperty.Register(
         nameof(Days), typeof(IReadOnlyList<SupplierChangeDay>), typeof(ChangeChart),
         new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
@@ -46,7 +48,7 @@ public sealed class ChangeChart : FrameworkElement
         var h = ActualHeight;
         dc.DrawRectangle(Brushes.Transparent, null, new Rect(0, 0, w, h));
         var dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
-        var face = new Typeface("Segoe UI");
+        var face = Face;
         FormattedText T(string s, Brush b, double size = 11) => new(s, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, face, size, b, dpi);
 
         if (Days is not { Count: > 0 } days)

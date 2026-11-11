@@ -27,14 +27,9 @@ public sealed class PriceChart : FrameworkElement
 
     int _hover = -1;
 
-    static Brush B(string key) => (Brush)Application.Current.FindResource(key);
+    static readonly Typeface Face = new(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
 
-    static Brush Frozen(Color c)
-    {
-        var b = new SolidColorBrush(c);
-        b.Freeze();
-        return b;
-    }
+    static Brush B(string key) => (Brush)Application.Current.FindResource(key);
 
     protected override void OnMouseMove(MouseEventArgs e)
     {
@@ -82,7 +77,7 @@ public sealed class PriceChart : FrameworkElement
         var h = ActualHeight;
         dc.DrawRectangle(Brushes.Transparent, null, new Rect(0, 0, w, h));
         var dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
-        var typeface = new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
+        var typeface = Face;
         FormattedText Text(string s, Brush b, double size = 11) => new(s, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, typeface, size, b, dpi);
 
         if (Entries is not { Count: > 0 } e)

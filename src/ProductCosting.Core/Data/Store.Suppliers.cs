@@ -262,7 +262,14 @@ public sealed partial class Store
     {
         var ids = itemIds.ToList();
         if (ids.Count == 0) return [];
-        return c.Query<ItemVariant>("SELECT id, item_id, name, code, supplier_id FROM item_variants WHERE item_id IN @ids ORDER BY item_id, position", new { ids })
+        using var t = c.BeginTransaction();
+        FillTemp(c, t, "variant_items", ids);
+        var result = c.Query<ItemVariant>("""
+            SELECT id, item_id, name, code, supplier_id FROM item_variants
+            WHERE item_id IN (SELECT id FROM temp.variant_items) ORDER BY item_id, position
+            """, transaction: t)
             .GroupBy(v => v.ItemId).ToDictionary(g => g.Key, g => g.ToList());
+        t.Commit();
+        return result;
     });
 }

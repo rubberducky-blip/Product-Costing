@@ -39,12 +39,15 @@ public sealed partial class Store
     {
         int created = 0, updated = 0;
         var problems = new List<ImportProblem>();
+        // the existing codes in one query (new ones are added as they are created)
+        var ids = Read(c => c.Query<(string Code, long Id)>("SELECT code, id FROM items"))
+            .ToDictionary(x => x.Code, x => x.Id, StringComparer.OrdinalIgnoreCase);
         foreach (var row in rows)
         {
             try
             {
                 long? supplierId = row.Supplier is { } name && suppliers.TryGetValue(TextNorm.Normalize(name).Trim(), out var sid) ? sid : null;
-                var existing = Read(c => c.ExecuteScalar<long?>("SELECT id FROM items WHERE code = @code COLLATE NOCASE", new { code = row.Code.Trim() }));
+                long? existing = ids.TryGetValue(row.Code.Trim(), out var known) ? known : null;
                 ItemDocument doc;
                 if (existing is null)
                 {
@@ -78,6 +81,7 @@ public sealed partial class Store
                     if (row.Moq is { } moq) source.Moq = doc.Item.Unit.EntryUnit(source.PurchaseUnit).ToBase(moq);
                 }
                 var id = SaveItem(doc);
+                ids[row.Code.Trim()] = id;
                 if (existing is null) created++; else updated++;
                 if (row.Price is { } price && SetPrice(id, price) is null) problems.Add(new(row.Line, "noCost"));
             }
@@ -88,6 +92,10 @@ public sealed partial class Store
         }
         return new ImportResult(created, updated, problems);
     }
+
+    /// <summary>Every item code (case-insensitive), e.g. to tell new codes of an import from existing ones in one query.</summary>
+    public HashSet<string> GetCodes() =>
+        Read(c => c.Query<string>("SELECT code FROM items").ToHashSet(StringComparer.OrdinalIgnoreCase));
 
     public bool CodeExists(string code, long exceptId) =>
         Read(c => c.ExecuteScalar<long>("SELECT count(*) FROM items WHERE code = @code COLLATE NOCASE AND id <> @exceptId", new { code = code.Trim(), exceptId }) > 0);
