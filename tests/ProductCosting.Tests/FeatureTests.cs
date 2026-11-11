@@ -395,6 +395,54 @@ public class FeatureTests
     }
 
     [Fact]
+    public void WishList_OrdersByCheapestOrFewestSuppliers()
+    {
+        using var f = new StoreFixture();
+        var a = f.Store.SaveSupplier(new Supplier { Name = "A", Country = "GR" });
+        var b = f.Store.SaveSupplier(new Supplier { Name = "B", Country = "IT" });
+        var c = f.Store.SaveSupplier(new Supplier { Name = "C", Country = "US" });
+        long Item(string code, params (long Sup, decimal Price)[] offers) => f.Store.SaveItem(new ItemDocument
+        {
+            Item = new Item { Kind = ItemKind.Merchandise, Code = code, Name = code },
+            Sources = offers.Select(o => new ItemSource { SupplierId = o.Sup, PurchasePrice = o.Price, PurchaseQty = 1, Weight = 1 }).ToList(),
+        });
+        var x = Item("X", (a, 10), (b, 8));
+        var y = Item("Y", (a, 5));
+        var z = Item("Z", (c, 3), (b, 4));
+
+        // cheapest: X from B, Y from A, Z from C
+        var cheapest = ProductCosting.Core.Calc.OrderPlanner.Plan(
+        [
+            new(x, 1, [new(a, 10), new(b, 8)]), new(y, 1, [new(a, 5)]), new(z, 1, [new(c, 3), new(b, 4)]),
+        ], ProductCosting.Core.Calc.PlanMode.Cheapest);
+        Assert.Equal(3, cheapest.Orders.Count);
+        // fewest: B (X and Z) and A (Y)
+        var fewest = ProductCosting.Core.Calc.OrderPlanner.Plan(
+        [
+            new(x, 1, [new(a, 10), new(b, 8)]), new(y, 1, [new(a, 5)]), new(z, 1, [new(c, 3), new(b, 4)]),
+        ], ProductCosting.Core.Calc.PlanMode.FewestOrders);
+        Assert.Equal([a, b], fewest.Orders.Keys.Order());
+        Assert.Equal([x, z], fewest.Orders[b].Select(i => i.ItemId).Order());
+
+        // only Greek suppliers: X and Y go to A's existing draft, Z stays on the list
+        var draft = f.Store.SaveOrder(null, a, [new PurchaseOrderLine { ItemId = x, Code = "X", Name = "X", Quantity = 2, UnitPrice = 10 }]);
+        f.Store.SetWish(x, 3);
+        f.Store.SetWish(y, 4);
+        f.Store.SetWish(z, 5);
+        var result = f.Store.OrderWishes([x, y, z], ProductCosting.Core.Calc.PlanMode.Cheapest, SupplierRegion.Greece);
+        Assert.Equal((0, 1, 2), (result.Created, result.Extended, result.Items));
+        Assert.Equal([z], result.Unplaced);
+        var lines = f.Store.GetOrderLines(draft);
+        Assert.Equal(5m, lines.Single(l => l.ItemId == x).Quantity);
+        Assert.Equal(4m, lines.Single(l => l.ItemId == y).Quantity);
+        Assert.Equal([z], f.Store.GetWishList().Select(w => w.ItemId));
+
+        // the open orders an item is already on (for the mark on other orders)
+        Assert.Single(f.Store.GetOpenOrderMentions(null)[x]);
+        Assert.False(f.Store.GetOpenOrderMentions(draft).ContainsKey(x));
+    }
+
+    [Fact]
     public void Upgrade_FromSchemaVersion1()
     {
         var dir = Path.Combine(Path.GetTempPath(), "pc-up-" + Guid.NewGuid().ToString("N"));

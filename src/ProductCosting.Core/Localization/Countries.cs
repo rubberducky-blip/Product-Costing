@@ -108,6 +108,14 @@ public static class Countries
 
     static readonly Dictionary<string, Country> ByCode = All.ToDictionary(c => c.Code, StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>European countries (EU, EEA, the UK, Switzerland and the rest of the continent), for "suppliers in Europe".</summary>
+    public static IReadOnlySet<string> Europe { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "GR", "CY", "AL", "AD", "AT", "BY", "BE", "BA", "BG", "HR", "CZ", "DK", "EE", "FI", "FR", "DE", "HU", "IS", "IE", "IT", "XK",
+        "LV", "LI", "LT", "LU", "MT", "MD", "MC", "ME", "NL", "MK", "NO", "PL", "PT", "RO", "SM", "RS", "SK", "SI", "ES", "SE", "CH",
+        "UA", "GB", "VA",
+    };
+
     public static Country? Find(string? code) => code is null ? null : ByCode.GetValueOrDefault(code);
 
     /// <summary>Name in the app language; text that isn't a known code is shown as it is.</summary>

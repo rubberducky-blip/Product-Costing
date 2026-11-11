@@ -14,7 +14,9 @@ public enum DataChange
     Folders = 4,
     Settings = 8,
     Notifications = 16,
-    All = Items | Suppliers | Folders | Settings | Notifications,
+    /// <summary>The shopping list of items to order.</summary>
+    Wish = 32,
+    All = Items | Suppliers | Folders | Settings | Notifications | Wish,
 }
 
 public sealed class DataChangedEventArgs(DataChange change) : EventArgs
