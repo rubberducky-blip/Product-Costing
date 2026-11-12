@@ -44,6 +44,8 @@ public partial class ListPage : UserControl
         ProfitCol.Visibility = Vis(_vm.IsProducts);
         MarginCol.Visibility = Vis(!_vm.IsBought);
         AdjMarginCol.Visibility = Vis(_vm.IsBought);
+        // widths set by the person are shared by every table of the list (all its folders)
+        ColumnWidths.Use(ActiveGrid, _vm.Scope.ToString());
     }
 
     void Unbind()
@@ -80,10 +82,12 @@ public partial class ListPage : UserControl
             _selected = copies;
             _current = null;
             _vm.PendingSelection = null;
+            _scrollToSelection = true;
         }
     }
 
     HashSet<long> _selected = [];
+    bool _scrollToSelection;
     long? _current;
 
     void RestoreScroll()
@@ -97,6 +101,7 @@ public partial class ListPage : UserControl
             var rows = _vm.Rows.Cast<object>().Where(r => _selected.Contains(ListPageViewModel.IdOf(r))).ToList();
             var current = rows.FirstOrDefault(r => ListPageViewModel.IdOf(r) == _current) ?? rows.FirstOrDefault();
             _selected = [];
+            var bring = _scrollToSelection;
             Dispatcher.BeginInvoke(() =>
             {
                 grid.SelectedItems.Clear();
@@ -104,11 +109,18 @@ public partial class ListPage : UserControl
                 if (current is not null)
                 {
                     grid.CurrentItem = current;
+                    // new copies may be far down a long list: bring them into view
+                    if (bring)
+                    {
+                        grid.ScrollIntoView(current);
+                        grid.UpdateLayout();
+                    }
                     // keyboard focus back on the row, so shortcuts keep working on it
                     if (grid.ItemContainerGenerator.ContainerFromItem(current) is DataGridRow row) row.Focus();
                 }
             }, System.Windows.Threading.DispatcherPriority.Loaded);
         }
+        if (_scrollToSelection) { _scrollToSelection = false; return; }
         if (s.Offset <= 0) return;
         Dispatcher.BeginInvoke(() => FindChild<ScrollViewer>(ActiveGrid)?.ScrollToVerticalOffset(s.Offset),
             System.Windows.Threading.DispatcherPriority.Loaded);
@@ -292,6 +304,18 @@ public partial class ListPage : UserControl
         _deferredSelect = false;
         if (ids.Length == 0) return;
         DragDrop.DoDragDrop(grid, new DataObject(RowsFormat, ids), DragDropEffects.Move);
+        // however the drag ended (dropped, cancelled, left the table), no row keeps its line
+        HintRow(null, 0);
+    }
+
+    DataGridRow? _hinted;
+
+    /// <summary>Only one row shows where the drop goes: the line moves with the mouse rather than staying behind.</summary>
+    void HintRow(DataGridRow? row, int hint)
+    {
+        if (_hinted is not null && _hinted != row) DropHint.SetPosition(_hinted, 0);
+        _hinted = row;
+        if (row is not null) SetHint(row, hint);
     }
 
     void Row_DragOver(object sender, DragEventArgs e)
@@ -301,7 +325,7 @@ public partial class ListPage : UserControl
         if (_vm is { CanReorder: true } && e.Data.GetData(RowsFormat) is long[])
         {
             var after = e.GetPosition(row).Y > row.ActualHeight / 2;
-            SetHint(row, after ? 2 : 1);
+            HintRow(row, after ? 2 : 1);
             e.Effects = DragDropEffects.Move;
         }
         e.Handled = true;
@@ -311,6 +335,7 @@ public partial class ListPage : UserControl
     {
         var row = (DataGridRow)sender;
         var after = DropHint.GetPosition(row) == 2;
+        HintRow(null, 0);
         DropHint.SetPosition(row, 0);
         if (_vm is not null && e.Data.GetData(RowsFormat) is long[] ids)
             _vm.ReorderRows(ids, ListPageViewModel.IdOf(row.DataContext), after);
