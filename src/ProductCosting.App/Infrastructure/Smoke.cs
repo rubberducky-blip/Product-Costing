@@ -406,7 +406,7 @@ internal static class Smoke
             await Settle();
             Shot(root, "13-supplier-editor");
             // the printable list of its items (one row per variation), shown on screen
-            var printDoc = ItemListPrint.Build(store.GetSupplier(sup0.Id)!);
+            var printDoc = ItemListPrint.Build(store.GetSupplier(sup0.Id)!, 860);
             var rowsPrinted = ((System.Windows.Documents.Table)printDoc.Blocks.LastBlock).RowGroups[0].Rows.Count - 1;
             Check("print list has a row per item", rowsPrinted >= store.GetSupplierItems(sup0.Id).Count);
             var pw = new Window { Width = 900, Height = 700, Content = new System.Windows.Controls.FlowDocumentScrollViewer { Document = printDoc }, Owner = w };

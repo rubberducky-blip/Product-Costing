@@ -65,7 +65,7 @@ public static class ItemListPrint
     {
         var dlg = new PrintDialog();
         if (dlg.ShowDialog() != true) return;
-        var doc = Build(supplier);
+        var doc = Build(supplier, dlg.PrintableAreaWidth);
         doc.PageWidth = dlg.PrintableAreaWidth;
         doc.PageHeight = dlg.PrintableAreaHeight;
         doc.ColumnWidth = dlg.PrintableAreaWidth;
@@ -73,7 +73,8 @@ public static class ItemListPrint
     }
 
     /// <summary>One row per item, or per variation of this supplier (same code and name), plus an empty writing line.</summary>
-    internal static FlowDocument Build(Supplier supplier)
+    /// <param name="pageWidth">The printable width: the columns get fixed widths from it (relative widths don't work in printed tables).</param>
+    internal static FlowDocument Build(Supplier supplier, double pageWidth)
     {
         var items = AppState.Store.GetSupplierItems(supplier.Id);
         var variants = AppState.Store.GetVariants(items.Select(i => i.ItemId));
@@ -90,8 +91,11 @@ public static class ItemListPrint
             { Foreground = Brushes.Gray, Margin = new Thickness(0, 0, 0, 14) });
 
         var table = new Table { CellSpacing = 0 };
-        foreach (var w in new[] { 80.0, 0, 110, 110, 90, 0 })
-            table.Columns.Add(new TableColumn { Width = w == 0 ? new GridLength(1, GridUnitType.Star) : new GridLength(w) });
+        // code, supplier code, variation and pack fixed; the name and the writing line share the rest
+        double[] fixedCols = [80, 110, 110, 90];
+        var rest = Math.Max(200, pageWidth - doc.PagePadding.Left - doc.PagePadding.Right - fixedCols.Sum() - 4);
+        foreach (var w in new[] { fixedCols[0], rest * 0.55, fixedCols[1], fixedCols[2], fixedCols[3], rest * 0.45 })
+            table.Columns.Add(new TableColumn { Width = new GridLength(w) });
         var group = new TableRowGroup();
         table.RowGroups.Add(group);
         var line = new SolidColorBrush(Color.FromRgb(0xD1, 0xD5, 0xDB));
