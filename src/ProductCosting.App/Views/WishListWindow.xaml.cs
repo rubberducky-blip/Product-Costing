@@ -21,6 +21,11 @@ public sealed partial class WishRow : ObservableObject
     public NumField Qty { get; }
     [ObservableProperty] private bool _selected = true;
 
+    /// <summary>The open orders (draft or executed) the item is already on, for the mark beside its quantity.</summary>
+    public List<string>? Mentions { get; init; }
+    public bool HasMentions => Mentions is { Count: > 0 };
+    public string MentionsText => Mentions is null ? "" : Loc.T("order.alreadyOn") + "\n" + string.Join("\n", Mentions.Select(m => "• " + m));
+
     public WishRow(WishItem w)
     {
         Model = w;
@@ -62,7 +67,8 @@ public partial class WishListWindow : Window
 
     void Reload()
     {
-        _rows = AppState.Store.GetWishList().Select(w => new WishRow(w)).ToList();
+        var mentions = AppState.Store.GetOpenOrderMentions(null);
+        _rows = AppState.Store.GetWishList().Select(w => new WishRow(w) { Mentions = mentions.GetValueOrDefault(w.ItemId) }).ToList();
         Table.ItemsSource = _rows;
         Table.Visibility = _rows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         EmptyText.Visibility = _rows.Count > 0 ? Visibility.Collapsed : Visibility.Visible;

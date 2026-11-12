@@ -69,6 +69,37 @@ public static class PdfReports
         });
     }
 
+    /// <summary>Width of a logo drawn <paramref name="height"/> high, from its pixel size (PNG or JPEG), at most <paramref name="max"/>.</summary>
+    public static float LogoWidth(byte[] image, float height, float max)
+    {
+        var (w, h) = ImageSize(image);
+        if (w <= 0 || h <= 0) return Math.Min(max, height * 2);
+        return Math.Clamp(height * w / h, 16, max);
+    }
+
+    /// <summary>Pixel width and height read from the file's header, or (0, 0).</summary>
+    public static (int Width, int Height) ImageSize(byte[] b)
+    {
+        // PNG: the IHDR chunk follows the signature
+        if (b.Length > 24 && b[0] == 0x89 && b[1] == 'P' && b[2] == 'N' && b[3] == 'G')
+            return ((b[16] << 24) | (b[17] << 16) | (b[18] << 8) | b[19], (b[20] << 24) | (b[21] << 16) | (b[22] << 8) | b[23]);
+        // JPEG: the first start-of-frame marker holds the size
+        if (b.Length > 4 && b[0] == 0xFF && b[1] == 0xD8)
+        {
+            var i = 2;
+            while (i + 9 < b.Length)
+            {
+                if (b[i] != 0xFF) { i++; continue; }
+                var marker = b[i + 1];
+                var len = (b[i + 2] << 8) | b[i + 3];
+                if (marker is >= 0xC0 and <= 0xCF and not 0xC4 and not 0xC8 and not 0xCC)
+                    return ((b[i + 7] << 8) | b[i + 8], (b[i + 5] << 8) | b[i + 6]);
+                i += 2 + len;
+            }
+        }
+        return (0, 0);
+    }
+
     static IContainer HeaderCell(IContainer c) =>
         c.Background("#F3F4F6").BorderBottom(1).BorderColor("#D1D5DB").PaddingVertical(5).PaddingHorizontal(4).DefaultTextStyle(x => x.SemiBold());
 
@@ -178,7 +209,8 @@ public static class PdfReports
                 {
                     if (showCompany)
                     {
-                        if (logo is not null) row.ConstantItem(110).Height(56).AlignLeft().AlignTop().Image(logo).FitArea();
+                        // the logo as wide as its shape needs at 56 pt high (a narrow logo takes little room)
+                        if (logo is not null) row.ConstantItem(LogoWidth(logo, 56, 220)).Height(56).AlignLeft().AlignTop().Image(logo).FitArea();
                         row.RelativeItem().PaddingLeft(logo is null ? 0 : 12).Column(info =>
                         {
                             if (company is { IsEmpty: false } cmp) Company(info, cmp);

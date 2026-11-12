@@ -144,7 +144,18 @@
                 </Border>
             <Border Style="{StaticResource Card}" Padding="0" Margin="0,16,0,0" VerticalAlignment="Top" l:RoundClip.Enabled="True">
                 <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="{l:T supplier.items}" Style="{StaticResource H2}" Margin="20,16,16,12" />
+                    <!-- print the list (or the supplier's own file, when one was given) -->
+                    <DockPanel DockPanel.Dock="Top" Margin="20,16,16,12">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Visibility="{Binding IsNew, Converter={StaticResource Hidden}}">
+                            <Button Style="{StaticResource SecondaryButton}" l:Btn.Icon="&#xE749;" Content="{l:T printList.print}" Command="{Binding PrintItemsCommand}"
+                                    ToolTip="{Binding PrintTip}" Padding="12,5" MinHeight="0" />
+                            <Button Style="{StaticResource GhostButton}" l:Btn.Icon="&#xE898;" Content="{Binding CustomPrintText}" Command="{Binding ChooseCustomPrintCommand}"
+                                    ToolTip="{l:T printList.customHelp}" Padding="10,5" MinHeight="0" Margin="6,0,0,0" />
+                            <Button Style="{StaticResource IconButton}" l:Btn.Icon="&#xE711;" Command="{Binding RemoveCustomPrintCommand}" ToolTip="{l:T printList.removeCustom}"
+                                    Visibility="{Binding HasCustomPrint, Converter={StaticResource Visible}}" />
+                        </StackPanel>
+                        <TextBlock Text="{l:T supplier.items}" Style="{StaticResource H2}" VerticalAlignment="Center" />
+                    </DockPanel>
                     <Grid>
                         <TextBlock Text="{l:T supplier.noItems}" Style="{StaticResource Muted}" Margin="20,0,20,16" Visibility="{Binding HasItems, Converter={StaticResource Hidden}}" />
                         <DataGrid x:Name="ItemsGrid" ItemsSource="{Binding Items}" Visibility="{Binding HasItems, Converter={StaticResource Visible}}"

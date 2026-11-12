@@ -205,6 +205,8 @@ public sealed partial class Store
     {
         var items = c.Query<long>("SELECT DISTINCT item_id FROM item_sources WHERE supplier_id=@id", new { id }, t).ToList();
         c.Execute("DELETE FROM search_index WHERE rowid=@r; DELETE FROM suppliers WHERE id=@id", new { id, r = id * 2 + 1 }, t);
+        // its own printout, if any
+        c.Execute("DELETE FROM blobs WHERE key IN (@file, @name)", new { file = $"supplier-print:{id}", name = $"supplier-print-name:{id}" }, t);
         RefreshItemSearch(c, t, items);
         var req = new RecalcRequest();
         req.Items.UnionWith(items);

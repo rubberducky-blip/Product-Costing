@@ -47,6 +47,44 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
     public string PdfButtonText => IsCustomPdf ? "Custom" : "Default";
     public string PdfSummary => IsCustomPdf ? Loc.T("pdfopt.customHelp") : Loc.T("pdfopt.defaultHelp");
 
+    // ---------- printing the item list ----------
+
+    [ObservableProperty] private string? _customPrintName;
+    public bool HasCustomPrint => CustomPrintName is not null;
+    public string CustomPrintText => CustomPrintName ?? Loc.T("printList.custom");
+    public string PrintTip => CustomPrintName is { } n ? Loc.F("printList.printsCustom", n) : Loc.T("printList.printsList");
+
+    partial void OnCustomPrintNameChanged(string? value)
+    {
+        OnPropertyChanged(nameof(HasCustomPrint));
+        OnPropertyChanged(nameof(CustomPrintText));
+        OnPropertyChanged(nameof(PrintTip));
+    }
+
+    [RelayCommand]
+    void PrintItems()
+    {
+        if (!IsNew) ItemListPrint.Print(_model);
+    }
+
+    /// <summary>A file of the person's own to print instead of the list (any file Windows can print).</summary>
+    [RelayCommand]
+    void ChooseCustomPrint()
+    {
+        if (IsNew) return;
+        var dlg = new Microsoft.Win32.OpenFileDialog { Filter = Loc.T("printList.filter") };
+        if (dlg.ShowDialog() != true) return;
+        ItemListPrint.SetCustom(_model.Id, dlg.FileName);
+        CustomPrintName = ItemListPrint.CustomName(_model.Id);
+    }
+
+    [RelayCommand]
+    void RemoveCustomPrint()
+    {
+        ItemListPrint.RemoveCustom(_model.Id);
+        CustomPrintName = null;
+    }
+
     [RelayCommand]
     void EditPdf()
     {
@@ -136,6 +174,7 @@ public sealed partial class SupplierEditorViewModel : PageViewModel
         Pdf.Load(OrderPdfOptions.Parse(s.OrderPdf) ?? AppState.Settings.OrderPdf);
         OrderNote = s.OrderNote ?? "";
         RaisePdf();
+        CustomPrintName = s.Id == 0 ? null : ItemListPrint.CustomName(s.Id);
         Items.Clear();
         if (!IsNew) foreach (var i in AppState.Store.GetSupplierItems(s.Id)) Items.Add(i);
         LoadOrders();

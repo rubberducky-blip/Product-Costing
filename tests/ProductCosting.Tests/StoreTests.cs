@@ -343,6 +343,8 @@ public class StoreTests
 
         // options: all columns, English, larger text, our details and logo above the supplier's
         var png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
+        Assert.Equal((1, 1), PdfReports.ImageSize(png));
+        Assert.Equal(56f, PdfReports.LogoWidth(png, 56, 220));     // a square logo takes as much width as height
         f.Store.SetLogo(png);
         Assert.Equal(png, f.Store.GetLogo());
         var all = (OrderPdfColumns)255;

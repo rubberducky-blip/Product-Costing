@@ -51,10 +51,15 @@
                         <DataGridTextColumn Header="{l:T list.code}" Binding="{Binding Code}" Width="110" ElementStyle="{StaticResource CellText}" />
                         <DataGridTextColumn Header="{l:T list.name}" Binding="{Binding Name}" Width="1.4*" ElementStyle="{StaticResource CellText}" />
                         <DataGridTextColumn Header="{l:T list.supplier}" Binding="{Binding Suppliers}" Width="*" ElementStyle="{StaticResource MutedCell}" />
-                        <DataGridTemplateColumn Header="{l:T order.qty}" Width="170" HeaderStyle="{StaticResource NumHeader}">
+                        <DataGridTemplateColumn Header="{l:T order.qty}" Width="200" HeaderStyle="{StaticResource NumHeader}">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <DockPanel Margin="4,3">
+                                        <!-- already on a draft or executed order (hover: which) -->
+                                        <Border DockPanel.Dock="Right" Background="Transparent" Width="22" ToolTip="{Binding MentionsText}" ToolTipService.InitialShowDelay="150">
+                                            <TextBlock Style="{StaticResource Icon}" Text="&#xE946;" FontSize="13" VerticalAlignment="Center" HorizontalAlignment="Center"
+                                                       Foreground="{DynamicResource AccentTextBrush}" Visibility="{Binding HasMentions, Converter={StaticResource Visible}}" />
+                                        </Border>
                                         <TextBlock DockPanel.Dock="Right" Text="{Binding UnitText}" VerticalAlignment="Center" Margin="6,0,0,0" MinWidth="32"
                                                    Foreground="{DynamicResource TextMutedBrush}" />
                                         <l:NumBox Field="{Binding Qty}" MinHeight="30" />
