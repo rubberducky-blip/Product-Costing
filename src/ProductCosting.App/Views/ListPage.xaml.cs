@@ -44,8 +44,6 @@ public partial class ListPage : UserControl
         ProfitCol.Visibility = Vis(_vm.IsProducts);
         MarginCol.Visibility = Vis(!_vm.IsBought);
         AdjMarginCol.Visibility = Vis(_vm.IsBought);
-        // widths set by the person are shared by every table of the list (all its folders)
-        ColumnWidths.Use(ActiveGrid, _vm.Scope.ToString());
     }
 
     void Unbind()

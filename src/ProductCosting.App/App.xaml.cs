@@ -54,6 +54,7 @@ public partial class App : Application
         }
 
         Scrolling.Register();
+        TrimmedText.Register();
         Hotkeys.Load(AppState.Settings.Hotkeys);
         Loc.I.SetLanguage(AppState.Settings.Language);
         ThemeManager.Apply(AppState.Settings.Theme);

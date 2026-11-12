@@ -171,16 +171,6 @@ public sealed partial class Store
         SaveSettingsRows(c, t, old);
     });
 
-    /// <summary>A setting of the interface (e.g. column widths): read and written apart from the pricing settings, without reloads.</summary>
-    public string? GetUiValue(string key) => Read(c => c.ExecuteScalar<string?>("SELECT value FROM settings WHERE key=@key", new { key = "ui." + key }));
-
-    public void SetUiValue(string key, string? value) => Write(DataChange.None, (c, t) =>
-    {
-        if (value is null) c.Execute("DELETE FROM settings WHERE key=@key", new { key = "ui." + key }, t);
-        else c.Execute("INSERT INTO settings(key, value) VALUES(@key, @value) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-            new { key = "ui." + key, value }, t);
-    });
-
     /// <summary>A stored file (the logo, a supplier's printout…), or null.</summary>
     public byte[]? GetBlob(string key) => Read(c => c.ExecuteScalar<byte[]?>("SELECT data FROM blobs WHERE key=@key", new { key }));
 
